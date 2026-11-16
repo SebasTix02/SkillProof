@@ -48,7 +48,9 @@ let cached: Env | undefined;
 
 export function env(): Env {
   if (!cached) {
-    const parsed = EnvSchema.safeParse(process.env);
+    // An empty line such as `INTERNAL_SECRET=` in a .env file means "not set", not an empty value.
+    const raw = Object.fromEntries(Object.entries(process.env).filter(([, v]) => v !== undefined && v.trim() !== ''));
+    const parsed = EnvSchema.safeParse(raw);
     if (!parsed.success) {
       const lines = parsed.error.issues.map((i) => `  ${i.path.join('.')}: ${i.message}`).join('\n');
       throw new Error(`Invalid environment:\n${lines}`);
