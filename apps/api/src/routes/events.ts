@@ -236,7 +236,10 @@ export async function eventRoutes(app: FastifyInstance): Promise<void> {
     if (!memberOf(user, sub.organization_id)) throw forbidden();
     const scores = must(await db().from('scores').select('*').eq('submission_id', id));
     const feedback = must(await db().from('feedback').select('strengths_json, improvements_json').eq('submission_id', id).maybeSingle());
-    return { submission: sub, scores, feedback };
+    const interview = must(
+      await db().from('interviews').select('id, status').eq('submission_id', id).neq('status', 'error').maybeSingle(),
+    );
+    return { submission: sub, scores, feedback, interview };
   });
 
   app.patch('/api/scores/:id', async (req) => {

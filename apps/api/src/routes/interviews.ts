@@ -1,5 +1,6 @@
 import { CreateInterviewSchema, FinishInterviewSchema, INTERVIEW_SECONDS, parseGithubUrl, type QuestionPlan } from '@skillproof/shared';
 import type { FastifyInstance } from 'fastify';
+import { env } from '../env.js';
 import { resolveRepo, type HookSnippet } from '../engine/analyze.js';
 import { memberOf, requirePermission, requireUser } from '../lib/auth.js';
 import { badRequest, conflict, forbidden, notFound, tooMany } from '../lib/errors.js';
@@ -150,7 +151,7 @@ export async function interviewRoutes(app: FastifyInstance): Promise<void> {
       ) as { id: string }[];
       if (claimed.length === 0) throw conflict('already_started', 'This interview was already started in another tab.');
     }
-    return { ...live, seconds: INTERVIEW_SECONDS };
+    return { ...live, seconds: INTERVIEW_SECONDS, api_version: env().LIVE_TOKEN_API_VERSION };
   });
 
   app.post('/api/interviews/:id/finish', async (req) => {
