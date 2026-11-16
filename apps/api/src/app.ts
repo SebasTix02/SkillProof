@@ -42,7 +42,8 @@ export async function buildApp(): Promise<FastifyInstance> {
     });
   }
 
-  app.get('/healthz', async () => ({ ok: true }));
+  // /api/healthz is the one reachable through Vercel, where only /api/* and /internal/* go to the API.
+  for (const path of ['/healthz', '/api/healthz']) app.get(path, async () => ({ ok: true }));
   await app.register(eventRoutes);
   await app.register(interviewRoutes);
   await app.register(profileRoutes);
