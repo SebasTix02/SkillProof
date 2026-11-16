@@ -2,9 +2,10 @@
 //   .vercel/output/static           the web app (Vite build)
 //   .vercel/output/functions/api    the Fastify API as one Node function, bundled with esbuild
 //   .vercel/output/config.json      routes (/api and /internal -> function, everything else -> the single page app)
-//                                   and the crons from vercel.json
+//                                   (the crons stay in vercel.json: Vercel reads them from there, and listing them
+//                                   here too is rejected as a duplicate)
 import { execSync } from 'node:child_process';
-import { cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
@@ -62,8 +63,6 @@ writeFileSync(
         { handle: 'filesystem' },
         { src: '^/(.*)$', dest: '/index.html' },
       ],
-      // Defined in vercel.json: once a day works on every plan. On Pro, "* * * * *" closes deadlines within a minute.
-      crons: JSON.parse(readFileSync(join(root, 'vercel.json'), 'utf8')).crons ?? [],
     },
     null,
     2,
