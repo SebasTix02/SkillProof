@@ -146,7 +146,7 @@ export async function judgeSubmission(submissionId: string): Promise<void> {
 
   // Claim the job, so a retried task does not run next to the first attempt.
   const claimed = must(
-    await db().from('submissions').update({ status: 'analyzing', error: null }).eq('id', sub.id).in('status', ['queued', 'error']).select('id'),
+    await db().from('submissions').update({ status: 'analyzing', error: null, updated_at: new Date().toISOString() }).eq('id', sub.id).in('status', ['queued', 'error']).select('id'),
   ) as { id: string }[];
   if (claimed.length === 0) return;
 

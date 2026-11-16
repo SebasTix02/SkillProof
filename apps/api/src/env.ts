@@ -13,6 +13,19 @@ const EnvSchema = z.object({
   USE_VERTEX: bool.default(false),
   GOOGLE_CLOUD_PROJECT: z.string().optional(),
   GOOGLE_CLOUD_LOCATION: z.string().default('global'),
+  /** Service account key (the whole JSON file, on one line) for Vertex AI where gcloud is not available, such as Vercel. */
+  GOOGLE_SERVICE_ACCOUNT_JSON: z
+    .string()
+    .optional()
+    .transform((v, ctx) => {
+      if (!v) return undefined;
+      try {
+        return JSON.parse(v) as { client_email: string; private_key: string };
+      } catch {
+        ctx.addIssue({ code: 'custom', message: 'must be the JSON content of a service account key' });
+        return z.NEVER;
+      }
+    }),
   /** API version used to mint ephemeral Live tokens. */
   LIVE_TOKEN_API_VERSION: z.string().default('v1alpha'),
   GITHUB_TOKEN: z.string().optional(),
@@ -24,6 +37,8 @@ const EnvSchema = z.object({
   API_PUBLIC_URL: z.string().optional(),
   /** Shared secret for /internal routes when Cloud Tasks is not used. */
   INTERNAL_SECRET: z.string().min(16).optional(),
+  /** Set by Vercel for its cron jobs, which send it as a Bearer token. */
+  CRON_SECRET: z.string().min(16).optional(),
   JUDGE_CONCURRENCY: z.coerce.number().int().min(1).max(10).default(3),
   REPO_TOKEN_BUDGET: z.coerce.number().int().default(150_000),
 });

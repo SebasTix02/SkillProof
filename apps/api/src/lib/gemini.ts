@@ -12,7 +12,13 @@ export function textAi(): GoogleGenAI {
   if (!textClient) {
     const e = env();
     textClient = e.USE_VERTEX
-      ? new GoogleGenAI({ vertexai: true, project: e.GOOGLE_CLOUD_PROJECT, location: e.GOOGLE_CLOUD_LOCATION })
+      ? new GoogleGenAI({
+          vertexai: true,
+          project: e.GOOGLE_CLOUD_PROJECT,
+          location: e.GOOGLE_CLOUD_LOCATION,
+          // On Vercel there is no gcloud login, so a service account key is passed in an environment variable.
+          ...(e.GOOGLE_SERVICE_ACCOUNT_JSON ? { googleAuthOptions: { credentials: e.GOOGLE_SERVICE_ACCOUNT_JSON } } : {}),
+        })
       : new GoogleGenAI({ apiKey: e.GEMINI_API_KEY });
   }
   return textClient;

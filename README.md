@@ -69,6 +69,47 @@ Repository analysis and scoring can run through Vertex AI. Set `USE_VERTEX=true`
 
 Set a budget alert in Google Cloud Billing before running a real event.
 
+## Deploy on Vercel
+
+The web app and the API are two Vercel projects from this same repository. Each folder has its own
+`vercel.json`, so Vercel builds the shared package first and needs no extra settings.
+
+1. **API project.** In Vercel, choose Add New > Project, import the repository and set **Root Directory** to
+   `apps/api`. Vercel detects Fastify on its own. Add these environment variables:
+
+   | Variable | Value |
+   | --- | --- |
+   | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` | From Supabase |
+   | `GEMINI_API_KEY` | From Google AI Studio |
+   | `WEB_ORIGIN` | The web app's URL, for example `https://skillproof.vercel.app` |
+   | `API_PUBLIC_URL` | This project's production URL, for example `https://skillproof-api.vercel.app` |
+   | `INTERNAL_SECRET` | A random string of at least 16 characters |
+   | `CRON_SECRET` | Another random string of at least 16 characters |
+   | `GITHUB_TOKEN` | Optional, raises the GitHub limit |
+   | `USE_VERTEX`, `GOOGLE_CLOUD_PROJECT`, `GOOGLE_CLOUD_LOCATION`, `GOOGLE_SERVICE_ACCOUNT_JSON` | Optional, to use Google Cloud credits. The last one is the content of a service account key with the Vertex AI User role |
+
+2. **Web project.** Import the same repository again and set **Root Directory** to `apps/web`. Add
+   `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, and `VITE_API_URL` set to the API's URL.
+
+3. **Supabase Auth.** Change the site URL to the web app's URL and add `<web URL>/auth/callback` and
+   `<web URL>/reset-password` as redirect URLs.
+
+### Background jobs on Vercel
+
+Vercel Functions stop after 300 seconds on the Hobby plan and keep no process running between requests.
+SkillProof deals with that like this:
+
+- Each job (judging one submission, preparing or evaluating an interview) runs in its own function
+  invocation. The API calls its own `/internal/<job>/<id>/run` route with `INTERNAL_SECRET`, and that route
+  answers at once and keeps working in the background with `waitUntil`.
+- Closing events at their deadline runs as a scheduler pass. Any API request triggers one at most once a
+  minute, and a Vercel cron job runs one daily. On Hobby, cron jobs can run only once a day, so if an event
+  could close while nobody is using the site, also point a free external cron service (for example
+  cron-job.org) at `POST <API URL>/internal/tick` every minute with the header `x-internal-secret`. On Pro
+  you can change the schedule in `apps/api/vercel.json` to `* * * * *` instead.
+- A job that is stopped before it finishes is picked up by the next scheduler pass. A submission stuck in
+  judging for 10 minutes is marked as failed, so the organizer can use "Judge again".
+
 ## Checks
 
 ```bash
@@ -134,4 +175,5 @@ A second model call compares the transcript with the plan and writes the report.
 - Similarity flags cover shared repositories and shared fork parents. Comparing file contents or embeddings is
   not built yet.
 - Only public GitHub repositories are supported.
-- Not built yet: sign in with GitHub, installable PWA, teacher mode for assignments, deployment files.
+- The Vercel setup has not been deployed yet. Background jobs on Vercel in particular need a first real run.
+- Not built yet: sign in with GitHub, installable PWA, teacher mode for assignments.
