@@ -1,0 +1,23 @@
+{
+  "name": "skillproof",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev:api": "npm run dev -w @skillproof/api",
+    "dev:web": "npm run dev -w @skillproof/web",
+    "build": "npm run build -w @skillproof/shared && npm run build -w @skillproof/api && npm run build -w @skillproof/web",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "devDependencies": {
+    "typescript": "^7.0.2",
+    "vitest": "^5.1.0"
+  }
+}
