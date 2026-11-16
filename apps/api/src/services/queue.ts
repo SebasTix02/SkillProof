@@ -15,7 +15,30 @@ export function jobHandler(kind: string): JobHandler | undefined {
   return handlers.get(kind);
 }
 
-// ---- in-process fallback (local development, or a single always-on instance) ----
+/** True when this process runs as a Vercel Function. */
+export const onVercel = (): boolean => !!process.env.VERCEL;
+
+/**
+ * Runs work after the response has been sent.
+ * On Vercel the function stays alive until the promise settles, up to its max duration.
+ */
+export function background(work: Promise<unknown>, label = 'background work'): void {
+  const guarded = work.catch((err) => console.error(`${label} failed:`, err));
+  if (onVercel()) waitUntil(guarded);
+}
+
+/** The public URL of this API, used to call its own /internal routes. */
+export function publicBaseUrl(): string | null {
+  const e = env();
+  if (e.API_PUBLIC_URL) return e.API_PUBLIC_URL.replace(/\/$/, '');
+  // The production domain is not behind Vercel Deployment Protection. A deployment URL may be.
+  if (process.env.VERCEL_ENV === 'production' && process.env.VERCEL_PROJECT_PRODUCTION_URL)
+    return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+  return null;
+}
+
+// ---- in-process (local development, or a fallback on Vercel) ----
 
 let running = 0;
 const waiting: (() => void)[] = [];
@@ -33,64 +56,66 @@ async function runLocal(kind: string, id: string): Promise<void> {
   }
 }
 
+// ---- Vercel: one function invocation per job ----
+
+/**
+ * Asks this API to run the job in a fresh invocation, so each job gets the full max duration
+ * instead of sharing the one of the request that queued it.
+ */
+async function dispatchOnVercel(kind: string, id: string): Promise<void> {
+  const base = publicBaseUrl();
+  const secret = env().INTERNAL_SECRET;
+  if (base && secret) {
+    try {
+      const res = await fetch(`${base}/internal/${kind}/${id}/run`, {
+        method: 'POST',
+        headers: { 'x-internal-secret': secret },
+        signal: AbortSignal.timeout(15_000),
+      });
+      if (res.ok) return;
+      console.warn(`Dispatching ${kind}/${id} returned ${res.status}. Running it in this invocation.`);
+    } catch (err) {
+      console.warn(`Dispatching ${kind}/${id} failed. Running it in this invocation.`, err);
+    }
+  } else {
+    console.warn('Set INTERNAL_SECRET (and API_PUBLIC_URL) so each job runs in its own invocation.');
+  }
+  background(runLocal(kind, id), `job ${kind}/${id}`);
+}
+
 // ---- Cloud Tasks ----
 
 let tasks: CloudTasksClient | undefined;
 
-// ---- Vercel ----
-
-/** Base URL at which this deployment reaches its own API (its /internal routes). */
-export function vercelApiBase(): string | undefined {
-  const e = env();
-  if (e.API_PUBLIC_URL) return e.API_PUBLIC_URL.replace(/\/$/, '');
-  const host = process.env.VERCEL_PROJECT_PRODUCTION_URL;
-  return host ? `https://${host}` : undefined;
-}
-
-/**
- * On Vercel a function stops once its response is sent, unless the work is handed to waitUntil.
- * Each job is posted to this API's own /internal route, so it gets a function invocation (and time limit) of its own.
- * Without INTERNAL_SECRET or a known URL it runs inside the current invocation instead.
- */
-function enqueueVercel(kind: string, id: string): void {
-  const base = vercelApiBase();
-  const secret = env().INTERNAL_SECRET;
-  if (!base || !secret) {
-    waitUntil(runLocal(kind, id));
-    return;
-  }
-  waitUntil(
-    fetch(`${base}/internal/${kind}/${id}/run`, { method: 'POST', headers: { 'x-internal-secret': secret } })
-      .then(async (res) => {
-        if (!res.ok) console.error(`Job ${kind}/${id} failed: ${res.status} ${await res.text().catch(() => '')}`);
-      })
-      .catch((err) => console.error(`Job ${kind}/${id} could not be started:`, err)),
-  );
-}
-
 /**
  * Queues a background job.
- * With TASKS_QUEUE set, Cloud Tasks calls back into /internal with an OIDC token, which gives retries and a
- * concurrency limit configured on the queue. Without it, the job runs in this process.
+ * - TASKS_QUEUE set: Cloud Tasks calls back into /internal with an OIDC token, with retries and a concurrency limit.
+ * - On Vercel: the API calls its own /internal route, which answers at once and keeps working in the background.
+ * - Otherwise the job runs in this process.
+ * Jobs are safe to run twice: each one claims its row before working, and the scheduler tick re-queues stuck ones.
  */
 export async function enqueue(kind: string, id: string): Promise<void> {
   const e = env();
-  if (!e.TASKS_QUEUE) {
-    if (process.env.VERCEL) enqueueVercel(kind, id);
-    else void runLocal(kind, id);
+  if (e.TASKS_QUEUE) {
+    // Loaded only when used: the Vercel bundle leaves it out (it reads protocol files from disk).
+    tasks ??= new (await import('@google-cloud/tasks')).CloudTasksClient();
+    const base = e.API_PUBLIC_URL!.replace(/\/$/, '');
+    await tasks.createTask({
+      parent: tasks.queuePath(e.GOOGLE_CLOUD_PROJECT!, e.TASKS_LOCATION, e.TASKS_QUEUE),
+      task: {
+        httpRequest: {
+          httpMethod: 'POST',
+          url: `${base}/internal/${kind}/${id}/run`,
+          oidcToken: { serviceAccountEmail: e.TASKS_SERVICE_ACCOUNT!, audience: base },
+        },
+        dispatchDeadline: { seconds: 900 },
+      },
+    });
     return;
   }
-  tasks ??= new (await import('@google-cloud/tasks')).CloudTasksClient();
-  const base = e.API_PUBLIC_URL!.replace(/\/$/, '');
-  await tasks.createTask({
-    parent: tasks.queuePath(e.GOOGLE_CLOUD_PROJECT!, e.TASKS_LOCATION, e.TASKS_QUEUE),
-    task: {
-      httpRequest: {
-        httpMethod: 'POST',
-        url: `${base}/internal/${kind}/${id}/run`,
-        oidcToken: { serviceAccountEmail: e.TASKS_SERVICE_ACCOUNT!, audience: base },
-      },
-      dispatchDeadline: { seconds: 900 },
-    },
-  });
+  if (onVercel()) {
+    await dispatchOnVercel(kind, id);
+    return;
+  }
+  void runLocal(kind, id);
 }

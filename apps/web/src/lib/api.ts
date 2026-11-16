@@ -1,6 +1,7 @@
 import { supabase } from './supabase';
 
-const BASE = ((import.meta.env.VITE_API_URL as string | undefined) ?? 'http://localhost:8080').replace(/\/$/, '');
+// In production the API is served on the same domain (see vercel.json), so the default base is empty.
+const BASE = ((import.meta.env.VITE_API_URL as string | undefined) || (import.meta.env.PROD ? '' : 'http://localhost:8080')).replace(/\/$/, '');
 
 export class ApiError extends Error {
   constructor(

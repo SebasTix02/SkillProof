@@ -69,25 +69,48 @@ Repository analysis and scoring can run through Vertex AI. Set `USE_VERTEX=true`
 
 Set a budget alert in Google Cloud Billing before running a real event.
 
-## Deploy to Vercel
+## Deploy on Vercel
 
-The web app and the API deploy together as one Vercel project. `vercel.json` runs `scripts/build-vercel.mjs`,
-which writes the Vite build as static files and bundles the Fastify API into one Node function with the
-[Build Output API](https://vercel.com/docs/build-output-api/v3). `/api/*` and `/internal/*` go to the function and
-every other path goes to the web app, so the browser calls the API on its own domain.
+The web app and the API deploy together as one Vercel project. The root `vercel.json` runs
+`scripts/build-vercel.mjs`, which writes the Vite build as static files and bundles the Fastify API into one Node
+function with the [Build Output API](https://vercel.com/docs/build-output-api/v3). `/api/*` and `/internal/*` go to
+the function and every other path goes to the web app, so the browser calls the API on its own domain.
 
-1. Import the repository in Vercel. Leave the root directory at the repository root. The framework, build and
-   output settings come from `vercel.json`.
-2. Under Settings > Environment Variables add the variables from `apps/api/.env` and `apps/web/.env`, plus
-   `INTERNAL_SECRET` and `CRON_SECRET` (random strings of at least 16 characters). Set `WEB_ORIGIN` to the
-   Vercel URL. Leave out `PORT` and `VITE_API_URL`.
-3. In Supabase, add the Vercel URL as the site URL and add `<url>/auth/callback` and `<url>/reset-password` as
-   redirect URLs.
+1. **Import.** In Vercel, choose Add New > Project, import the repository and leave **Root Directory** at the
+   repository root. The build settings come from `vercel.json`.
+2. **Environment variables.** Under Settings > Environment Variables paste these:
 
-Background jobs (judging, interview reports) call the API's own `/internal` routes, so each one runs in its own
-function invocation with up to 300 seconds. Vercel Cron calls `GET /internal/tick` once a day, which is the
-limit on the Hobby plan. API traffic also closes events whose deadline has passed, at most once a minute. On Pro,
-set the cron in `scripts/build-vercel.mjs` to every minute.
+   | Variable | Value |
+   | --- | --- |
+   | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` | From Supabase |
+   | `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` | From Supabase. The anon key is the only one the browser gets |
+   | `GEMINI_API_KEY` | From Google AI Studio |
+   | `WEB_ORIGIN` | The project's URL, for example `https://skillproof.vercel.app` |
+   | `INTERNAL_SECRET` | A random string of at least 16 characters |
+   | `CRON_SECRET` | Another random string of at least 16 characters |
+   | `GITHUB_TOKEN` | Optional, raises the GitHub limit |
+   | `USE_VERTEX`, `GOOGLE_CLOUD_PROJECT`, `GOOGLE_CLOUD_LOCATION`, `GOOGLE_SERVICE_ACCOUNT_JSON` | Optional, to use Google Cloud credits. The last one is the content of a service account key with the Vertex AI User role |
+
+   Leave out `PORT` and `VITE_API_URL`: the web app calls the API on its own domain. `API_PUBLIC_URL` is only
+   needed if the production domain is not the one Vercel assigns.
+3. **Supabase Auth.** Change the site URL to the project's URL and add `<URL>/auth/callback` and
+   `<URL>/reset-password` as redirect URLs.
+
+### Background jobs on Vercel
+
+Vercel Functions stop after 300 seconds on the Hobby plan and keep no process running between requests.
+SkillProof deals with that like this:
+
+- Each job (judging one submission, preparing or evaluating an interview) runs in its own function
+  invocation. The API calls its own `/internal/<job>/<id>/run` route with `INTERNAL_SECRET`, and that route
+  answers at once and keeps working in the background with `waitUntil`.
+- Closing events at their deadline runs as a scheduler pass. Any API request triggers one at most once a
+  minute, and a Vercel cron job (`GET /internal/tick`, set in `vercel.json`) runs one daily. On Hobby, cron jobs
+  can run only once a day, so if an event could close while nobody is using the site, also point a free external
+  cron service (for example cron-job.org) at `POST <URL>/internal/tick` every minute with the header
+  `x-internal-secret`. On Pro you can change the schedule in `vercel.json` to `* * * * *` instead.
+- A job that is stopped before it finishes is picked up by the next scheduler pass. A submission stuck in
+  judging for 10 minutes is marked as failed, so the organizer can use "Judge again".
 
 ## Checks
 
@@ -154,4 +177,5 @@ A second model call compares the transcript with the plan and writes the report.
 - Similarity flags cover shared repositories and shared fork parents. Comparing file contents or embeddings is
   not built yet.
 - Only public GitHub repositories are supported.
-- Not built yet: sign in with GitHub, installable PWA, teacher mode for assignments, deployment files.
+- The Vercel setup has not been deployed yet. Background jobs on Vercel in particular need a first real run.
+- Not built yet: sign in with GitHub, installable PWA, teacher mode for assignments.

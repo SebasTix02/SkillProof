@@ -8,7 +8,8 @@ import { interviewRoutes } from './routes/interviews.js';
 import { profileRoutes } from './routes/profiles.js';
 import { evaluateInterview, prepareInterview } from './services/interviews.js';
 import { judgeSubmission } from './services/judge.js';
-import { registerJob } from './services/queue.js';
+import { onVercel, registerJob } from './services/queue.js';
+import { maybeTick } from './services/scheduler.js';
 
 export async function buildApp(): Promise<FastifyInstance> {
   const app = Fastify({ logger: true, bodyLimit: 1024 * 1024 });
@@ -33,6 +34,13 @@ export async function buildApp(): Promise<FastifyInstance> {
   registerJob('judge', judgeSubmission);
   registerJob('interview-prepare', prepareInterview);
   registerJob('interview-evaluate', evaluateInterview);
+
+  // Serverless instances have no timer of their own, so API traffic drives the scheduler too.
+  if (onVercel()) {
+    app.addHook('onResponse', async (req) => {
+      if (req.url.startsWith('/api/')) maybeTick();
+    });
+  }
 
   app.get('/healthz', async () => ({ ok: true }));
   await app.register(eventRoutes);
