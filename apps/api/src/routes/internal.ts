@@ -18,6 +18,7 @@ const oauth = new OAuth2Client();
 async function requireInternal(req: FastifyRequest): Promise<void> {
   const e = env();
   const header = req.headers.authorization;
+  if (e.CRON_SECRET && header?.startsWith('Bearer ') && safeEqual(header.slice(7), e.CRON_SECRET)) return;
   if (e.TASKS_SERVICE_ACCOUNT && e.API_PUBLIC_URL && header?.startsWith('Bearer ')) {
     try {
       const ticket = await oauth.verifyIdToken({ idToken: header.slice(7), audience: e.API_PUBLIC_URL.replace(/\/$/, '') });
@@ -29,19 +30,24 @@ async function requireInternal(req: FastifyRequest): Promise<void> {
     throw forbidden();
   }
   const given = req.headers['x-internal-secret'];
-  if (e.INTERNAL_SECRET && typeof given === 'string') {
-    const a = Buffer.from(given);
-    const b = Buffer.from(e.INTERNAL_SECRET);
-    if (a.length === b.length && timingSafeEqual(a, b)) return;
-  }
+  if (e.INTERNAL_SECRET && typeof given === 'string' && safeEqual(given, e.INTERNAL_SECRET)) return;
   throw forbidden();
 }
 
+function safeEqual(given: string, expected: string): boolean {
+  const a = Buffer.from(given);
+  const b = Buffer.from(expected);
+  return a.length === b.length && timingSafeEqual(a, b);
+}
+
 export async function internalRoutes(app: FastifyInstance): Promise<void> {
-  app.post('/internal/tick', async (req) => {
+  const tick = async (req: FastifyRequest) => {
     await requireInternal(req);
     return { closed: await closeDueEvents() };
-  });
+  };
+  app.post('/internal/tick', tick);
+  // Vercel Cron calls with GET.
+  app.get('/internal/tick', tick);
 
   app.post('/internal/:kind/:id/run', async (req) => {
     await requireInternal(req);

@@ -69,6 +69,26 @@ Repository analysis and scoring can run through Vertex AI. Set `USE_VERTEX=true`
 
 Set a budget alert in Google Cloud Billing before running a real event.
 
+## Deploy to Vercel
+
+The web app and the API deploy together as one Vercel project. `vercel.json` runs `scripts/build-vercel.mjs`,
+which writes the Vite build as static files and bundles the Fastify API into one Node function with the
+[Build Output API](https://vercel.com/docs/build-output-api/v3). `/api/*` and `/internal/*` go to the function and
+every other path goes to the web app, so the browser calls the API on its own domain.
+
+1. Import the repository in Vercel. Leave the root directory at the repository root. The framework, build and
+   output settings come from `vercel.json`.
+2. Under Settings > Environment Variables add the variables from `apps/api/.env` and `apps/web/.env`, plus
+   `INTERNAL_SECRET` and `CRON_SECRET` (random strings of at least 16 characters). Set `WEB_ORIGIN` to the
+   Vercel URL. Leave out `PORT` and `VITE_API_URL`.
+3. In Supabase, add the Vercel URL as the site URL and add `<url>/auth/callback` and `<url>/reset-password` as
+   redirect URLs.
+
+Background jobs (judging, interview reports) call the API's own `/internal` routes, so each one runs in its own
+function invocation with up to 300 seconds. Vercel Cron calls `GET /internal/tick` once a day, which is the
+limit on the Hobby plan. API traffic also closes events whose deadline has passed, at most once a minute. On Pro,
+set the cron in `scripts/build-vercel.mjs` to every minute.
+
 ## Checks
 
 ```bash

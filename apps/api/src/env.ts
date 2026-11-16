@@ -24,6 +24,8 @@ const EnvSchema = z.object({
   API_PUBLIC_URL: z.string().optional(),
   /** Shared secret for /internal routes when Cloud Tasks is not used. */
   INTERNAL_SECRET: z.string().min(16).optional(),
+  /** Set on Vercel: Vercel Cron sends it as a bearer token to GET /internal/tick. */
+  CRON_SECRET: z.string().min(16).optional(),
   JUDGE_CONCURRENCY: z.coerce.number().int().min(1).max(10).default(3),
   REPO_TOKEN_BUDGET: z.coerce.number().int().default(150_000),
 });
@@ -33,7 +35,9 @@ let cached: Env | undefined;
 
 export function env(): Env {
   if (!cached) {
-    const parsed = EnvSchema.safeParse(process.env);
+    // A variable left blank in .env (KEY=) counts as not set.
+    const raw = Object.fromEntries(Object.entries(process.env).filter(([, v]) => v !== ''));
+    const parsed = EnvSchema.safeParse(raw);
     if (!parsed.success) {
       const lines = parsed.error.issues.map((i) => `  ${i.path.join('.')}: ${i.message}`).join('\n');
       throw new Error(`Invalid environment:\n${lines}`);
