@@ -1,0 +1,119 @@
+import { MODELS, ScoreResultSchema, type Rubric, type ScoreResult } from '@skillproof/shared';
+import type { Part } from '@google/genai';
+import type { AnalysisRow } from '../engine/analyze.js';
+import { UNTRUSTED_NOTICE, generateJson, type UsageContext } from '../lib/gemini.js';
+import { db, must } from '../lib/supabase.js';
+
+const SCORE_SYSTEM = `You are a strict, fair hackathon judge. You score one project against a rubric.
+
+Rules:
+- Score every criterion from 1 to 10 using the anchors given for 2, 5 and 8. Most projects land between 3 and 7.
+- Judge only what the evidence shows. The repository map was produced from the code and is your main evidence.
+- justification: exactly two sentences, specific to this project, naming what you saw.
+- evidence: file paths from the repository map, or video timestamps as mm:ss. Never cite a file that is not in the map.
+- Criteria about the demo or the pitch are judged from the video. If there is no video, give score null for them
+  and say so in the justification. Do not guess.
+- A claim in the description or the video that the code does not support counts against the project.
+- feedback: up to 4 strengths and up to 3 improvements, each improvement naming where and a concrete next step.
+
+${UNTRUSTED_NOTICE}`;
+
+export interface ScoreInput {
+  submissionId: string;
+  organizationId: string;
+  rubric: Rubric;
+  analysis: AnalysisRow;
+  teamName: string;
+  description: string;
+  videoUrl: string | null;
+  usage: UsageContext;
+}
+
+function buildParts(input: ScoreInput, withVideo: boolean): Part[] {
+  const rubric = input.rubric
+    .map(
+      (c) =>
+        `- ${c.key} (${c.name}, weight ${c.weight}): ${c.description}\n    2 = ${c.anchors.low}\n    5 = ${c.anchors.mid}\n    8 = ${c.anchors.high}`,
+    )
+    .join('\n');
+  const text = `Rubric:
+${rubric}
+
+Return one entry in "scores" for each of these criterion keys, in this order: ${input.rubric.map((c) => c.key).join(', ')}.
+
+Team: ${input.teamName}
+
+<description>
+${input.description || '(none given)'}
+</description>
+
+<repository>
+${JSON.stringify({ map: input.analysis.map_json, commits: input.analysis.commit_profile_json })}
+</repository>
+
+Video: ${withVideo ? 'attached. It contains the demo and the pitch.' : 'none available.'}`;
+  const parts: Part[] = [{ text }];
+  if (withVideo && input.videoUrl) parts.push({ fileData: { fileUri: input.videoUrl, mimeType: 'video/*' } });
+  return parts;
+}
+
+async function runScoring(input: ScoreInput, withVideo: boolean): Promise<ScoreResult> {
+  const { data } = await generateJson({
+    model: MODELS.analysis,
+    schema: ScoreResultSchema,
+    system: SCORE_SYSTEM,
+    parts: buildParts(input, withVideo),
+    usage: { ...input.usage, kind: withVideo ? 'score_with_video' : 'score' },
+    temperature: 0.1,
+  });
+  return data;
+}
+
+/**
+ * Scores a submission and stores scores and feedback.
+ * Returns a note when the video could not be used, so the organizer knows why demo and pitch are empty.
+ */
+export async function scoreSubmission(input: ScoreInput): Promise<{ note: string | null }> {
+  let result: ScoreResult;
+  let note: string | null = null;
+  if (input.videoUrl) {
+    try {
+      result = await runScoring(input, true);
+    } catch (err) {
+      // Private, removed or too long videos fail the whole call. The code is still worth scoring.
+      console.warn(`Scoring with video failed for ${input.submissionId}:`, err);
+      note = 'The video could not be read (it must be a public YouTube video), so demo and pitch were not scored.';
+      result = await runScoring(input, false);
+    }
+  } else {
+    result = await runScoring(input, false);
+  }
+
+  const known = new Set(input.rubric.map((c) => c.key));
+  const byKey = new Map(result.scores.filter((s) => known.has(s.criterion_key)).map((s) => [s.criterion_key, s]));
+  const rows = input.rubric.map((c) => {
+    const s = byKey.get(c.key);
+    return {
+      submission_id: input.submissionId,
+      organization_id: input.organizationId,
+      criterion_key: c.key,
+      ai_score: s?.score ?? null,
+      justification: s?.justification ?? 'The model returned no score for this criterion.',
+      evidence_json: s?.evidence ?? [],
+    };
+  });
+  // Upsert only the AI columns, so a judge's override survives a re-run.
+  must(await db().from('scores').upsert(rows, { onConflict: 'submission_id,criterion_key' }));
+  must(
+    await db().from('feedback').upsert(
+      {
+        submission_id: input.submissionId,
+        organization_id: input.organizationId,
+        strengths_json: result.feedback.strengths,
+        improvements_json: result.feedback.improvements,
+      },
+      { onConflict: 'submission_id' },
+    ),
+  );
+  return { note };
+}
