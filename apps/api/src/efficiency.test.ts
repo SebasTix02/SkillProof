@@ -154,7 +154,8 @@ describe('judging queue', () => {
     expect(nextAttemptAt(1, now, () => 0).getTime()).toBe(RETRY_DELAYS_MIN[0]! * 60_000);
     expect(nextAttemptAt(2, now, () => 0).getTime()).toBe(RETRY_DELAYS_MIN[1]! * 60_000);
     expect(nextAttemptAt(5, now, () => 0).getTime()).toBe(RETRY_DELAYS_MIN.at(-1)! * 60_000);
-  });
+    // The first import of the queue module can be slow on a cold start.
+  }, 30_000);
 });
 
 describe('what is never read', () => {

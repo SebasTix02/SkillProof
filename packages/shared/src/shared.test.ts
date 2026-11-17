@@ -87,3 +87,30 @@ describe('model fallbacks', () => {
     expect(modelChain('unknown-model')).toEqual(['unknown-model']);
   });
 });
+
+describe('organization, review and course schemas', async () => {
+  const { InviteMemberSchema, IntegrityDecisionSchema, JudgeReviewSchema, CourseMembersSchema } = await import('./org.js');
+  const id = '00000000-0000-4000-8000-000000000001';
+
+  it('invites only to organization roles, with a lowercased email', () => {
+    expect(InviteMemberSchema.parse({ email: 'Ana@Echo.dev', role: 'judge' }).email).toBe('ana@echo.dev');
+    expect(InviteMemberSchema.safeParse({ email: 'a@b.co', role: 'platform_admin' }).success).toBe(false);
+    expect(InviteMemberSchema.safeParse({ email: 'a@b.co', role: 'student' }).success).toBe(false);
+  });
+
+  it('keeps pair verdicts on flags and submission verdicts on submissions', () => {
+    expect(IntegrityDecisionSchema.safeParse({ flag_id: id, verdict: 'collusion' }).success).toBe(true);
+    expect(IntegrityDecisionSchema.safeParse({ submission_id: id, verdict: 'live_defense' }).success).toBe(true);
+    expect(IntegrityDecisionSchema.safeParse({ flag_id: id, verdict: 'live_defense' }).success).toBe(false);
+    expect(IntegrityDecisionSchema.safeParse({ submission_id: id, verdict: 'collusion' }).success).toBe(false);
+  });
+
+  it('bounds judge scores to the 1-10 scale', () => {
+    expect(JudgeReviewSchema.safeParse({ scores: [{ criterion_key: 'demo', score: 11 }] }).success).toBe(false);
+    expect(JudgeReviewSchema.parse({ scores: [{ criterion_key: 'demo', score: 7 }] })).toMatchObject({ status: 'draft', note: '' });
+  });
+
+  it('enrols students by default', () => {
+    expect(CourseMembersSchema.parse({ emails: ['s@uni.edu'] }).role).toBe('student');
+  });
+});

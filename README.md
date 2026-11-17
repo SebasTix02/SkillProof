@@ -249,4 +249,8 @@ A second model call compares the transcript with the plan and writes the report.
   not built yet.
 - Only public GitHub repositories are supported.
 - The Vercel setup has not been deployed yet. Background jobs on Vercel in particular need a first real run.
-- Not built yet: sign in with GitHub, installable PWA, teacher mode for assignments.
+- Not built yet: sign in with GitHub, installable PWA.
+- Organizer suite, judge workspace, similarity forensics and course mode have their data model and API
+  (`20261117000004_screens`): members and invitations, usage, audit trail, judge assignments and reviews,
+  integrity decisions, courses and rosters. Some of these screens still show sample data until they are wired
+  to it. Only the data model exists for billing, invitation and result emails, and file-level similarity matches.

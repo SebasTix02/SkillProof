@@ -3,7 +3,10 @@ import Fastify, { type FastifyInstance } from 'fastify';
 import { env } from './env.js';
 import { HttpError } from './lib/errors.js';
 import { eventRoutes } from './routes/events.js';
+import { courseRoutes } from './routes/courses.js';
 import { internalRoutes } from './routes/internal.js';
+import { orgRoutes } from './routes/org.js';
+import { reviewRoutes } from './routes/review.js';
 import { interviewRoutes } from './routes/interviews.js';
 import { profileRoutes } from './routes/profiles.js';
 import { evaluateInterview, prepareInterview } from './services/interviews.js';
@@ -48,5 +51,8 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(interviewRoutes);
   await app.register(profileRoutes);
   await app.register(internalRoutes);
+  await app.register(orgRoutes);
+  await app.register(reviewRoutes);
+  await app.register(courseRoutes);
   return app;
 }
