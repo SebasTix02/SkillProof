@@ -36,10 +36,10 @@ const DOSSIERS: DossierSpecimen[] = [
     hash: '@a4f91c2',
     score: 96,
     title: 'Zero-Knowledge Rollup Verifier',
-    context: 'Stanford University • CS 251 Applied Crypto',
-    depth: 'AST Depth: Selective Plan (34 files)',
+    context: 'Example • Applied cryptography course',
+    depth: '34 files read',
     proof: 'PROOF: PLONK Circuit in Rust',
-    duration: '03:00 Audio Sealed',
+    duration: '03:00 voice interview',
     citedLine: 'src/prover/kzg_commitment.rs:88-104',
     quote:
       'We batched openings across all wire polynomials before computing the pairing check so verification stays constant-size.',
@@ -48,10 +48,10 @@ const DOSSIERS: DossierSpecimen[] = [
     hash: '@9b7201e',
     score: 92,
     title: 'SIMD Vector Tensor Runtime',
-    context: "MIT Blueprint '25 Systems Track",
-    depth: 'AST Depth: Selective Plan (28 files)',
+    context: 'Example • Systems hackathon track',
+    depth: '28 files read',
     proof: 'PROOF: C++ AVX-512 Intrinsics',
-    duration: '02:48 Audio Sealed',
+    duration: '02:48 voice interview',
     citedLine: 'kernels/matmul_avx512.cc:142-169',
     quote:
       'We tiled the accumulator registers in 6x16 micro-panels to hide FMA latency without spilling to L1 cache.',
@@ -60,10 +60,10 @@ const DOSSIERS: DossierSpecimen[] = [
     hash: '@cc41298',
     score: 89,
     title: 'Distributed LSM B-Tree Engine',
-    context: 'CalHacks Infrastructure Track',
-    depth: 'AST Depth: Selective Plan (41 files)',
+    context: 'Example • Infrastructure hackathon track',
+    depth: '41 files read',
     proof: 'PROOF: Go Compaction & WAL Recovery',
-    duration: '03:00 Audio Sealed',
+    duration: '03:00 voice interview',
     citedLine: 'storage/wal/recovery.go:54-79',
     quote:
       'During replay we truncate any torn CRC frame at the tail of the segment before promoting the memtable.',
@@ -93,7 +93,7 @@ export function Landing() {
             POWERED BY GOOGLE GEMINI
           </span>
           <span className="font-mono-code ml-auto hidden text-[11px] text-muted md:inline-block">
-            COMMIT LOCK: <span className="font-semibold text-ink">@a4f91c280ee3d1</span>
+            COMMIT LOCK: <span className="font-semibold text-ink">FROZEN AT THE DEADLINE</span>
           </span>
         </div>
 
@@ -159,7 +159,7 @@ export function Landing() {
                   </span>
                 </div>
                 <Badge tone="good" dot>
-                  AST LIVE MAPPING
+                  REPOSITORY MAP
                 </Badge>
               </div>
 
@@ -215,7 +215,7 @@ export function Landing() {
       {/* 2. Interactive Core Demo & 3 Pillars Section */}
       <section id="specimen" className="space-y-8 rounded-[6px] border border-line bg-white p-6 lg:p-8">
         <SectionHeader
-          eyebrow="01 // SYNCHRONIZED CODE & VOICE VERIFICATION"
+          eyebrow="01 // EXAMPLE: CODE & VOICE EVIDENCE"
           eyebrowTone="accent"
           title="How SkillProof catches what static linters miss"
           subtitle="Every rubric score and interview skill is backed by concrete repository files and direct quotes from the candidate's 3-minute oral defense."
@@ -368,7 +368,7 @@ export function Landing() {
               icon: 'fact_check',
               tone: 'neutral' as const,
               title: 'Auditable Dossiers & Overrides',
-              desc: 'Organizers inspect AI justifications, cited files, similarity warnings, and manual score overrides with an immutable audit log before publishing final standings.',
+              desc: 'Organizers inspect AI justifications, cited files, similarity warnings, and manual score overrides with an audit log before publishing final standings.',
               foot: 'HUMAN-IN-THE-LOOP ADJUDICATION →',
             },
           ].map((p) => (
@@ -537,13 +537,13 @@ export function Landing() {
       {/* 4. Public Verification Stream / Specimen Registry */}
       <section id="registry" className="space-y-5">
         <SectionHeader
-          eyebrow="03 // PUBLIC VERIFICATION SPECIMENS"
+          eyebrow="03 // EXAMPLE REPORTS"
           eyebrowTone="accent"
-          title="Verified Proof Dossier Examples"
+          title="What a report looks like (examples)"
           rightSlot={
             <div className="font-mono-code flex items-center gap-2 text-[11px] text-muted">
               <LiveDot tone="good" />
-              <span>COMMIT-ANCHORED ORAL EXAM SPECIMENS</span>
+              <span>ILLUSTRATIVE, NOT REAL CANDIDATES</span>
             </div>
           }
         />

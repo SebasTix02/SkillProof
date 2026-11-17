@@ -130,7 +130,7 @@ export const ORG_ROLE_SPECS: Record<OrgRoleKey, RoleCapabilitySpec> = {
     label: 'OWNER',
     tier: 'ADMIN ROOT',
     description:
-      'Full cryptographic key revocation, billing authority, seat management, and enclave administration.',
+      'Manages members, invitations, roles and organization settings, plus everything an organizer can do.',
     badgeClass: 'border-bad/30 bg-bad-soft text-bad',
     cardClass: 'border-bad/25 bg-bad-soft/40 text-ink',
     pillBgClass: 'bg-bad text-white',
@@ -163,7 +163,7 @@ export const ORG_ROLE_SPECS: Record<OrgRoleKey, RoleCapabilitySpec> = {
     label: 'AUDITOR',
     tier: 'COMPLIANCE',
     description:
-      'Export cryptographic Merkle ledgers, inspect automated defense logs, and review ISO/SOC2 attestations.',
+      'Reads the audit log and AI usage, and records integrity decisions on flagged submissions.',
     badgeClass: 'border-[#C7D2FE] bg-[#EEF2FF] text-[#3730A3]',
     cardClass: 'border-[#C7D2FE] bg-[#EEF2FF]/50 text-ink',
     pillBgClass: 'bg-[#4338CA] text-white',

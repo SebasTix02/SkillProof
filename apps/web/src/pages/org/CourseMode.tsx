@@ -977,9 +977,9 @@ export function CourseMode() {
 
       <LedgerAnchorBanner
         badge="FACULTY GRADEBOOK"
-        meta="COMMIT-LOCKED AUDIT // LTI CSV EXPORT READY"
-        title="Cryptographically Anchored Course Evaluation Ledger"
-        description="Every rubric score, faculty override, similarity flag, and oral defense verdict is preserved with repository commit attribution."
+        meta="FROZEN COMMITS // CSV EXPORT"
+        title="Every grading change is in the audit log"
+        description="Scores are judged on the commit frozen at the deadline. Faculty overrides and integrity determinations are recorded with who made them and when."
       />
     </div>
   );

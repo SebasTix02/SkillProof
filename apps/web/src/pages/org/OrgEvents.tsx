@@ -223,7 +223,7 @@ export function OrgEvents() {
           description="GitHub repositories ingested and tracked for commit-freeze rubric evaluation."
           progress={stats.conversionPct}
           footerLeft="COMMIT LOCK"
-          footerRight="SHA-256 VERIFIED"
+          footerRight="AT THE DEADLINE"
         />
         <TopAccentKpiCard
           accent="amber"
@@ -451,12 +451,12 @@ export function OrgEvents() {
         </section>
       )}
 
-      {/* 4. Cryptographically Anchored Evaluation Ledger Banner */}
+      {/* 4. Audit log banner */}
       <LedgerAnchorBanner
-        badge="COMMIT-LOCKED LEDGER"
-        meta={`ORG: ${org?.name?.toUpperCase() ?? 'ORGANIZER'} // ED25519 ATTESTED`}
-        title="Cryptographically Anchored Evaluation Ledger"
-        description="Every rubric score override, commit SHA freeze, and 3-minute voice defense verdict is recorded with full repository evidence and model provenance."
+        badge="AUDIT LOG"
+        meta={`ORG: ${org?.name?.toUpperCase() ?? 'ORGANIZER'} // RECORDED CHANGES`}
+        title="Every change is in the audit log"
+        description="Score overrides, event closes, publications and integrity decisions are recorded with who made them and when. Scores cite the repository files and name the model that wrote them."
         actions={
           <>
             <button

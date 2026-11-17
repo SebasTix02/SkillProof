@@ -159,7 +159,7 @@ export function Layout({ children }: { children: ReactNode }) {
             <div className="hidden items-center gap-2 md:flex">
               <span className="status-dot-live bg-good text-good" />
               <span className="font-mono-code text-[11px] tracking-wider text-muted uppercase">
-                Ledger Spec v1.0.4 // Realtime Attestation
+                Commit-frozen judging // Gemini AI
               </span>
             </div>
 

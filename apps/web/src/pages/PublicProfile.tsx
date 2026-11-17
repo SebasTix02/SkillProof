@@ -103,7 +103,7 @@ export function PublicProfile() {
     a.download = `${profile.slug}-skillproof-dossier.json`;
     a.click();
     URL.revokeObjectURL(url);
-    toast.success('Exported JSON attestation payload.');
+    toast.success('Exported the dossier as JSON.');
   }
 
   return (
@@ -113,7 +113,7 @@ export function PublicProfile() {
         <div className="flex flex-wrap items-center gap-3">
           <div className="font-mono-code flex items-center gap-2 rounded-[4px] border border-accent/40 bg-accent/20 px-3 py-1.5 text-[11px] font-bold tracking-wider text-accent-soft">
             <span className="material-symbols-outlined text-[16px] text-accent">verified_user</span>
-            <span>VERIFIED LEDGER ENTRY // /P/{profile.slug.toUpperCase()}</span>
+            <span>PUBLIC DOSSIER // /P/{profile.slug.toUpperCase()}</span>
           </div>
           <span className="hidden text-white/30 sm:inline">|</span>
           <div className="flex items-center gap-2">
@@ -140,7 +140,7 @@ export function PublicProfile() {
             copiedLabel="Copied Link!"
             icon="link"
             variant="dark"
-            onCopied={() => toast.success('Immutable recruiter dossier link copied to clipboard.')}
+            onCopied={() => toast.success('Dossier link copied to clipboard.')}
           />
 
           <a
@@ -159,7 +159,7 @@ export function PublicProfile() {
           <div>
             <div className="mb-3 flex flex-wrap items-center gap-2">
               <Badge tone="good" dot>
-                CRYPTOGRAPHICALLY AUDITED
+                INTERVIEWED BY SKILLPROOF
               </Badge>
               <Badge>HANDLE: /p/{profile.slug}</Badge>
               <Badge tone="accent">COMMIT-ANCHORED EVIDENCE</Badge>
@@ -255,9 +255,9 @@ export function PublicProfile() {
 
             <div className="mt-4 space-y-1.5">
               <div className="font-mono-code flex justify-between text-[11px]">
-                <span className="text-muted">Codebase Authorship Attestation</span>
+                <span className="text-muted">Ownership from interviews</span>
                 <span className="font-bold text-good">
-                  {avgScore != null && avgScore >= 75 ? 'High Distinction' : 'Verified Record'}
+                  {avgScore != null && avgScore >= 75 ? 'High Distinction' : 'Interview record'}
                 </span>
               </div>
               <ScoreBar value={avgScore} max={100} tone="good" heightClass="h-2" />
@@ -472,7 +472,7 @@ export function PublicProfile() {
             <div className="flex flex-wrap items-center gap-2">
               <span className="material-symbols-outlined text-[20px] text-[#FBBF24]">verified</span>
               <span className="font-mono-code text-[11px] font-bold tracking-widest text-[#FBBF24] uppercase">
-                SkillProof Immutable Verification Standard
+                How SkillProof checks
               </span>
               <span className="font-mono-code rounded-[3px] border border-[#FBBF24]/30 bg-[#FBBF24]/15 px-2 py-0.5 text-[10px] text-[#FDE68A]">
                 COMMIT-LOCKED
@@ -480,7 +480,7 @@ export function PublicProfile() {
             </div>
 
             <h3 className="font-serif-heading text-[24px] font-medium text-white sm:text-[28px]">
-              Cryptographic &amp; Oral Authenticity Guarantee
+              Code Reading &amp; Voice Interview
             </h3>
 
             <p className="max-w-2xl text-[13px] leading-relaxed text-[#8E95A3] sm:text-[14px]">
@@ -494,11 +494,11 @@ export function PublicProfile() {
                 Dossier Slug: <code className="font-semibold text-[#FDE68A]">/p/{profile.slug}</code>
               </div>
               <div className="rounded-[4px] border border-[#262B34] bg-[#15181E] px-3 py-1.5">
-                Verified Runs: <code className="font-semibold text-accent-soft">{verified.length}</code>
+                Completed interviews: <code className="font-semibold text-accent-soft">{verified.length}</code>
               </div>
               <span className="flex items-center gap-1.5 rounded-[4px] border border-good/40 bg-good/20 px-3 py-1.5 font-semibold text-[#79d9ae]">
                 <span className="material-symbols-outlined text-[14px]">lock</span>
-                Server-Sealed Answer Key
+                Answer key stays on the server
               </span>
             </div>
           </div>
@@ -518,7 +518,7 @@ export function PublicProfile() {
               icon="link"
               variant="primary"
               className="w-full py-2.5 text-[12px]"
-              onCopied={() => toast.success('Immutable recruiter dossier link copied to clipboard.')}
+              onCopied={() => toast.success('Dossier link copied to clipboard.')}
             />
 
             <div className="grid grid-cols-2 gap-2.5">

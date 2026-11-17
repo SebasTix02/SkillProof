@@ -46,7 +46,7 @@ function AuthPortalShell({
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="font-mono-code inline-flex items-center gap-2 rounded-[3px] border border-accent/25 bg-accent-soft px-2.5 py-1 text-[11px] font-semibold text-accent">
                 <span className="status-dot-live bg-accent text-accent" />
-                <span>ED25519 CRYPTOGRAPHIC HANDSHAKE</span>
+                <span>SECURED BY SUPABASE AUTH</span>
               </div>
               <span className="font-mono-code text-[11px] tracking-wider text-muted uppercase">
                 PROTOCOL // AUTH-V1.0.4
@@ -57,7 +57,7 @@ function AuthPortalShell({
             <div className="relative my-3 overflow-hidden rounded-[4px] border border-line bg-paper">
               <img
                 src={AUTH_IMAGE}
-                alt="Cryptographic identity and repository verification key"
+                alt="SkillProof sign-in"
                 className="block h-[240px] w-full object-cover sm:h-[280px]"
               />
               <div className="flex items-center justify-between border-t border-[#262B34] bg-[#14161A] px-4 py-2.5 text-white">
@@ -68,7 +68,7 @@ function AuthPortalShell({
                   </span>
                 </div>
                 <span className="font-mono-code rounded-[3px] border border-[#262B34] bg-[#0D0F12] px-2 py-0.5 text-[10px] text-[#EDEDEC]">
-                  HASH: #8a3f..e92
+                  EMAIL + PASSWORD
                 </span>
               </div>
             </div>
@@ -76,7 +76,7 @@ function AuthPortalShell({
             {/* Editorial Narrative */}
             <div className="space-y-2 pt-1">
               <h2 className="font-serif-heading text-[22px] leading-[29px] font-medium text-ink sm:text-[26px] sm:leading-[33px]">
-                Immutable provenance for verifiable credentials and high-stakes evaluations.
+                Evidence-backed scores and voice interviews about your own code.
               </h2>
               <p className="text-[13px] leading-[21px] text-muted">
                 Authenticate as a candidate to defend your GitHub repositories in 3-minute voice interviews and publish
@@ -167,7 +167,7 @@ function AuthPortalShell({
             <div className="font-mono-code flex items-center justify-between text-[11px]">
               <span className="inline-flex items-center gap-1.5 font-semibold text-ink">
                 <span className="h-2 w-2 rounded-full bg-good" />
-                Security Certificate Stamp
+                Account Security
               </span>
               <span className="rounded-[3px] border border-good/30 bg-good-soft px-2 py-0.5 text-[10px] font-bold text-good">
                 {badgeLabel}
@@ -176,7 +176,7 @@ function AuthPortalShell({
             <div className="grid grid-cols-2 gap-2 border-t border-line pt-2">
               <div>
                 <span className="font-mono-code block text-[10px] text-muted uppercase">Verification Mode</span>
-                <span className="font-mono-code text-[11px] font-medium text-ink">Email + Role Attestation</span>
+                <span className="font-mono-code text-[11px] font-medium text-ink">Email + role</span>
               </div>
               <div className="text-right">
                 <span className="font-mono-code block text-[10px] text-muted uppercase">Status</span>
@@ -364,7 +364,7 @@ export function SignUp() {
         {error && <Notice tone="error">{error}</Notice>}
 
         <Button type="submit" disabled={busy} className="w-full py-2.5">
-          <span>{busy ? 'Creating account…' : 'Create Cryptographic Identity'}</span>
+          <span>{busy ? 'Creating account…' : 'Create Account'}</span>
           <span className="arrow-nudge font-mono-code text-[12px]">→</span>
         </Button>
 
@@ -492,7 +492,7 @@ export function ForgotPassword() {
     <AuthPortalShell
       mode="recovery"
       title="Reset your passphrase"
-      subtitle="Dispatch a cryptographic recovery link to your registered email"
+      subtitle="We email you a link to choose a new passphrase"
       statusText={sent ? 'Recovery Link Dispatched' : 'Recovery Dispatch Standby'}
       badgeLabel={sent ? 'DISPATCH VERIFIED' : 'RECOVERY MODE'}
     >
@@ -617,7 +617,7 @@ export function AuthCallback() {
       <AuthPortalShell
         mode="login"
         title="Email Confirmed"
-        subtitle="Your cryptographic identity is ready"
+        subtitle="Your account is ready"
         statusText="Email Verified"
         badgeLabel="VERIFIED"
       >
@@ -950,10 +950,10 @@ export function MyAccount() {
           {/* Cryptographic Seal Card */}
           <div className="space-y-3 rounded-[6px] border border-good/30 bg-good-soft/35 p-4 text-[12px]">
             <div className="font-mono-code flex items-center justify-between text-[11px]">
-              <span className="font-semibold text-ink">PROOF STATUS</span>
+              <span className="font-semibold text-ink">PROFILE STATUS</span>
               <span className="inline-flex items-center gap-1.5 rounded-[3px] border border-good/30 bg-good-soft px-2 py-0.5 font-semibold text-good">
                 <span className="h-1.5 w-1.5 rounded-full bg-good" />
-                VALIDATED
+                SAVED
               </span>
             </div>
             <p className="leading-[19px] text-muted">
@@ -1070,9 +1070,9 @@ export function MyAccount() {
             id="section-visibility"
             number="02"
             theme="indigo"
-            title="Dossier Visibility & Cryptographic Address"
+            title="Dossier Visibility & Public Address"
             subtitle="Configure public read-only access for your verified interview reports."
-            sectionTag="SECTION 02 // LEDGER_ADDR"
+            sectionTag="SECTION 02 // PUBLIC_URL"
           >
             <div className="space-y-5">
               {/* Toggle Switch Card */}
@@ -1403,7 +1403,7 @@ export function MyAccount() {
           </button>
           <Button type="submit" disabled={busy} className="h-10 px-6">
             <span className="material-symbols-outlined text-[17px]">save</span>
-            <span>{busy ? 'Saving to Ledger…' : 'Save Changes'}</span>
+            <span>{busy ? 'Saving…' : 'Save Changes'}</span>
           </Button>
         </div>
       </div>

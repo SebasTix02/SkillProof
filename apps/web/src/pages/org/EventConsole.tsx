@@ -590,7 +590,7 @@ export function EventConsole() {
       {/* 6. Submissions & Official Leaderboard Table */}
       <section className="space-y-4 rounded-[6px] border border-line bg-white p-6">
         <SectionHeader
-          eyebrow={ranked ? 'OFFICIAL EVALUATION LEDGER' : 'LIVE INGESTION STREAM'}
+          eyebrow={ranked ? 'RANKED RESULTS' : 'LIVE SUBMISSIONS'}
           eyebrowTone="accent"
           title={ranked ? 'Leaderboard & Adjudication Docket' : 'Cohort Submissions'}
           subtitle="Click any team to open the 3-column Judge Workspace with full repository analysis, rubric sliders, and voice defense evidence."
@@ -792,7 +792,7 @@ export function EventConsole() {
       <LedgerAnchorBanner
         badge="COMMIT-LOCKED AUDIT"
         meta={`EVENT ID: ${event.id.slice(0, 8).toUpperCase()} // ${event.rubric_json.length} RUBRIC VECTORS`}
-        title="Deterministic Commit Freeze & Judge Override Trail"
+        title="Frozen Commits & Override Trail"
         description="Every AI score includes cited repository files, and every manual judge override is tracked with user attribution and timestamp."
       />
     </div>

@@ -149,10 +149,10 @@ export function DarkBanner({
 }
 
 export function LedgerAnchorBanner({
-  badge = 'MERKLE PROVEN',
-  meta = 'CRYPTOGRAPHIC ATTESTATION // ED25519',
-  title = 'Cryptographically Anchored Evaluation Ledger',
-  description = 'Every rubric score, commit SHA freeze, and oral defense report is recorded with tamper-evident audit metadata.',
+  badge = 'AUDIT LOG',
+  meta = 'FROZEN COMMITS // RECORDED OVERRIDES',
+  title = 'Every change is in the audit log',
+  description = 'Each score is judged on the commit frozen at the deadline, and every override, publication and decision is recorded with who made it and when.',
   actions,
 }: {
   badge?: string;

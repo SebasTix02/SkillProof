@@ -535,7 +535,7 @@ export function ExploreEvents() {
         <div className="flex flex-col justify-between gap-6 lg:flex-row lg:items-center">
           <div className="space-y-1.5">
             <div className="font-mono-code text-[11px] font-semibold tracking-widest text-accent uppercase">
-              CONSENSUS LEDGER METRICS // INDEPENDENT CREDENTIALING
+              YOUR EVENTS IN NUMBERS
             </div>
             <h3 className="font-serif-heading text-[22px] font-medium text-white">
               No active event? Prove your skills on any repository you wrote.

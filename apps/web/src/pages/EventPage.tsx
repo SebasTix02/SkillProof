@@ -212,7 +212,7 @@ export function EventPage() {
               },
               {
                 step: 4,
-                code: '04 / ATTESTATION',
+                code: '04 / RESULTS',
                 title: '4. Published Results',
                 desc: 'Final composite standings, rubric evidence & feedback.',
               },
@@ -981,7 +981,7 @@ function ResultsView({
 
             <div className="font-mono-code flex flex-wrap items-center justify-between border-t border-line pt-3 text-[11px] text-muted">
               <span>PUBLISHED BY {event.organization?.name?.toUpperCase() || 'ORGANIZER'}</span>
-              <span className="font-semibold text-ink">COMMIT-LOCKED ATTESTATION</span>
+              <span className="font-semibold text-ink">JUDGED ON THE FROZEN COMMIT</span>
             </div>
           </div>
 

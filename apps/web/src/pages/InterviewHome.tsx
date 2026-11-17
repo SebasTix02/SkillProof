@@ -42,7 +42,7 @@ const STATUS_BADGE: Record<
   InterviewRow['status'],
   { label: string; tone: 'neutral' | 'good' | 'warn' | 'bad' | 'accent'; dot: boolean }
 > = {
-  preparing: { label: 'PREPARING AST', tone: 'warn', dot: true },
+  preparing: { label: 'READING THE REPO', tone: 'warn', dot: true },
   ready: { label: 'READY FOR ROOM', tone: 'accent', dot: true },
   in_progress: { label: 'IN PROGRESS', tone: 'accent', dot: true },
   evaluating: { label: 'EVALUATING', tone: 'warn', dot: true },
@@ -155,7 +155,7 @@ export function InterviewHome() {
           <>
             <Badge tone="accent">ORAL VERIFICATION DISPATCH</Badge>
             <span className="text-line">•</span>
-            <span className="text-muted uppercase">AST PROVENANCE &amp; COGNITIVE DEFENSE</span>
+            <span className="text-muted uppercase">REPOSITORY MAP &amp; VOICE INTERVIEW</span>
             <span className="text-line">•</span>
             <span className="flex items-center gap-1.5 font-medium text-good">
               <LiveDot tone="good" />
