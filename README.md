@@ -254,7 +254,10 @@ instructions, opens a live audio session with Gemini, and sends the transcript b
 A second model call compares the transcript with the plan and writes the report. Audio is not stored.
 
 
-During the interview only the interview room (code, conversation, clock and controls) goes full screen, not the rest of the app. The whole conversation stays visible as a chat, grouped by question. The candidate can pause up to 2 times, 2 minutes in total: microphone, interviewer and clock stop and the question is hidden; each pause is recorded like a time away. Browsers do not let a page stop someone from leaving full
+During the interview only the interview room (code, conversation, clock and controls) goes full screen, not the rest of the app. The whole conversation stays visible as a chat, grouped by question. The candidate can pause up to 2 times, 2 minutes in total: microphone, interviewer and clock stop and the question is hidden; each pause is recorded like a time away. Each interview has 4 or 5 questions, depending on how long each needs, and the interviewer paces itself to the
+3 minutes. When the clock reaches 0 the interviewer is not cut off: it finishes its sentence (and the candidate theirs),
+then it is told time is up, says goodbye, and the interview ends once that has been heard. "End" and "Finish" also let
+the current sentence finish. A 45-second safety cap ends it if the model stops answering. Browsers do not let a page stop someone from leaving full
 screen, switching tabs or windows, so SkillProof does not block it: it detects each time, hides the question until
 the candidate comes back, and records when and for how long. The report shows it as a signal ("Left the interview
 window 2 times, total 14 s"), never as a finding of cheating. "Next question" tells the interviewer to move on and
