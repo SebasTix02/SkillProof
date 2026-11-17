@@ -18,7 +18,7 @@ import {
   linkButton,
   scoreTone,
 } from '../components/shared';
-import { api, errorMessage } from '../lib/api';
+import { api, errorMessage, existingInterviewId } from '../lib/api';
 import {
   STATUS_LABEL,
   VISIBILITY_LABEL,
@@ -877,7 +877,10 @@ function ResultsView({
       const res = await api<{ interview: { id: string } }>('/api/interviews', { body: { submission_id: mine.id } });
       navigate(`/interview/${res.interview.id}`);
     } catch (err) {
-      setError(errorMessage(err));
+      // The frozen commit was already interviewed (for example as a personal interview): open that one.
+      const existing = existingInterviewId(err);
+      if (existing) navigate(`/interview/${existing}`);
+      else setError(errorMessage(err));
       setBusy(false);
     }
   }

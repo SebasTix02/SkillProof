@@ -27,6 +27,8 @@ export interface InterviewRow {
   duration_s: number | null;
   created_at: string;
   focus_events_json?: FocusEvent[];
+  /** The commit the interview is about. One interview per user, repository and commit. */
+  commit_sha?: string | null;
 }
 
 const PLAN_SYSTEM = `You prepare a ${INTERVIEW_SECONDS / 60}-minute spoken technical interview about a candidate's own repository.
@@ -75,7 +77,7 @@ export async function prepareInterview(interviewId: string): Promise<void> {
     await withActivity(activity, async () => {
       // An event interview is about the exact commit that was judged.
       const { analysis } = await analyzeRepo(row.repos.owner, row.repos.name, {
-        sha: row.submissions?.locked_commit_sha ?? undefined,
+        sha: row.commit_sha ?? row.submissions?.locked_commit_sha ?? undefined,
         usage,
       });
       if (analysis.hooks_json.length < 3) throw badRequest('repo_too_small', 'There is not enough code in this repository to ask about.');
@@ -129,6 +131,26 @@ export function alignPlan(plan: QuestionPlan, hooks: HookSnippet[]): QuestionPla
 }
 
 /** The questions as the browser may see them: with the code snippet, without the answer key. */
+export interface ExistingInterview {
+  id: string;
+  status: InterviewRow['status'];
+  started_at: string | null;
+}
+
+/**
+ * Whether a new interview may start on a commit the candidate already has interviews for.
+ * - One that has not started yet (preparing, or ready with no token issued) is returned instead of a new one.
+ * - One that started or finished blocks a new one: the candidate may have seen its answer key.
+ * - One that failed before starting does not count, so it can be retried.
+ */
+export function oneInterviewPerCommit(existing: ExistingInterview[]): { reuse: ExistingInterview | null; blocked: ExistingInterview | null } {
+  const counted = existing.filter((i) => i.status !== 'error' || i.started_at);
+  const blocked = counted.find((i) => i.started_at || ['in_progress', 'evaluating', 'completed'].includes(i.status)) ?? null;
+  if (blocked) return { reuse: null, blocked };
+  const reuse = counted.find((i) => i.status === 'preparing' || i.status === 'ready') ?? null;
+  return { reuse, blocked: null };
+}
+
 /**
  * The answer key, for the report. Only once the interview is completed: before that, the expected points would
  * tell the candidate what to say.

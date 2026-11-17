@@ -5,8 +5,9 @@ import { resolveRepo, type HookSnippet } from '../engine/analyze.js';
 import { memberOf, requirePermission, requireUser } from '../lib/auth.js';
 import { badRequest, conflict, forbidden, notFound, tooMany } from '../lib/errors.js';
 import { IdParams, parse } from '../lib/http.js';
+import { getHeadSha } from '../lib/github.js';
 import { db, must } from '../lib/supabase.js';
-import { answerKey, createLiveToken, publicQuestions, type InterviewRow } from '../services/interviews.js';
+import { answerKey, createLiveToken, oneInterviewPerCommit, publicQuestions, type ExistingInterview, type InterviewRow } from '../services/interviews.js';
 import { primaryModels } from '../lib/models.js';
 import { enqueue } from '../services/queue.js';
 
@@ -27,6 +28,19 @@ async function planAndHooks(row: InterviewRow): Promise<{ plan: QuestionPlan; ho
   return { plan: plan.plan_json, hooks: analysis.hooks_json };
 }
 
+async function interviewsOnCommit(userId: string, repoId: string, commitSha: string): Promise<ExistingInterview[]> {
+  return must(
+    await db().from('interviews').select('id, status, started_at').eq('user_id', userId).eq('repo_id', repoId).eq('commit_sha', commitSha),
+  ) as ExistingInterview[];
+}
+
+const interviewExists = (id: string | null, commitSha: string) =>
+  conflict(
+    'interview_exists_for_commit',
+    `You already took an interview on commit ${commitSha.slice(0, 7)}. Push new commits to take another one.`,
+    id ? { interview_id: id } : undefined,
+  );
+
 export async function interviewRoutes(app: FastifyInstance): Promise<void> {
   app.post('/api/interviews', async (req) => {
     const user = await requireUser(req);
@@ -34,6 +48,7 @@ export async function interviewRoutes(app: FastifyInstance): Promise<void> {
     const input = parse(CreateInterviewSchema, req.body);
 
     let repoId: string;
+    let commitSha: string;
     let submissionId: string | null = null;
     let organizationId: string | null = null;
 
@@ -58,6 +73,7 @@ export async function interviewRoutes(app: FastifyInstance): Promise<void> {
       ) as { id: string; status: string } | null;
       if (existing) return { interview: existing };
       repoId = sub.current_version.repo_id;
+      commitSha = sub.locked_commit_sha;
       submissionId = sub.id;
       organizationId = sub.organization_id;
     } else {
@@ -71,16 +87,32 @@ export async function interviewRoutes(app: FastifyInstance): Promise<void> {
         .is('submission_id', null)
         .gte('created_at', since);
       if ((count ?? 0) >= PERSONAL_PER_DAY) throw tooMany(`You can start ${PERSONAL_PER_DAY} personal interviews per day.`);
-      repoId = (await resolveRepo(ref.owner, ref.name)).repo.id;
+      const { repo, meta } = await resolveRepo(ref.owner, ref.name);
+      repoId = repo.id;
+      // A personal interview is about the code as it is now: the head of the default branch.
+      commitSha = await getHeadSha(meta.owner, meta.name, meta.defaultBranch);
     }
 
-    const row = must(
-      await db()
-        .from('interviews')
-        .insert({ user_id: user.id, repo_id: repoId, submission_id: submissionId, organization_id: organizationId })
-        .select('id, status')
-        .single(),
-    ) as { id: string; status: string };
+    // One interview per repository and commit: after seeing the answer key, a second one would be answered from it.
+    const decision = oneInterviewPerCommit(await interviewsOnCommit(user.id, repoId, commitSha));
+    if (decision.reuse) return { interview: decision.reuse };
+    if (decision.blocked) throw interviewExists(decision.blocked.id, commitSha);
+
+    const inserted = await db()
+      .from('interviews')
+      .insert({ user_id: user.id, repo_id: repoId, commit_sha: commitSha, submission_id: submissionId, organization_id: organizationId })
+      .select('id, status')
+      .single();
+    if (inserted.error) {
+      // Two requests at the same moment: the database index lets only one through.
+      if (inserted.error.code === '23505') {
+        const again = oneInterviewPerCommit(await interviewsOnCommit(user.id, repoId, commitSha));
+        if (again.reuse) return { interview: again.reuse };
+        throw interviewExists(again.blocked?.id ?? null, commitSha);
+      }
+      throw new Error(`Database error: ${inserted.error.message}`);
+    }
+    const row = inserted.data as { id: string; status: string };
     await enqueue('interview-prepare', row.id);
     return { interview: row };
   });
