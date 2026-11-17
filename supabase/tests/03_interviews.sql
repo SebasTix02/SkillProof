@@ -40,4 +40,23 @@ select pg_temp.check_eq('a new commit allows a new interview',
 select pg_temp.check_raises('commit ids must be full SHAs',
   $$insert into public.interviews (user_id, repo_id, commit_sha) values ('00000000-0000-0000-0000-00000000000c', '10000000-0000-0000-0000-000000000001', 'abc')$$,
   'violates check constraint');
+-- Controls (20261117000007): a canceled preparation does not count; a canceled report does.
+insert into public.interviews (user_id, repo_id, commit_sha, status)
+values ('00000000-0000-0000-0000-00000000000c', '10000000-0000-0000-0000-000000000001', repeat('e', 40), 'canceled');
+insert into public.interviews (user_id, repo_id, commit_sha, status)
+values ('00000000-0000-0000-0000-00000000000c', '10000000-0000-0000-0000-000000000001', repeat('e', 40), 'preparing');
+select pg_temp.check_eq('a canceled preparation does not use up the commit',
+  (select count(*) from public.interviews where commit_sha = repeat('e', 40)), 2);
+insert into public.interviews (user_id, repo_id, commit_sha, status, started_at)
+values ('00000000-0000-0000-0000-00000000000c', '10000000-0000-0000-0000-000000000001', repeat('f', 40), 'report_canceled', now());
+select pg_temp.check_raises('a canceled report still counts',
+  $$insert into public.interviews (user_id, repo_id, commit_sha) values ('00000000-0000-0000-0000-00000000000c', '10000000-0000-0000-0000-000000000001', repeat('f', 40))$$,
+  'duplicate key');
+update public.submissions set status = 'paused';
+update public.submissions set status = 'canceled';
+select pg_temp.check_eq('submissions accept paused and canceled', (select count(*) from public.submissions where status = 'canceled'), 1);
+select pg_temp.check_raises('unknown submission states are refused', $$update public.submissions set status = 'stopped'$$, 'violates check constraint');
+update public.events set judging_paused_at = now() where slug = 'echo-hack';
+select pg_temp.check_eq('events record a judging pause', (select count(*) from public.events where judging_paused_at is not null), 1);
+
 \echo ALL INTERVIEW CHECKS PASSED

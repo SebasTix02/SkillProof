@@ -231,6 +231,21 @@ Model order: the Gemini models page lists `gemini-3.8-flash`, `gemini-3.6-flash`
 Not done yet: explicit context caching of the repository between the map and the score calls. The score call
 already receives only the compact map, so the shared part is small.
 
+### Pause, resume and cancel
+
+AI jobs stop cooperatively: the organizer or candidate changes a state, and the job checks it before each step and
+each Gemini call, then stops there. Work already done stays cached (the analysis per commit, the file summaries).
+
+- **One submission:** Pause (it stops at the next checkpoint), Resume (back to the queue), Cancel (no new scores; "Judge
+  again" restarts it). In the event console and on the submission page.
+- **A whole event:** Pause judging, Resume judging, Cancel judging. A paused event dispatches nothing; canceling moves
+  the event to review and the canceled submissions can be judged again.
+- **Interview preparation:** Cancel. It does not use up the one interview per commit.
+- **Interview report:** Pause, Resume, Cancel and "Write the report". A canceled report still counts as the interview
+  on that commit, since the candidate saw the questions.
+
+Every action is recorded in the activity history and, for organizations, the audit log.
+
 ### Interview
 
 The API writes a question plan from the repository, with the points a real author would mention. Those
@@ -239,7 +254,7 @@ instructions, opens a live audio session with Gemini, and sends the transcript b
 A second model call compares the transcript with the plan and writes the report. Audio is not stored.
 
 
-During the interview the room asks for full screen. Browsers do not let a page stop someone from leaving full
+During the interview only the interview room (code, conversation, clock and controls) goes full screen, not the rest of the app. The whole conversation stays visible as a chat, grouped by question. The candidate can pause up to 2 times, 2 minutes in total: microphone, interviewer and clock stop and the question is hidden; each pause is recorded like a time away. Browsers do not let a page stop someone from leaving full
 screen, switching tabs or windows, so SkillProof does not block it: it detects each time, hides the question until
 the candidate comes back, and records when and for how long. The report shows it as a signal ("Left the interview
 window 2 times, total 14 s"), never as a finding of cheating. "Next question" tells the interviewer to move on and

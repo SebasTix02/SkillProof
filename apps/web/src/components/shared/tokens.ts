@@ -188,7 +188,7 @@ export const SIMILARITY_SIGNAL_LABEL: Record<SimilaritySignal, string> = {
   embedding: 'Very similar code',
 };
 
-export type SubmissionPipelineStatus = 'submitted' | 'queued' | 'analyzing' | 'scored' | 'error';
+export type SubmissionPipelineStatus = 'submitted' | 'queued' | 'analyzing' | 'scored' | 'error' | 'paused' | 'canceled';
 
 export const SUBMISSION_STATUS_LABEL: Record<SubmissionPipelineStatus, string> = {
   submitted: 'Submitted',
@@ -196,6 +196,8 @@ export const SUBMISSION_STATUS_LABEL: Record<SubmissionPipelineStatus, string> =
   analyzing: 'Being judged',
   scored: 'Scored',
   error: 'Failed',
+  paused: 'Paused',
+  canceled: 'Canceled',
 };
 
 export function formatClock(seconds: number): string {

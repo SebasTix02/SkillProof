@@ -291,6 +291,8 @@ export async function generateJson<S extends z.ZodType>(args: GenerateJsonArgs<S
   if (limiter.running >= env().GEMINI_CONCURRENCY) details.push(`Waited for a free AI slot (${limiter.queued + 1} calls ahead on this server).`);
 
   let lastError: unknown;
+  // Paused or canceled while waiting for a slot or a backoff: stop before spending a call.
+  await activity?.checkpoint?.();
   for (const [index, target] of queue.entries()) {
     const { provider, model, key } = target;
     if (index > 0) await say('fallback', `${modelLabel(queue[index - 1]!.key)} is busy. Trying ${modelLabel(key)}…`, key);
@@ -335,6 +337,7 @@ export async function generateJson<S extends z.ZodType>(args: GenerateJsonArgs<S
           busy++;
           await say('retry', `${modelLabel(key)} is busy. Trying again in ${Math.round(wait / 1000)} s…`, key);
           await sleep(wait);
+          await activity?.checkpoint?.();
           continue;
         }
         const until = await health.failure(key, `${status ?? 'error'}: ${errorText(err).slice(0, 200)}`);

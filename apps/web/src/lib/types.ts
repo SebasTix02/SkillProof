@@ -14,6 +14,8 @@ export interface EventView {
   max_submissions: number | null;
   rubric_json: Rubric;
   status: 'draft' | 'open' | 'judging' | 'review' | 'published';
+  /** Set while the organizer has paused judging for the whole event. */
+  judging_paused_at?: string | null;
   closed_at: string | null;
   published_at: string | null;
   organization: { name: string; slug: string } | null;

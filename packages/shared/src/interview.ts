@@ -34,7 +34,8 @@ export type TranscriptEntry = z.infer<typeof TranscriptEntrySchema>;
 
 /** A moment the candidate left the interview: full screen exited, tab hidden or window blurred. */
 export const FocusEventSchema = z.object({
-  type: z.enum(['fullscreen_exit', 'tab_hidden', 'window_blur', 'fullscreen_unsupported']),
+  /** "paused" is a pause taken with the Pause button; the others are times the candidate left the room. */
+  type: z.enum(['fullscreen_exit', 'tab_hidden', 'window_blur', 'fullscreen_unsupported', 'paused']),
   at_ms: z.number().int().min(0),
   duration_ms: z.number().int().min(0).max(3_600_000),
 });
@@ -48,12 +49,17 @@ export const FinishInterviewSchema = z.object({
 
 /** "Left the interview window 2 times (total 14 s)", or null when it never happened. */
 export function describeFocusEvents(events: FocusEvent[]): string | null {
-  const away = events.filter((e) => e.type !== 'fullscreen_unsupported');
+  const away = events.filter((e) => e.type !== 'fullscreen_unsupported' && e.type !== 'paused');
+  const pauses = events.filter((e) => e.type === 'paused');
   const unsupported = events.some((e) => e.type === 'fullscreen_unsupported');
   const parts: string[] = [];
   if (away.length) {
     const total = Math.round(away.reduce((n, e) => n + e.duration_ms, 0) / 1000);
     parts.push(`Left the interview window ${away.length} time${away.length === 1 ? '' : 's'} (total ${total} s)`);
+  }
+  if (pauses.length) {
+    const total = Math.round(pauses.reduce((n, e) => n + e.duration_ms, 0) / 1000);
+    parts.push(`Paused ${pauses.length} time${pauses.length === 1 ? '' : 's'} (total ${total} s)`);
   }
   if (unsupported) parts.push('Full screen was not available in this browser');
   return parts.length ? parts.join('. ') + '.' : null;
@@ -84,3 +90,6 @@ export const InterviewReportSchema = z.object({
 export type InterviewReport = z.infer<typeof InterviewReportSchema>;
 
 export const INTERVIEW_SECONDS = 180;
+/** The Pause button in the room: at most this many pauses, together at most this long. */
+export const MAX_INTERVIEW_PAUSES = 2;
+export const MAX_INTERVIEW_PAUSE_MS = 120_000;
