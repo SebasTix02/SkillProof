@@ -1,5 +1,6 @@
 import { db, must } from '../lib/supabase.js';
-import { closeDueEvents, settleEvent } from './judge.js';
+import { closeDueEvents, failOrRetry, settleEvent } from './judge.js';
+import { ACTIVE_WINDOW_MIN, dispatchJudging } from './judgeQueue.js';
 import { background, enqueue } from './queue.js';
 
 const minutesAgo = (m: number) => new Date(Date.now() - m * 60_000).toISOString();
@@ -9,26 +10,21 @@ async function recoverStuckJobs(): Promise<{ requeued: number; timedOut: number 
   let requeued = 0;
   let timedOut = 0;
 
-  // Frozen and queued, but no job picked it up.
-  const queued = must(
-    await db().from('submissions').select('id').eq('status', 'queued').lt('locked_at', minutesAgo(3)).limit(50),
-  ) as { id: string }[];
-  for (const s of queued) {
-    await enqueue('judge', s.id);
-    requeued++;
-  }
-
-  // Started judging long ago and never finished.
+  // Started judging long ago and never finished (the function was stopped). It counts as a busy attempt,
+  // so it goes back to the queue for an automatic retry, or stops after the last one.
   const stuck = must(
     await db()
       .from('submissions')
-      .update({ status: 'error', error: 'Judging took too long and was stopped. Use "Judge again" to retry.' })
+      .select('id, event_id, judge_attempts')
       .eq('status', 'analyzing')
-      .lt('updated_at', minutesAgo(10))
-      .select('id, event_id'),
-  ) as { id: string; event_id: string }[];
+      .lt('updated_at', minutesAgo(ACTIVE_WINDOW_MIN)),
+  ) as { id: string; event_id: string; judge_attempts: number }[];
+  for (const s of stuck) await failOrRetry(s.id, s.judge_attempts + 1, new Error('DEADLINE_EXCEEDED: judging took too long and was stopped'));
   timedOut += stuck.length;
   for (const eventId of new Set(stuck.map((s) => s.event_id))) await settleEvent(eventId);
+
+  // Queued submissions whose turn has come, while there are free slots.
+  requeued += await dispatchJudging();
 
   const preparing = must(
     await db()

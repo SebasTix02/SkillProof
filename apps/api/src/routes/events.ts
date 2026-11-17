@@ -12,7 +12,7 @@ import { IdParams, parse } from '../lib/http.js';
 import { uniqueSlug } from '../lib/slug.js';
 import { db, must } from '../lib/supabase.js';
 import { closeEvent } from '../services/judge.js';
-import { enqueue } from '../services/queue.js';
+import { dispatchJudging } from '../services/judgeQueue.js';
 
 interface EventRow {
   id: string;
@@ -76,14 +76,14 @@ async function leaderboard(event: EventRow) {
     await db()
       .from('submissions')
       .select(
-        'id, team_name, submitted_by, status, error, versions_used, locked_commit_sha, locked_at, activity_json, models_used, ' +
+        'id, team_name, submitted_by, status, error, versions_used, locked_commit_sha, locked_at, activity_json, models_used, judge_attempts, next_attempt_at, ' +
           'current_version:submission_versions!submissions_current_version_fk(description, video_url, slides_url, repos(owner, name, url, is_fork, fork_parent))',
       )
       .eq('event_id', event.id),
   ) as unknown as {
     id: string; team_name: string; submitted_by: string; status: string; error: string | null; versions_used: number;
     locked_commit_sha: string | null; locked_at: string | null;
-    activity_json: ActivityEntry[]; models_used: string[];
+    activity_json: ActivityEntry[]; models_used: string[]; judge_attempts: number; next_attempt_at: string | null;
     current_version: { description: string; video_url: string | null; slides_url: string | null; repos: Record<string, unknown> } | null;
   }[];
   const ids = subs.map((s) => s.id);
@@ -220,8 +220,9 @@ export async function eventRoutes(app: FastifyInstance): Promise<void> {
       participant_count: count ?? 0,
       submissions: board.rows.map(({ activity_json, ...r }) => ({
         ...r,
-        // The full log, with the model's reasoning, is on the submission page. The table only needs the latest step.
-        last_activity: [...activity_json].reverse().find((a) => a.kind !== 'thought') ?? null,
+        // The steps without the model's reasoning, which stays on the submission page. Only the latest 40 are sent.
+        activity: activity_json.filter((a) => a.kind !== 'thought').slice(-40),
+        step_count: activity_json.filter((a) => a.kind !== 'thought').length,
         submitted_by_name: profiles.find((p) => p.id === r.submitted_by)?.display_name ?? '',
       })),
       similarity_flags: flags,
@@ -276,7 +277,15 @@ export async function eventRoutes(app: FastifyInstance): Promise<void> {
     requirePermission(user, 'event.manage', sub.organization_id);
     if (sub.status !== 'error' || !sub.locked_commit_sha) throw conflict('not_retryable', 'Only a failed submission with frozen code can be judged again.');
     must(await db().from('events').update({ status: 'judging' }).eq('id', sub.event_id).eq('status', 'review'));
-    await enqueue('judge', sub.id);
+    // Back to the queue with a fresh count of automatic attempts. It starts now if there is a free slot.
+    must(
+      await db()
+        .from('submissions')
+        .update({ status: 'queued', error: null, judge_attempts: 0, next_attempt_at: null })
+        .eq('id', sub.id)
+        .eq('status', 'error'),
+    );
+    await dispatchJudging();
     return { ok: true };
   });
 

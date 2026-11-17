@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { unzipSync } from 'fflate';
 
 export interface RepoFile {
@@ -111,15 +112,18 @@ export interface Corpus {
   overflow: RepoFile[];
 }
 
-/** Splits files into what fits in the budget and what does not. Order must already be by priority. */
-export function splitByBudget(files: RepoFile[], budgetTokens: number): Corpus {
+/**
+ * Splits files into what fits in the budget and what does not. Order must already be by priority.
+ * With perFileTokens, a long file costs at most that much, since renderCompact() cuts its middle out.
+ */
+export function splitByBudget(files: RepoFile[], budgetTokens: number, opts: { maxFiles?: number; perFileTokens?: number } = {}): Corpus {
   const full: RepoFile[] = [];
   const overflow: RepoFile[] = [];
   let used = 0;
   for (const f of files) {
     // line numbers add roughly 10% on top of the raw text
-    const cost = Math.ceil(f.tokens * 1.1) + 20;
-    if (used + cost <= budgetTokens) {
+    const cost = Math.ceil(Math.min(f.tokens, opts.perFileTokens ?? Infinity) * 1.1) + 20;
+    if (used + cost <= budgetTokens && full.length < (opts.maxFiles ?? Infinity)) {
       full.push(f);
       used += cost;
     } else {
@@ -156,6 +160,84 @@ export function renderFile(file: RepoFile): string {
     .map((line, i) => `${i + 1}| ${line}`)
     .join('\n');
   return `<file path="${file.path}">\n${body}\n</file>`;
+}
+
+/**
+ * Like renderFile, for prompts: blank lines are left out (the numbers still match the file), trailing spaces are
+ * trimmed, and a file longer than maxTokens keeps its start and end with the middle replaced by a marker.
+ */
+export function renderCompact(file: RepoFile, maxTokens: number): string {
+  const numbered = file.text
+    .split('\n')
+    .map((line, i) => ({ n: i + 1, line: line.trimEnd() }))
+    .filter((l) => l.line.trim() !== '');
+  const cost = (l: { n: number; line: string }) => estimateTokens(l.line) + 2;
+  let total = 0;
+  for (const l of numbered) total += cost(l);
+  let rows = numbered.map((l) => `${l.n}| ${l.line}`);
+  if (total > maxTokens) {
+    const head: string[] = [];
+    const tail: string[] = [];
+    let used = 0;
+    let i = 0;
+    while (i < numbered.length && used + cost(numbered[i]!) <= maxTokens * 0.65) {
+      used += cost(numbered[i]!);
+      head.push(`${numbered[i]!.n}| ${numbered[i]!.line}`);
+      i++;
+    }
+    let j = numbered.length - 1;
+    while (j > i && used + cost(numbered[j]!) <= maxTokens) {
+      used += cost(numbered[j]!);
+      tail.unshift(`${numbered[j]!.n}| ${numbered[j]!.line}`);
+      j--;
+    }
+    const from = numbered[i]?.n ?? 0;
+    const to = numbered[j]?.n ?? 0;
+    rows = [...head, `… lines ${from}-${to} left out to save space …`, ...tail];
+  }
+  return `<file path="${file.path}">\n${rows.join('\n')}\n</file>`;
+}
+
+// Declarations worth listing in an outline, across common languages.
+const SIGNATURE = new RegExp(
+  [
+    String.raw`^\s*(export\s+)?(default\s+)?(async\s+)?function\*?\s+[\w$]+\s*\([^)]{0,120}\)?`,
+    String.raw`^\s*(export\s+)?(default\s+)?(abstract\s+)?(class|interface|enum|type|struct|trait|impl|object|record)\s+[\w$<>, ]+`,
+    String.raw`^\s*export\s+(const|let|var)\s+[\w$]+`,
+    String.raw`^\s*(public|private|protected|internal|static|\s)*\s*[\w<>\[\],? ]+\s+[\w$]+\s*\([^)]{0,120}\)\s*\{?\s*$`,
+    String.raw`^\s*(async\s+)?def\s+\w+\s*\([^)]{0,120}\)?`,
+    String.raw`^\s*func\s+(\([^)]*\)\s*)?\w+\s*\([^)]{0,120}\)?`,
+    String.raw`^\s*(pub\s+)?fn\s+\w+`,
+    String.raw`^\s*(app|router|server)\.(get|post|put|patch|delete|use|route)\s*\(\s*['"\x60][^'"\x60]+`,
+    String.raw`^\s*@(app|router|bp|api)\.(get|post|put|patch|delete|route)\(`,
+    String.raw`^\s*(create\s+table|CREATE\s+TABLE)\s+[\w."]+`,
+  ].join('|'),
+);
+
+/**
+ * A short outline of a file built without AI: its size, its first comment or heading, and up to `maxItems`
+ * declarations (functions, classes, routes, tables). Gives the model the shape of files it does not read in full.
+ */
+export function outlineFile(file: RepoFile, maxItems = 8): string {
+  const lines = file.text.split('\n');
+  const items: string[] = [];
+  let intro = '';
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (!intro && /^(\/\/|#(?!!)|\/\*\*?|\*|--|<!--|"""|''')\s*\S/.test(line)) {
+      intro = line.replace(/^(\/\/+|#+|\/\*\*?|\*|--|<!--|"""|''')\s*/, '').replace(/\*\/$|-->$/, '').trim().slice(0, 120);
+    }
+    if (items.length < maxItems && SIGNATURE.test(raw)) items.push(line.replace(/\s*\{\s*$/, '').slice(0, 100));
+    if (items.length >= maxItems && intro) break;
+  }
+  const head = `${file.path} (${lines.length} lines)`;
+  return [head, intro && `  about: ${intro}`, ...items.map((s) => `  - ${s}`)].filter(Boolean).join('\n');
+}
+
+/** The git blob sha of a file's content: the same id GitHub uses, so equal files share one cached summary. */
+export function blobSha(text: string): string {
+  const bytes = Buffer.from(text, 'utf8');
+  return createHash('sha1').update(`blob ${bytes.length}\0`).update(bytes).digest('hex');
 }
 
 /** Text of lines start..end (1-based, inclusive), capped so a snippet stays readable on screen. */

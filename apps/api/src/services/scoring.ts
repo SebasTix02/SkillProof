@@ -2,7 +2,7 @@ import { MODELS, ScoreResultSchema, type Rubric, type ScoreResult } from '@skill
 import type { Part } from '@google/genai';
 import type { AnalysisRow } from '../engine/analyze.js';
 import { currentActivity } from '../lib/activity.js';
-import { UNTRUSTED_NOTICE, generateJson, type UsageContext } from '../lib/gemini.js';
+import { AiUnavailableError, UNTRUSTED_NOTICE, generateJson, isTransientAiError, type UsageContext } from '../lib/gemini.js';
 import { db, must } from '../lib/supabase.js';
 
 const SCORE_SYSTEM = `You are a strict, fair hackathon judge. You score one project against a rubric.
@@ -30,6 +30,21 @@ export interface ScoreInput {
   usage: UsageContext;
 }
 
+/**
+ * What the judge needs from the analysis, and nothing more: the interview snippets are left out (they are for the
+ * voice interview) and the commit history is reduced to the numbers that matter for a hackathon.
+ */
+export function compactEvidence(analysis: Pick<AnalysisRow, 'map_json' | 'commit_profile_json'>): Record<string, unknown> {
+  const { interview_hooks: _hooks, ...map } = analysis.map_json;
+  const c = analysis.commit_profile_json;
+  return {
+    map,
+    commits: c
+      ? { total: c.total_commits, authors: c.authors.length, first: c.first_commit_at, last: c.last_commit_at, before_event_start: c.commits_before_start }
+      : null,
+  };
+}
+
 function buildParts(input: ScoreInput, withVideo: boolean): Part[] {
   const rubric = input.rubric
     .map(
@@ -49,7 +64,7 @@ ${input.description || '(none given)'}
 </description>
 
 <repository>
-${JSON.stringify({ map: input.analysis.map_json, commits: input.analysis.commit_profile_json })}
+${JSON.stringify(compactEvidence(input.analysis))}
 </repository>
 
 Video: ${withVideo ? 'attached. It contains the demo and the pitch.' : 'none available.'}`;
@@ -70,6 +85,8 @@ async function runScoring(input: ScoreInput, withVideo: boolean): Promise<ScoreR
     parts: buildParts(input, withVideo),
     usage: { ...input.usage, kind: withVideo ? 'score_with_video' : 'score' },
     temperature: 0.1,
+    maxOutputTokens: 6_000,
+    effort: 'medium',
   });
   return data;
 }
@@ -85,6 +102,8 @@ export async function scoreSubmission(input: ScoreInput): Promise<{ note: string
     try {
       result = await runScoring(input, true);
     } catch (err) {
+      // A busy model fails the same way without the video: let the job retry later instead of scoring twice.
+      if (err instanceof AiUnavailableError || isTransientAiError(err)) throw err;
       // Private, removed or too long videos fail the whole call. The code is still worth scoring.
       console.warn(`Scoring with video failed for ${input.submissionId}:`, err);
       note = 'The video could not be read (it must be a public YouTube video), so demo and pitch were not scored.';

@@ -1,10 +1,11 @@
-import { RubricSchema } from '@skillproof/shared';
+import { RubricSchema, type ActivityEntry } from '@skillproof/shared';
 import { analyzeRepo, type RepoRow } from '../engine/analyze.js';
 import { Activity, withActivity } from '../lib/activity.js';
+import { AiUnavailableError, clockUtc, isTransientAiError } from '../lib/gemini.js';
 import { getHeadSha, getRepoMeta } from '../lib/github.js';
 import { friendlyJobError, technicalDetail } from '../lib/jobErrors.js';
 import { db, must } from '../lib/supabase.js';
-import { enqueue } from './queue.js';
+import { MAX_AUTO_ATTEMPTS, dispatchJudging, freeSlots, nextAttemptAt } from './judgeQueue.js';
 import { scoreSubmission } from './scoring.js';
 
 interface SubmissionRow {
@@ -14,11 +15,14 @@ interface SubmissionRow {
   team_name: string;
   status: string;
   locked_commit_sha: string | null;
+  judge_attempts: number;
+  activity_json: ActivityEntry[];
+  models_used: string[];
   current_version: { repo_id: string; description: string; video_url: string | null; repos: RepoRow } | null;
 }
 
 const SUBMISSION_SELECT =
-  'id, event_id, organization_id, team_name, status, locked_commit_sha, ' +
+  'id, event_id, organization_id, team_name, status, locked_commit_sha, judge_attempts, activity_json, models_used, ' +
   'current_version:submission_versions!submissions_current_version_fk(repo_id, description, video_url, repos(*))';
 
 async function mapLimit<T>(items: T[], limit: number, fn: (item: T) => Promise<void>): Promise<void> {
@@ -42,7 +46,7 @@ async function lockCommit(sub: SubmissionRow): Promise<boolean> {
     must(
       await db()
         .from('submissions')
-        .update({ locked_commit_sha: sha, locked_at: new Date().toISOString(), status: 'queued', error: null })
+        .update({ locked_commit_sha: sha, locked_at: new Date().toISOString(), status: 'queued', error: null, judge_attempts: 0, next_attempt_at: null })
         .eq('id', sub.id),
     );
     return true;
@@ -117,7 +121,8 @@ export async function closeEvent(eventId: string): Promise<{ closed: boolean; qu
   });
 
   await flagObviousSimilarity(eventId, event.organization_id, subs).catch((err) => console.warn('Similarity flags failed:', err));
-  for (const sub of locked) await enqueue('judge', sub.id);
+  // Only JUDGE_CONCURRENCY start now. Each one that finishes starts the next, so Gemini never gets them all at once.
+  await dispatchJudging();
   if (locked.length === 0) await settleEvent(eventId);
   return { closed: true, queued: locked.length };
 }
@@ -145,21 +150,36 @@ export async function judgeSubmission(submissionId: string): Promise<void> {
   const version = sub.current_version;
   if (!version || !sub.locked_commit_sha) return;
 
-  // Claim the job, so a retried task does not run next to the first attempt.
+  // Too many judgings running: stay queued. The next one to finish, or the scheduler, starts this one.
+  if (sub.status === 'queued' && (await freeSlots()) === 0) return;
+
+  // A fresh start clears the log. An automatic retry keeps it, so the history shows every attempt.
+  const attempt = sub.judge_attempts + 1;
+  const keepLog = sub.judge_attempts > 0;
   const claimed = must(
     await db()
       .from('submissions')
-      .update({ status: 'analyzing', error: null, updated_at: new Date().toISOString(), activity_json: [], models_used: [] })
+      .update({
+        status: 'analyzing',
+        error: null,
+        updated_at: new Date().toISOString(),
+        next_attempt_at: null,
+        ...(keepLog ? {} : { activity_json: [], models_used: [] }),
+      })
       .eq('id', sub.id)
       .in('status', ['queued', 'error'])
       .select('id'),
   ) as { id: string }[];
   if (claimed.length === 0) return;
 
-  const activity = new Activity('submissions', sub.id);
+  const activity = keepLog ? new Activity('submissions', sub.id, true, sub.activity_json, sub.models_used) : new Activity('submissions', sub.id);
   try {
     await withActivity(activity, async () => {
-      await activity.step(`Judging started on the code frozen at commit ${sub.locked_commit_sha!.slice(0, 7)}.`);
+      await activity.step(
+        attempt > 1
+          ? `Attempt ${attempt} of ${MAX_AUTO_ATTEMPTS} started on the code frozen at commit ${sub.locked_commit_sha!.slice(0, 7)}.`
+          : `Judging started on the code frozen at commit ${sub.locked_commit_sha!.slice(0, 7)}.`,
+      );
       const event = must(await db().from('events').select('rubric_json, starts_at').eq('id', sub.event_id).single()) as {
         rubric_json: unknown;
         starts_at: string;
@@ -181,14 +201,41 @@ export async function judgeSubmission(submissionId: string): Promise<void> {
         videoUrl: version.video_url,
         usage,
       });
-      must(await db().from('submissions').update({ status: 'scored', analysis_id: analysis.id, error: note }).eq('id', sub.id));
+      must(await db().from('submissions').update({ status: 'scored', analysis_id: analysis.id, error: note, judge_attempts: 0 }).eq('id', sub.id));
       await activity.add('done', `Done. ${rubric.length} criteria scored, each with its reason and evidence.`);
     });
   } catch (err) {
-    console.error(`Judging ${sub.id} failed:`, err);
+    console.error(`Judging ${sub.id} failed (attempt ${attempt}):`, err);
     await activity.add('error', technicalDetail(err));
-    must(await db().from('submissions').update({ status: 'error', error: friendlyJobError(err, 'judge') }).eq('id', sub.id));
+    await failOrRetry(sub.id, attempt, err, activity);
   } finally {
     await settleEvent(sub.event_id).catch((err) => console.warn('settleEvent failed:', err));
+    // A slot is free again: start the next submission in the queue.
+    await dispatchJudging().catch((err) => console.warn('Starting the next judging failed:', err));
   }
+}
+
+/**
+ * When Gemini was only busy, the submission goes back to the queue with a later start time, up to
+ * MAX_AUTO_ATTEMPTS. Any other failure, or the last attempt, stops with a message and "Judge again".
+ */
+export async function failOrRetry(submissionId: string, attempt: number, err: unknown, activity?: Activity): Promise<void> {
+  const transient = err instanceof AiUnavailableError || isTransientAiError(err);
+  if (transient && attempt < MAX_AUTO_ATTEMPTS) {
+    const at = nextAttemptAt(attempt);
+    const message = `Gemini is overloaded right now. SkillProof will try again automatically at ${clockUtc(at.getTime())} (attempt ${attempt + 1} of ${MAX_AUTO_ATTEMPTS}).`;
+    await activity?.add('retry', message);
+    must(
+      await db()
+        .from('submissions')
+        .update({ status: 'queued', error: message, judge_attempts: attempt, next_attempt_at: at.toISOString() })
+        .eq('id', submissionId),
+    );
+    return;
+  }
+  const message =
+    transient && attempt >= MAX_AUTO_ATTEMPTS
+      ? `Gemini stayed overloaded through ${MAX_AUTO_ATTEMPTS} attempts. Use "Judge again" later.`
+      : friendlyJobError(err, 'judge');
+  must(await db().from('submissions').update({ status: 'error', error: message, judge_attempts: attempt }).eq('id', submissionId));
 }

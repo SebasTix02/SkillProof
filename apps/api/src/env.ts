@@ -39,8 +39,20 @@ const EnvSchema = z.object({
   INTERNAL_SECRET: z.string().min(16).optional(),
   /** Set by Vercel for its cron jobs, which send it as a Bearer token. */
   CRON_SECRET: z.string().min(16).optional(),
-  JUDGE_CONCURRENCY: z.coerce.number().int().min(1).max(10).default(3),
-  REPO_TOKEN_BUDGET: z.coerce.number().int().default(150_000),
+  /** Submissions judged at the same time, across all server instances. The rest wait in the queue. */
+  JUDGE_CONCURRENCY: z.coerce.number().int().min(1).max(10).default(2),
+  /** Gemini calls at the same time in one server instance. */
+  GEMINI_CONCURRENCY: z.coerce.number().int().min(1).max(10).default(2),
+  /** Minimum time between the start of two Gemini calls in one instance. */
+  GEMINI_MIN_GAP_MS: z.coerce.number().int().min(0).default(400),
+  /** A Gemini call that takes longer than this is treated as busy and retried. */
+  GEMINI_TIMEOUT_MS: z.coerce.number().int().min(10_000).default(120_000),
+  /** Tokens of source code the repository map reads in full. Everything else is outlined. */
+  REPO_TOKEN_BUDGET: z.coerce.number().int().min(5_000).default(45_000),
+  /** Most files read in full. */
+  REPO_MAX_FULL_FILES: z.coerce.number().int().min(5).default(30),
+  /** Files outside the budget that get a one-sentence AI summary. The others get a local outline only. */
+  REPO_MAX_SUMMARISED_FILES: z.coerce.number().int().min(0).default(40),
 });
 export type Env = z.infer<typeof EnvSchema>;
 

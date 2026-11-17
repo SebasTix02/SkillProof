@@ -1,7 +1,7 @@
-import { useState, type ChangeEvent } from 'react';
+import { Fragment, useState, type ChangeEvent } from 'react';
 import type { ActivityEntry } from '@skillproof/shared';
 import { Link, useParams } from 'react-router-dom';
-import { modelName } from '../../components/AiActivity';
+import { AiActivity, latestStep, modelName } from '../../components/AiActivity';
 import { useToast } from '../../components/toast';
 import { Badge, Button, Card, Notice, PageState, Spinner, Textarea, formatDate, scoreTone } from '../../components/ui';
 import { api, errorMessage } from '../../lib/api';
@@ -14,7 +14,10 @@ interface ConsoleSubmission {
   submitted_by_name: string;
   status: 'submitted' | 'queued' | 'analyzing' | 'scored' | 'error';
   error: string | null;
-  last_activity: ActivityEntry | null;
+  activity: ActivityEntry[];
+  step_count: number;
+  judge_attempts: number;
+  next_attempt_at: string | null;
   models_used: string[] | null;
   versions_used: number;
   locked_commit_sha: string | null;
@@ -124,6 +127,14 @@ export function EventConsole() {
   const { id } = useParams();
   const { data, error, loading, reload } = useLoad<ConsoleResponse>(`/api/events/${id}/console`, (d) => d.event.status === 'judging' || d.event.status === 'open' || d.submissions.some((s) => s.status === 'queued' || s.status === 'analyzing'), 5000);
   const [busy, setBusy] = useState<string | null>(null);
+  const [openSteps, setOpenSteps] = useState<Set<string>>(new Set());
+  const toggleSteps = (id: string) =>
+    setOpenSteps((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   const toast = useToast();
   const [confirmClose, setConfirmClose] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -262,8 +273,13 @@ export function EventConsole() {
               <tbody>
                 {submissions.map((s, i) => {
                   const repo = s.current_version?.repos;
+                  const working = s.status === 'queued' || s.status === 'analyzing';
+                  const latest = latestStep(s.activity);
+                  const expanded = openSteps.has(s.id);
+                  const waitingRetry = s.status === 'queued' && !!s.next_attempt_at;
                   return (
-                    <tr key={s.id} className="border-b border-line last:border-0">
+                    <Fragment key={s.id}>
+                    <tr className={expanded ? 'border-b-0' : 'border-b border-line last:border-0'}>
                       {ranked && <td className="px-4 py-3 tabular-nums text-muted">{s.total != null ? i + 1 : ''}</td>}
                       <td className="px-4 py-3">
                         <Link to={`/org/events/${event.id}/s/${s.id}`} className="font-medium hover:underline">{s.team_name}</Link>
@@ -277,8 +293,20 @@ export function EventConsole() {
                       <td className="px-4 py-3">
                         <Badge tone={s.status === 'scored' ? 'good' : s.status === 'error' ? 'bad' : 'neutral'}>{SUB_LABEL[s.status]}</Badge>
                         {s.status === 'error' && s.error && <div className="mt-1 max-w-xs text-xs text-bad">{s.error}</div>}
-                        {(s.status === 'queued' || s.status === 'analyzing') && s.last_activity && (
-                          <div className="mt-1 max-w-xs text-xs text-muted">{s.last_activity.text}</div>
+                        {waitingRetry && s.error && <div className="mt-1 max-w-xs text-xs text-warn">{s.error}</div>}
+                        {working && !waitingRetry && (
+                          <div className="mt-1 max-w-xs text-xs text-muted">
+                            {latest ? <>Step {s.step_count}: {latest.text}</> : s.status === 'queued' ? 'Waiting for a free slot. Submissions are judged a few at a time.' : 'Starting…'}
+                          </div>
+                        )}
+                        {s.step_count > 0 && (
+                          <button
+                            className="mt-1 text-xs font-medium text-accent hover:underline"
+                            aria-expanded={expanded}
+                            onClick={() => toggleSteps(s.id)}
+                          >
+                            {expanded ? 'Hide steps' : `View ${s.step_count} steps`}
+                          </button>
                         )}
                         {s.status === 'scored' && s.models_used && s.models_used.length > 0 && (
                           <div className="mt-1 text-xs text-muted">{s.models_used.map(modelName).join(', ')}</div>
@@ -300,6 +328,17 @@ export function EventConsole() {
                         )}
                       </td>
                     </tr>
+                    {expanded && (
+                      <tr className="border-b border-line last:border-0">
+                        <td colSpan={5 + (ranked ? 1 : 0) + (event.interviews_enabled ? 1 : 0)} className="px-4 pb-4">
+                          <AiActivity entries={s.activity} live={working} maxHeight="18rem" />
+                          <Link to={`/org/events/${event.id}/s/${s.id}`} className="mt-2 inline-block text-xs font-medium text-accent hover:underline">
+                            Open the submission for the full history and the AI's reasoning →
+                          </Link>
+                        </td>
+                      </tr>
+                    )}
+                    </Fragment>
                   );
                 })}
               </tbody>

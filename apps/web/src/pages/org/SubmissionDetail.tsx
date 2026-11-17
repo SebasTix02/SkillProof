@@ -28,6 +28,8 @@ interface DetailResponse {
     models_used: string[] | null;
     locked_commit_sha: string | null;
     locked_at: string | null;
+    next_attempt_at?: string | null;
+    judge_attempts?: number;
     events: { id: string; name: string; rubric_json: Rubric; status: string };
     repo_analyses: Analysis | Analysis[] | null;
     submission_versions: VersionView[];
@@ -185,16 +187,9 @@ export function SubmissionDetail() {
               <ModelsUsed models={models} />
             </p>
           )}
+          {sub.status === 'queued' && sub.next_attempt_at && sub.error && <Notice tone="warn">{sub.error}</Notice>}
           {activity.length > 0 ? (
-            <details open={working || sub.status === 'error'}>
-              <summary className="cursor-pointer text-sm font-medium">
-                {activity.filter((a) => a.kind !== 'thought').length} steps
-                {activity.some((a) => a.kind === 'thought') && ', with the AI\'s reasoning'}
-              </summary>
-              <div className="mt-3">
-                <AiActivity entries={activity} live={working} />
-              </div>
-            </details>
+            <AiActivity entries={activity} live={working} />
           ) : (
             working && <p className="text-sm text-muted">The steps appear here as the AI works. This page updates on its own.</p>
           )}

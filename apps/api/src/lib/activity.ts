@@ -18,7 +18,13 @@ export class Activity {
     private readonly id: string,
     /** Whether the model's reasoning summaries may be shown to whoever reads this log. */
     readonly allowThoughts = true,
-  ) {}
+    /** Entries already saved on the row, to continue the same history instead of starting a new one. */
+    previous: ActivityEntry[] = [],
+    previousModels: string[] = [],
+  ) {
+    this.entries = [...previous];
+    this.models = new Set(previousModels);
+  }
 
   /** Adds an entry and saves it. Failing to save the log never fails the job. */
   add(kind: ActivityKind, text: string, model?: string | null): Promise<void> {

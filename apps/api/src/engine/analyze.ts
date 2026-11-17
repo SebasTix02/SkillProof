@@ -6,7 +6,7 @@ import { currentActivity } from '../lib/activity.js';
 import { UNTRUSTED_NOTICE, generateJson, type UsageContext } from '../lib/gemini.js';
 import { downloadZip, getCommitProfile, getHeadSha, getRepoMeta, type RepoMeta } from '../lib/github.js';
 import { db, must } from '../lib/supabase.js';
-import { batchByTokens, extractFiles, renderFile, sliceLines, splitByBudget, type RepoFile } from './files.js';
+import { batchByTokens, blobSha, extractFiles, outlineFile, renderCompact, sliceLines, splitByBudget, type RepoFile } from './files.js';
 
 export interface HookSnippet {
   path: string;
@@ -85,32 +85,81 @@ export async function resolveRepo(owner: string, name: string): Promise<{ repo: 
   return { repo: await upsertRepo(meta), meta };
 }
 
-async function summariseOverflow(overflow: RepoFile[], usage: UsageContext): Promise<Map<string, string>> {
+/** Largest share of the budget one file may take. Longer files keep their start and end only. */
+const PER_FILE_TOKENS = 4_000;
+/** Size of one summary batch. Few large batches cost fewer calls than many small ones. */
+const SUMMARY_BATCH_TOKENS = 50_000;
+const MAX_SUMMARY_BATCHES = 2;
+/** Each summarised file is cut to this many tokens: the start of a file says most of what it does. */
+const SUMMARY_FILE_TOKENS = 1_200;
+/** Files beyond this get no outline line either, only their path in the tree. */
+const MAX_OUTLINED_FILES = 200;
+
+const SUMMARY_SYSTEM = `For each file, write one factual sentence (at most 25 words) on what it does. Use the exact path given. No preamble.
+
+${UNTRUSTED_NOTICE}`;
+
+/**
+ * One-sentence summaries for the most important files that are not read in full.
+ * Summaries are cached by blob sha, so a file seen in an earlier commit or another repository costs nothing.
+ * At most MAX_SUMMARY_BATCHES calls, run one after the other.
+ */
+async function summarise(files: RepoFile[], usage: UsageContext): Promise<{ summaries: Map<string, string>; cached: number; calls: number }> {
   const summaries = new Map<string, string>();
-  const batches = batchByTokens(overflow, 100_000, 5);
+  if (files.length === 0) return { summaries, cached: 0, calls: 0 };
+  const shaOf = new Map(files.map((f) => [f.path, blobSha(f.text)]));
+  const { data: rows, error } = await db().from('file_summaries').select('blob_sha, summary').in('blob_sha', [...new Set(shaOf.values())]);
+  if (error) console.warn('Reading cached summaries failed:', error.message);
+  const known = new Map((rows ?? []).map((r: { blob_sha: string; summary: string }) => [r.blob_sha, r.summary]));
+  const missing: RepoFile[] = [];
+  for (const f of files) {
+    const hit = known.get(shaOf.get(f.path)!);
+    if (hit) summaries.set(f.path, hit);
+    else missing.push({ ...f, tokens: Math.min(f.tokens, SUMMARY_FILE_TOKENS) });
+  }
+  const cached = summaries.size;
+
+  const batches = batchByTokens(missing, SUMMARY_BATCH_TOKENS, MAX_SUMMARY_BATCHES);
+  let calls = 0;
   for (const batch of batches) {
     try {
-      const { data } = await generateJson({
+      calls++;
+      const { data, model } = await generateJson({
         model: MODELS.summaries,
         schema: SummariesSchema,
-        system: `Summarise each source file in one or two factual sentences. Use the exact path given.\n\n${UNTRUSTED_NOTICE}`,
-        parts: [{ text: `<repository>\n${batch.map(renderFile).join('\n')}\n</repository>` }],
+        system: SUMMARY_SYSTEM,
+        parts: [{ text: `<repository>\n${batch.map((f) => renderCompact(f, SUMMARY_FILE_TOKENS)).join('\n')}\n</repository>` }],
         usage: { ...usage, kind: 'repo_summaries' },
-        maxOutputTokens: 8000,
+        maxOutputTokens: 60 * batch.length + 200,
+        temperature: 0.1,
+        effort: 'minimal',
+        thoughts: false,
       });
-      for (const f of data.files) summaries.set(f.path, f.summary);
+      const inBatch = new Set(batch.map((f) => f.path));
+      const fresh = data.files.filter((f) => inBatch.has(f.path) && f.summary.trim());
+      for (const f of fresh) summaries.set(f.path, f.summary.trim());
+      const save = fresh.map((f) => ({ blob_sha: shaOf.get(f.path)!, summary: f.summary.trim(), model }));
+      if (save.length) {
+        const { error: saveError } = await db().from('file_summaries').upsert(save, { onConflict: 'blob_sha', ignoreDuplicates: true });
+        if (saveError) console.warn('Caching summaries failed:', saveError.message);
+      }
     } catch (err) {
+      // The outline still describes these files, so the map can go on without their summaries.
       console.warn('File summaries failed for one batch:', err);
+      await currentActivity()?.add('retry', `${batch.length} file summaries could not be written. Those files are described by their outline only.`);
     }
   }
-  return summaries;
+  return { summaries, cached, calls };
 }
 
-function buildPrompt(meta: RepoMeta, full: RepoFile[], overflow: RepoFile[], summaries: Map<string, string>): string {
-  const tree = [...full, ...overflow].map((f) => f.path).sort().join('\n');
-  const rest = overflow.length
-    ? `\n<other_files note="not shown in full">\n${overflow
-        .map((f) => `${f.path}: ${summaries.get(f.path) ?? '(not summarised)'}`)
+function buildPrompt(meta: RepoMeta, full: RepoFile[], outlined: RepoFile[], listed: RepoFile[], summaries: Map<string, string>): string {
+  const tree = [...full, ...outlined, ...listed].map((f) => f.path).sort().join('\n');
+  const outlines = outlined.length
+    ? `\n<other_files note="not shown in full: an outline of each, and a summary for the most important">\n${outlined
+        .map((f) => {
+          const summary = summaries.get(f.path);
+          return summary ? `${outlineFile(f, 5)}\n  summary: ${summary}` : outlineFile(f, 5);
+        })
         .join('\n')}\n</other_files>`
     : '';
   return `Repository: ${meta.owner}/${meta.name}${meta.isFork ? ` (fork of ${meta.forkParent})` : ''}
@@ -120,8 +169,8 @@ ${tree}
 </file_tree>
 
 <repository>
-${full.map(renderFile).join('\n')}
-</repository>${rest}`;
+${full.map((f) => renderCompact(f, PER_FILE_TOKENS)).join('\n')}
+</repository>${outlines}`;
 }
 
 export interface AnalyzeOptions {
@@ -130,6 +179,8 @@ export interface AnalyzeOptions {
   /** Start of the event, to count commits made before it. */
   eventStart?: string | null;
   usage: UsageContext;
+  /** Keep the model's reasoning in the activity log. Off for interviews, where it would reveal the questions. */
+  thoughts?: boolean;
 }
 
 /**
@@ -153,22 +204,41 @@ export async function analyzeRepo(owner: string, name: string, opts: AnalyzeOpti
   const files = extractFiles(await downloadZip(meta.owner, meta.name, sha));
   if (files.length === 0) throw badRequest('repo_empty', 'There is no source code to read in this repository.');
 
-  const { full, overflow } = splitByBudget(files, env().REPO_TOKEN_BUDGET);
+  const e = env();
+  const { full, overflow } = splitByBudget(files, e.REPO_TOKEN_BUDGET, { maxFiles: e.REPO_MAX_FULL_FILES, perFileTokens: PER_FILE_TOKENS });
+  const outlined = overflow.slice(0, MAX_OUTLINED_FILES);
+  const listed = overflow.slice(MAX_OUTLINED_FILES);
   await activity?.step(
-    `Found ${files.length} source files after skipping dependencies, binaries and generated code.` +
-      (overflow.length ? ` ${full.length} are read in full and ${overflow.length} are summarised first.` : ' All of them are read in full.'),
+    `Found ${files.length} source files after skipping dependencies, binaries and generated code. ` +
+      (overflow.length
+        ? `Reading the ${full.length} most important in full and outlining ${outlined.length} more` +
+          (listed.length ? `; ${listed.length} minor files are only listed by name.` : '.')
+        : `All ${full.length} are read in full.`),
   );
-  if (overflow.length) await activity?.step(`Summarising ${overflow.length} files that do not fit in full.`, MODELS.summaries);
-  const summaries = overflow.length ? await summariseOverflow(overflow, opts.usage) : new Map<string, string>();
+
+  const toSummarise = outlined.slice(0, e.REPO_MAX_SUMMARISED_FILES);
+  let summaries = new Map<string, string>();
+  if (toSummarise.length) {
+    await activity?.step(`Writing one-line summaries of the ${toSummarise.length} most relevant files that are not read in full.`, MODELS.summaries);
+    const result = await summarise(toSummarise, opts.usage);
+    summaries = result.summaries;
+    await activity?.step(
+      `${summaries.size} of ${toSummarise.length} files summarised` +
+        (result.cached ? `, ${result.cached} of them reused from earlier analyses at no cost` : '') +
+        ` (${result.calls} AI call${result.calls === 1 ? '' : 's'}).`,
+    );
+  }
 
   await activity?.step('Mapping the repository: what it does, its components, key decisions, weak points and code worth asking about.', MODELS.analysis);
-
   const { data, usage, model } = await generateJson({
     model: MODELS.analysis,
     schema: RepoMapSchema,
     system: MAP_SYSTEM,
-    parts: [{ text: buildPrompt(meta, full, overflow, summaries) }],
+    parts: [{ text: buildPrompt(meta, full, outlined, listed, summaries) }],
     usage: { ...opts.usage, kind: 'repo_map' },
+    maxOutputTokens: 10_000,
+    effort: 'medium',
+    thoughts: opts.thoughts,
   });
 
   // Anything citing a file that is not in the repo is dropped rather than trusted.
