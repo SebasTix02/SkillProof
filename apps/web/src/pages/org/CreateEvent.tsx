@@ -1,7 +1,19 @@
 import { CreateEventSchema, DEFAULT_RUBRIC, type Rubric } from '@skillproof/shared';
 import { useState, type FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Button, Card, Field, Input, Notice, Select, Textarea } from '../../components/ui';
+import { Link, useNavigate } from 'react-router-dom';
+import {
+  Button,
+  CommandConsoleHeader,
+  Field,
+  Input,
+  Notice,
+  NumberedSectionCard,
+  ScoreBar,
+  Select,
+  Textarea,
+  ToggleSwitch,
+  linkButtonSecondary,
+} from '../../components/shared';
 import { api, errorMessage } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
 import type { EventView } from '../../lib/types';
@@ -13,7 +25,11 @@ function localInput(date: Date): string {
 }
 
 const keyFromName = (name: string) =>
-  name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^[^a-z]+|_+$/g, '').slice(0, 40);
+  name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^[^a-z]+|_+$/g, '')
+    .slice(0, 40);
 
 export function CreateEvent() {
   const { org } = useAuth();
@@ -32,7 +48,8 @@ export function CreateEvent() {
   const [error, setError] = useState<string | null>(null);
 
   const totalWeight = rubric.reduce((sum, c) => sum + (Number.isFinite(c.weight) ? c.weight : 0), 0);
-  const patch = (i: number, change: Partial<Rubric[number]>) => setRubric((r) => r.map((c, j) => (j === i ? { ...c, ...change } : c)));
+  const patch = (i: number, change: Partial<Rubric[number]>) =>
+    setRubric((r) => r.map((c, j) => (j === i ? { ...c, ...change } : c)));
 
   async function submit(e: FormEvent, publish: boolean) {
     e.preventDefault();
@@ -66,93 +83,310 @@ export function CreateEvent() {
   }
 
   return (
-    <form onSubmit={(e) => void submit(e, true)} className="space-y-6">
-      <h1 className="text-2xl font-semibold tracking-tight">Create an event</h1>
-
-      <Card className="space-y-4">
-        <Field label="Name">
-          <Input required minLength={3} maxLength={120} value={name} onChange={(e) => setName(e.target.value)} placeholder="Campus Hack 2026" />
-        </Field>
-        <Field label="Description" hint="Theme, rules and prizes. Participants see this on the event page.">
-          <Textarea rows={4} maxLength={4000} value={description} onChange={(e) => setDescription(e.target.value)} />
-        </Field>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Starts">
-            <Input type="datetime-local" required value={startsAt} onChange={(e) => setStartsAt(e.target.value)} />
-          </Field>
-          <Field label="Submission deadline" hint="At this moment every repository is frozen at its last commit and judged.">
-            <Input type="datetime-local" required value={deadline} onChange={(e) => setDeadline(e.target.value)} />
-          </Field>
-        </div>
-      </Card>
-
-      <Card className="space-y-4">
-        <h2 className="text-lg font-semibold">Who can join</h2>
-        <Field label="Access">
-          <Select value={visibility} onChange={(e) => setVisibility(e.target.value as EventView['visibility'])}>
-            <option value="public">Public: anyone with an account</option>
-            <option value="code">Access code: anyone who has the code</option>
-            <option value="invite">Invite only: emails on a list you upload</option>
-          </Select>
-        </Field>
-        {visibility === 'code' && (
-          <Field label="Access code" hint="At least 4 characters. It is stored hashed, so keep a copy.">
-            <Input required minLength={4} maxLength={64} value={accessCode} onChange={(e) => setAccessCode(e.target.value)} />
-          </Field>
-        )}
-        {visibility === 'invite' && <Notice>You upload the list of invited emails from the event console after creating the event.</Notice>}
-      </Card>
-
-      <Card className="space-y-4">
-        <h2 className="text-lg font-semibold">Submissions</h2>
-        <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" checked={unlimited} onChange={(e) => setUnlimited(e.target.checked)} />
-          Unlimited submissions until the deadline
-        </label>
-        {!unlimited && (
-          <Field label="Submissions allowed per participant" hint="Each new version replaces the previous one. Only the last one is judged.">
-            <Input type="number" min={1} max={100} required value={maxSubmissions} onChange={(e) => setMaxSubmissions(Number(e.target.value))} className="max-w-32" />
-          </Field>
-        )}
-        <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" checked={interviews} onChange={(e) => setInterviews(e.target.checked)} />
-          Offer participants a voice interview about their code after judging
-        </label>
-      </Card>
-
-      <Card className="space-y-4">
-        <div className="flex flex-wrap items-baseline gap-3">
-          <h2 className="text-lg font-semibold">Rubric</h2>
-          <span className="text-sm text-muted">
-            Weights add up to {totalWeight}. They are relative, so they do not need to total 100.
+    <form onSubmit={(e) => void submit(e, true)} className="space-y-8">
+      <CommandConsoleHeader
+        breadcrumbs={
+          <>
+            <Link to="/org/events" className="text-[#93B4FF] hover:underline">
+              ← ORGANIZER CONSOLE
+            </Link>
+            <span>//</span>
+            <span>{org?.name?.toUpperCase() ?? 'ORGANIZATION'}</span>
+          </>
+        }
+        statusChips={
+          <span className="rounded-[3px] border border-white/10 bg-white/5 px-2.5 py-0.5 text-white/75">
+            RUBRIC CRITERIA: {rubric.length} ({totalWeight} WEIGHT)
           </span>
+        }
+        eyebrowBadge="STAGE 02 // ASSESSMENT ARCHITECT"
+        title="Draft New Hackathon or Capstone Event"
+        subtitle="Configure the event schedule, cohort access control, submission limits, 3-minute voice defense option, and weighted evaluation rubric."
+        actions={
+          <Link to="/org/events" className={`${linkButtonSecondary} border-white/15 bg-white/10 text-white hover:bg-white/20`}>
+            Cancel &amp; Return
+          </Link>
+        }
+      />
+
+      {/* Section 01: Identity & Schedule */}
+      <NumberedSectionCard
+        number="01"
+        icon="event"
+        title="Event Identity & Commit-Freeze Schedule"
+        subtitle="Define the public title, rules, and exact cutoff timestamp when repositories are frozen."
+        sectionTag="SECTION 01 // TIMELINE"
+        theme="cobalt"
+      >
+        <div className="space-y-4">
+          <Field label="Event Name">
+            <Input
+              required
+              minLength={3}
+              maxLength={120}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Campus Hack 2026 — Distributed Systems Track"
+            />
+          </Field>
+
+          <Field
+            label="Briefing, Rules & Track Overview"
+            hint="Shown on the public event workspace (/e/slug) for registered participants."
+          >
+            <Textarea
+              rows={4}
+              maxLength={4000}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Describe the theme, evaluation rules, deliverables, and prizes..."
+            />
+          </Field>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Registration & Submission Opens">
+              <Input
+                type="datetime-local"
+                required
+                className="font-mono-code"
+                value={startsAt}
+                onChange={(e) => setStartsAt(e.target.value)}
+              />
+            </Field>
+            <Field
+              label="Submission Deadline (Commit Freeze)"
+              hint="At this moment every repository is frozen at its latest commit and queued for judging."
+            >
+              <Input
+                type="datetime-local"
+                required
+                className="font-mono-code"
+                value={deadline}
+                onChange={(e) => setDeadline(e.target.value)}
+              />
+            </Field>
+          </div>
         </div>
-        <ul className="space-y-3">
-          {rubric.map((c, i) => (
-            <li key={i} className="grid gap-2 rounded-lg border border-line p-3 sm:grid-cols-[1fr_6rem_auto]">
-              <Input aria-label="Criterion name" required maxLength={60} value={c.name} onChange={(e) => patch(i, { name: e.target.value, key: keyFromName(e.target.value) })} />
-              <Input aria-label="Weight" type="number" min={1} max={100} required value={c.weight} onChange={(e) => patch(i, { weight: Number(e.target.value) })} />
-              <Button type="button" variant="secondary" disabled={rubric.length === 1} onClick={() => setRubric((r) => r.filter((_, j) => j !== i))}>
-                Remove
-              </Button>
-              <Textarea aria-label="What this criterion measures" rows={2} maxLength={500} className="sm:col-span-3" value={c.description} onChange={(e) => patch(i, { description: e.target.value })} placeholder="What this criterion measures" />
-            </li>
-          ))}
-        </ul>
-        <Button
-          type="button"
-          variant="secondary"
-          disabled={rubric.length >= 12}
-          onClick={() => setRubric((r) => [...r, { key: '', name: '', description: '', weight: 10, anchors: { low: 'Weak.', mid: 'Acceptable.', high: 'Excellent.' } }])}
+      </NumberedSectionCard>
+
+      {/* Section 02: Access & Cohort Gatekeeping */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <NumberedSectionCard
+          number="02"
+          icon="shield_lock"
+          title="Cohort Access & Visibility"
+          subtitle="Control who can join and submit a repository to this event."
+          sectionTag="SECTION 02 // GATEKEEPING"
+          theme="indigo"
         >
-          Add criterion
-        </Button>
-      </Card>
+          <div className="space-y-4">
+            <Field label="Access Mode">
+              <Select
+                value={visibility}
+                onChange={(e) => setVisibility(e.target.value as EventView['visibility'])}
+              >
+                <option value="public">Public: anyone with a SkillProof account</option>
+                <option value="code">Access code: anyone who enters the organizer code</option>
+                <option value="invite">Invite only: verified emails on your allowlist</option>
+              </Select>
+            </Field>
+
+            {visibility === 'code' && (
+              <Field
+                label="Organizer Access Code"
+                hint="At least 4 characters. Stored hashed with scrypt, so keep a copy to share with participants."
+              >
+                <Input
+                  required
+                  minLength={4}
+                  maxLength={64}
+                  className="font-mono-code tracking-wider uppercase"
+                  placeholder="MIT-FALL-2026"
+                  value={accessCode}
+                  onChange={(e) => setAccessCode(e.target.value)}
+                />
+              </Field>
+            )}
+
+            {visibility === 'invite' && (
+              <Notice tone="info">
+                You can paste or upload a CSV of invited participant emails from the event console immediately after
+                creating the event.
+              </Notice>
+            )}
+          </div>
+        </NumberedSectionCard>
+
+        {/* Section 03: Submissions & Voice Defense */}
+        <NumberedSectionCard
+          number="03"
+          icon="record_voice_over"
+          title="Submission Quota & Oral Defense"
+          subtitle="Configure version limits and 3-minute Gemini Live voice cross-examination."
+          sectionTag="SECTION 03 // PROTOCOL"
+          theme="emerald"
+        >
+          <div className="space-y-4">
+            <div className="flex items-start justify-between gap-4 rounded-[4px] border border-line bg-paper p-3.5">
+              <div>
+                <div className="text-[13px] font-semibold text-ink">Unlimited versions until deadline</div>
+                <p className="mt-0.5 text-[12px] text-muted">
+                  Allow teams to update their submission freely before the cutoff. Only the latest version is judged.
+                </p>
+              </div>
+              <ToggleSwitch checked={unlimited} onChange={setUnlimited} />
+            </div>
+
+            {!unlimited && (
+              <Field
+                label="Maximum Versions Allowed Per Team"
+                hint="Each new submission version replaces the previous one."
+              >
+                <Input
+                  type="number"
+                  min={1}
+                  max={100}
+                  required
+                  value={maxSubmissions}
+                  onChange={(e) => setMaxSubmissions(Number(e.target.value))}
+                  className="font-mono-code max-w-36"
+                />
+              </Field>
+            )}
+
+            <div className="flex items-start justify-between gap-4 rounded-[4px] border border-line bg-paper p-3.5">
+              <div>
+                <div className="text-[13px] font-semibold text-ink">Enable 3-minute live voice defense</div>
+                <p className="mt-0.5 text-[12px] text-muted">
+                  Offer participants an AI oral interview about their own code after judging to verify authorship.
+                </p>
+              </div>
+              <ToggleSwitch
+                checked={interviews}
+                onChange={setInterviews}
+                activeColorClass="peer-checked:bg-good"
+              />
+            </div>
+          </div>
+        </NumberedSectionCard>
+      </div>
+
+      {/* Section 04: Weighted Rubric */}
+      <NumberedSectionCard
+        number="04"
+        icon="fact_check"
+        title="Evaluation Rubric & Weight Attribution"
+        subtitle={`Weights sum to ${totalWeight}. Weights are normalized relatively, so they do not strictly need to equal 100.`}
+        sectionTag={`TOTAL WEIGHT: ${totalWeight}`}
+        theme="amber"
+      >
+        <div className="space-y-4">
+          <ScoreBar value={Math.min(100, totalWeight)} max={100} tone="accent" heightClass="h-1.5" />
+
+          <ul className="space-y-3">
+            {rubric.map((c, i) => (
+              <li
+                key={i}
+                className="space-y-3 rounded-[4px] border border-line bg-paper/55 p-4 transition-colors hover:border-muted/60"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="font-mono-code text-[11px] font-bold text-accent uppercase">
+                    Criterion {String(i + 1).padStart(2, '0')} // {c.key || keyFromName(c.name) || 'custom_key'}
+                  </span>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    disabled={rubric.length === 1}
+                    onClick={() => setRubric((r) => r.filter((_, j) => j !== i))}
+                    className="px-2.5 py-1 text-[11px]"
+                  >
+                    Remove
+                  </Button>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-[1fr_8rem]">
+                  <Field label="Criterion Name">
+                    <Input
+                      aria-label="Criterion name"
+                      required
+                      maxLength={60}
+                      placeholder="Architecture & Code Quality"
+                      value={c.name}
+                      onChange={(e) => patch(i, { name: e.target.value, key: keyFromName(e.target.value) })}
+                    />
+                  </Field>
+                  <Field label="Weight">
+                    <Input
+                      aria-label="Weight"
+                      type="number"
+                      min={1}
+                      max={100}
+                      required
+                      className="font-mono-code"
+                      value={c.weight}
+                      onChange={(e) => patch(i, { weight: Number(e.target.value) })}
+                    />
+                  </Field>
+                </div>
+
+                <Field label="What This Criterion Measures">
+                  <Textarea
+                    aria-label="What this criterion measures"
+                    rows={2}
+                    maxLength={500}
+                    value={c.description}
+                    onChange={(e) => patch(i, { description: e.target.value })}
+                    placeholder="What the AI evaluator and human judges should look for in the repository..."
+                  />
+                </Field>
+              </li>
+            ))}
+          </ul>
+
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={rubric.length >= 12}
+              onClick={() =>
+                setRubric((r) => [
+                  ...r,
+                  {
+                    key: '',
+                    name: '',
+                    description: '',
+                    weight: 15,
+                    anchors: { low: 'Weak.', mid: 'Acceptable.', high: 'Excellent.' },
+                  },
+                ])
+              }
+            >
+              <span className="material-symbols-outlined text-[16px]">add</span>
+              <span>Add Rubric Criterion ({rubric.length}/12)</span>
+            </Button>
+            <span className="font-mono-code text-[11px] text-muted">
+              Up to 12 weighted criteria per assessment
+            </span>
+          </div>
+        </div>
+      </NumberedSectionCard>
 
       {error && <Notice tone="error">{error}</Notice>}
-      <div className="flex flex-wrap gap-3">
-        <Button type="submit" disabled={busy}>{busy ? 'Creating…' : 'Create and open event'}</Button>
-        <Button type="button" variant="secondary" disabled={busy} onClick={(e) => void submit(e, false)}>Save as draft</Button>
+
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-[6px] border border-line bg-white p-5">
+        <div className="font-mono-code text-[11px] text-muted">
+          ORGANIZER: <strong className="text-ink">{org?.name}</strong> • STATUS ON PUBLISH:{' '}
+          <strong className="text-good">OPEN FOR SUBMISSIONS</strong>
+        </div>
+        <div className="flex flex-wrap gap-3">
+          <Button type="button" variant="secondary" disabled={busy} onClick={(e) => void submit(e, false)}>
+            Save as Draft
+          </Button>
+          <Button type="submit" disabled={busy}>
+            <span className="material-symbols-outlined text-[17px]">rocket_launch</span>
+            <span>{busy ? 'Creating Event…' : 'Create & Open Event'}</span>
+          </Button>
+        </div>
       </div>
     </form>
   );

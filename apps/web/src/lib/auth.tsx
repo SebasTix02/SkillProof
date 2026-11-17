@@ -7,6 +7,7 @@ export interface Organization {
   id: string;
   name: string;
   slug: string;
+  plan?: string;
   roles: string[];
   permissions: string[];
 }
@@ -71,7 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       loading,
       session,
       me,
-      org: me?.organizations.find((o) => o.permissions.includes('event.create')) ?? null,
+      org: me?.organizations.find((o) => o.permissions.includes('event.create')) ?? me?.organizations[0] ?? null,
       refresh,
       signOut: async () => {
         await supabase.auth.signOut();

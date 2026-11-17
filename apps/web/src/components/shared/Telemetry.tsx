@@ -115,6 +115,94 @@ export function MetricTile({
   );
 }
 
+export function TopAccentKpiCard({
+  accent = 'cobalt',
+  eyebrow,
+  icon,
+  value,
+  unit,
+  description,
+  progress,
+  footerLeft,
+  footerRight,
+}: {
+  accent?: 'cobalt' | 'emerald' | 'amber' | 'indigo';
+  eyebrow: string;
+  icon: string;
+  value: ReactNode;
+  unit?: ReactNode;
+  description?: ReactNode;
+  progress?: number;
+  footerLeft?: ReactNode;
+  footerRight?: ReactNode;
+}) {
+  const palette = {
+    cobalt: {
+      border: 'border-accent/25',
+      bar: 'bg-accent',
+      label: 'text-accent',
+      iconPill: 'bg-accent-soft text-accent',
+      scoreTone: 'accent' as const,
+    },
+    emerald: {
+      border: 'border-good/30',
+      bar: 'bg-good',
+      label: 'text-good',
+      iconPill: 'bg-good-soft text-good',
+      scoreTone: 'good' as const,
+    },
+    amber: {
+      border: 'border-warn/30',
+      bar: 'bg-warn',
+      label: 'text-warn',
+      iconPill: 'bg-warn-soft text-warn',
+      scoreTone: 'warn' as const,
+    },
+    indigo: {
+      border: 'border-[#C7D2FE]',
+      bar: 'bg-[#4338CA]',
+      label: 'text-[#4338CA]',
+      iconPill: 'bg-[#EEF2FF] text-[#4338CA]',
+      scoreTone: 'accent' as const,
+    },
+  }[accent];
+
+  return (
+    <div
+      className={`relative flex flex-col justify-between space-y-3 overflow-hidden rounded-[6px] border bg-white p-4 ${palette.border}`}
+    >
+      <div className={`absolute top-0 right-0 left-0 h-[3px] ${palette.bar}`} />
+      <div className="flex items-center justify-between pt-0.5">
+        <span className={`font-mono-code text-[11px] font-semibold tracking-wider uppercase ${palette.label}`}>
+          {eyebrow}
+        </span>
+        <span className={`material-symbols-outlined rounded-[4px] p-1.5 text-[17px] ${palette.iconPill}`}>{icon}</span>
+      </div>
+
+      <div>
+        <div className="flex items-baseline gap-1.5">
+          <span className="font-serif-heading text-[28px] leading-none font-semibold tracking-tight text-ink">
+            {value}
+          </span>
+          {unit && <span className="font-mono-code text-[12px] font-medium text-muted">{unit}</span>}
+        </div>
+        {description && <p className="mt-1 text-[12px] leading-snug text-muted">{description}</p>}
+      </div>
+
+      {typeof progress === 'number' && (
+        <ScoreBar value={progress} max={100} tone={palette.scoreTone} heightClass="h-1.5" />
+      )}
+
+      {(footerLeft || footerRight) && (
+        <div className="font-mono-code flex items-center justify-between border-t border-line pt-2 text-[11px]">
+          <span className="text-muted uppercase">{footerLeft}</span>
+          <span className={`font-semibold ${palette.label}`}>{footerRight}</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
 const DEFAULT_EQUALIZER_BARS = [35, 50, 70, 85, 60, 40, 65, 90, 100, 75, 55, 30, 60, 45, 25, 18];
 
 export function WaveformVisualizer({

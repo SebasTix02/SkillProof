@@ -15,6 +15,7 @@ import { Landing } from './pages/Landing';
 import { CreateEvent } from './pages/org/CreateEvent';
 import { EventConsole } from './pages/org/EventConsole';
 import { OrgEvents } from './pages/org/OrgEvents';
+import { OrgSettings } from './pages/org/OrgSettings';
 import { SubmissionDetail } from './pages/org/SubmissionDetail';
 import { PublicProfile } from './pages/PublicProfile';
 
@@ -46,6 +47,7 @@ function App() {
         <Route path="/interview/new" element={<Private><InterviewHome /></Private>} />
         <Route path="/interview/:id" element={<Private><InterviewPage /></Private>} />
         <Route path="/org/events" element={<Private organizer><OrgEvents /></Private>} />
+        <Route path="/org/settings" element={<Private organizer><OrgSettings /></Private>} />
         <Route path="/org/events/new" element={<Private organizer><CreateEvent /></Private>} />
         <Route path="/org/events/:id" element={<Private organizer><EventConsole /></Private>} />
         <Route path="/org/events/:id/s/:sid" element={<Private organizer><SubmissionDetail /></Private>} />

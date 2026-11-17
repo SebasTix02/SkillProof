@@ -118,3 +118,57 @@ export function NumberedSectionCard({
     </section>
   );
 }
+
+export function CommandConsoleHeader({
+  breadcrumbs,
+  statusChips,
+  eyebrowBadge,
+  eyebrowMeta,
+  title,
+  subtitle,
+  actions,
+  footerSlot,
+}: {
+  breadcrumbs?: ReactNode;
+  statusChips?: ReactNode;
+  eyebrowBadge?: ReactNode;
+  eyebrowMeta?: ReactNode;
+  title: ReactNode;
+  subtitle?: ReactNode;
+  actions?: ReactNode;
+  footerSlot?: ReactNode;
+}) {
+  return (
+    <section className="overflow-hidden rounded-[6px] border border-[#262B34] bg-[#0F141C] p-5 text-white sm:p-6">
+      {(breadcrumbs || statusChips) && (
+        <div className="font-mono-code flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-3.5 text-[11px] text-white/65">
+          {breadcrumbs && <div className="flex flex-wrap items-center gap-2">{breadcrumbs}</div>}
+          {statusChips && <div className="flex flex-wrap items-center gap-2">{statusChips}</div>}
+        </div>
+      )}
+
+      <div className="flex flex-col justify-between gap-4 pt-4 lg:flex-row lg:items-end">
+        <div className="space-y-1.5">
+          {(eyebrowBadge || eyebrowMeta) && (
+            <div className="font-mono-code flex flex-wrap items-center gap-2.5 text-[11px]">
+              {eyebrowBadge && (
+                <span className="rounded-[3px] border border-accent/40 bg-accent/20 px-2 py-0.5 font-semibold tracking-wider text-[#93B4FF] uppercase">
+                  {eyebrowBadge}
+                </span>
+              )}
+              {eyebrowMeta && <span className="text-white/55">{eyebrowMeta}</span>}
+            </div>
+          )}
+          <h1 className="font-serif-heading text-[28px] leading-[34px] font-medium tracking-tight text-white sm:text-[34px] sm:leading-[40px]">
+            {title}
+          </h1>
+          {subtitle && <p className="max-w-3xl text-[13px] leading-[21px] text-white/70 sm:text-[14px]">{subtitle}</p>}
+        </div>
+
+        {actions && <div className="flex shrink-0 flex-wrap items-center gap-2.5 self-start lg:self-auto">{actions}</div>}
+      </div>
+
+      {footerSlot && <div className="mt-5 border-t border-white/10 pt-4">{footerSlot}</div>}
+    </section>
+  );
+}

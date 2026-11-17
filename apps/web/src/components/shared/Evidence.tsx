@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { DOSSIER_THEMES, type DossierThemeKey } from './tokens';
+import { DOSSIER_THEMES, ORG_ROLE_SPECS, normalizeOrgRole, type DossierThemeKey, type OrgRoleKey } from './tokens';
 
 export function EditorialQuoteBlock({
   quote,
@@ -168,5 +168,45 @@ export function VerificationProtocolCard({
         ))}
       </div>
     </section>
+  );
+}
+
+export function RoleBadge({ role }: { role: string | OrgRoleKey }) {
+  const key = normalizeOrgRole(role);
+  const spec = ORG_ROLE_SPECS[key];
+  return (
+    <span
+      className={`font-mono-code inline-flex items-center rounded-[3px] border px-2 py-0.5 text-[10px] font-bold tracking-wider uppercase ${spec.badgeClass}`}
+    >
+      {spec.label}
+    </span>
+  );
+}
+
+export function RoleCapabilityGrid({ activeRole }: { activeRole?: OrgRoleKey }) {
+  const keys: OrgRoleKey[] = ['owner', 'organizer', 'judge', 'auditor'];
+  return (
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      {keys.map((key) => {
+        const spec = ORG_ROLE_SPECS[key];
+        const isCurrent = activeRole === key;
+        return (
+          <div
+            key={key}
+            className={`flex flex-col space-y-1.5 rounded-[4px] border p-3.5 text-[12px] transition-colors ${spec.cardClass} ${
+              isCurrent ? 'ring-2 ring-accent/40' : ''
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <span className={`font-mono-code rounded-[3px] px-2 py-0.5 text-[10px] font-bold tracking-wider ${spec.pillBgClass}`}>
+                {spec.label}
+              </span>
+              <span className="font-mono-code text-[10px] font-semibold text-muted">{spec.tier}</span>
+            </div>
+            <p className="leading-relaxed text-ink/85">{spec.description}</p>
+          </div>
+        );
+      })}
+    </div>
   );
 }

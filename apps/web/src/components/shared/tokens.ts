@@ -111,6 +111,74 @@ export const ARTIFACT_THEME_CYCLE: DossierAccentTheme[] = [
   DOSSIER_THEMES.emerald,
 ];
 
+export type OrgRoleKey = 'owner' | 'organizer' | 'judge' | 'auditor';
+
+export interface RoleCapabilitySpec {
+  key: OrgRoleKey;
+  label: string;
+  tier: string;
+  description: string;
+  badgeClass: string;
+  cardClass: string;
+  pillBgClass: string;
+  avatarBgClass: string;
+}
+
+export const ORG_ROLE_SPECS: Record<OrgRoleKey, RoleCapabilitySpec> = {
+  owner: {
+    key: 'owner',
+    label: 'OWNER',
+    tier: 'ADMIN ROOT',
+    description:
+      'Full cryptographic key revocation, billing authority, seat management, and enclave administration.',
+    badgeClass: 'border-bad/30 bg-bad-soft text-bad',
+    cardClass: 'border-bad/25 bg-bad-soft/40 text-ink',
+    pillBgClass: 'bg-bad text-white',
+    avatarBgClass: 'bg-bad text-white ring-2 ring-bad-soft',
+  },
+  organizer: {
+    key: 'organizer',
+    label: 'ORGANIZER',
+    tier: 'STAGE OPS',
+    description:
+      'Create hackathons, freeze candidate repositories, synthesize AST runs, and publish official leaderboards.',
+    badgeClass: 'border-accent/25 bg-accent-soft text-accent',
+    cardClass: 'border-accent/25 bg-accent-soft/45 text-ink',
+    pillBgClass: 'bg-accent text-white',
+    avatarBgClass: 'bg-accent text-white ring-2 ring-accent-soft',
+  },
+  judge: {
+    key: 'judge',
+    label: 'JUDGE',
+    tier: 'VERIFICATION',
+    description:
+      'Read-only access to submissions, submit rubric score overrides, and inspect AI voice defense audits.',
+    badgeClass: 'border-good/30 bg-good-soft text-good',
+    cardClass: 'border-good/25 bg-good-soft/45 text-ink',
+    pillBgClass: 'bg-good text-white',
+    avatarBgClass: 'bg-good text-white ring-2 ring-good-soft',
+  },
+  auditor: {
+    key: 'auditor',
+    label: 'AUDITOR',
+    tier: 'COMPLIANCE',
+    description:
+      'Export cryptographic Merkle ledgers, inspect automated defense logs, and review ISO/SOC2 attestations.',
+    badgeClass: 'border-[#C7D2FE] bg-[#EEF2FF] text-[#3730A3]',
+    cardClass: 'border-[#C7D2FE] bg-[#EEF2FF]/50 text-ink',
+    pillBgClass: 'bg-[#4338CA] text-white',
+    avatarBgClass: 'bg-[#4338CA] text-white ring-2 ring-[#EEF2FF]',
+  },
+};
+
+export function normalizeOrgRole(raw: string | undefined): OrgRoleKey {
+  const lower = (raw ?? '').toLowerCase();
+  if (lower.includes('owner') || lower.includes('admin')) return 'owner';
+  if (lower.includes('judge') || lower.includes('reviewer')) return 'judge';
+  if (lower.includes('audit')) return 'auditor';
+  return 'organizer';
+}
+
 export function formatClock(seconds: number): string {
   const safe = Math.max(0, Math.floor(seconds));
   return `${String(Math.floor(safe / 60)).padStart(2, '0')}:${String(safe % 60).padStart(2, '0')}`;

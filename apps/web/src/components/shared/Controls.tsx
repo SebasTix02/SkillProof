@@ -147,3 +147,33 @@ export function DarkBanner({
     </section>
   );
 }
+
+export function LedgerAnchorBanner({
+  badge = 'MERKLE PROVEN',
+  meta = 'CRYPTOGRAPHIC ATTESTATION // ED25519',
+  title = 'Cryptographically Anchored Evaluation Ledger',
+  description = 'Every rubric score, commit SHA freeze, and oral defense report is recorded with tamper-evident audit metadata.',
+  actions,
+}: {
+  badge?: string;
+  meta?: string;
+  title?: string;
+  description?: string;
+  actions?: ReactNode;
+}) {
+  return (
+    <section className="flex flex-col justify-between gap-5 rounded-[6px] border border-line bg-white p-6 md:flex-row md:items-center">
+      <div className="space-y-1.5">
+        <div className="font-mono-code flex flex-wrap items-center gap-2 text-[11px]">
+          <span className="rounded-[3px] border border-good/30 bg-good-soft px-2 py-0.5 font-bold text-good uppercase">
+            {badge}
+          </span>
+          <span className="text-muted">{meta}</span>
+        </div>
+        <h3 className="font-serif-heading text-[20px] font-medium text-ink">{title}</h3>
+        <p className="max-w-2xl text-[13px] leading-relaxed text-muted">{description}</p>
+      </div>
+      {actions && <div className="flex shrink-0 flex-wrap items-center gap-2.5">{actions}</div>}
+    </section>
+  );
+}
