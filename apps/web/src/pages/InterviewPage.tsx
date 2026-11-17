@@ -4,7 +4,20 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { AiActivity, ModelsUsed } from '../components/AiActivity';
 import { Report, type ReportView } from '../components/Report';
-import { Badge, Button, Notice, PageState, Spinner, formatDate, linkButtonSecondary } from '../components/ui';
+import {
+  Button,
+  CopyLinkButton,
+  DossierPageHeader,
+  LiveDot,
+  Notice,
+  PageState,
+  ScoreBar,
+  Spinner,
+  WaveformVisualizer,
+  formatClock,
+  formatDate,
+  linkButtonSecondary,
+} from '../components/shared';
 import { api, errorMessage } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { MIC_MIME, Speaker, startMic } from '../lib/liveAudio';
@@ -43,8 +56,6 @@ interface LiveToken {
   api_version: string;
   seconds: number;
 }
-
-const clock = (s: number) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
 
 /** Seconds the interviewer gets to say goodbye once the clock runs out. */
 const WRAP_UP_SECONDS = 12;
@@ -354,7 +365,7 @@ function Room({
       <header className="flex flex-wrap items-center justify-between gap-3 border-b border-line bg-[#F0F6FF] px-5 py-3">
         <div className="flex min-w-0 flex-wrap items-center gap-2.5">
           <span className="font-mono-code inline-flex items-center gap-1.5 rounded-[3px] border border-line bg-white px-2.5 py-1 text-[11px] font-semibold tracking-wider text-accent uppercase">
-            <span className="status-dot-live bg-accent text-accent" />
+            <LiveDot tone="accent" />
             <span>ORAL EXAMINER COCKPIT</span>
           </span>
           <span className="font-mono-code truncate text-[12px] font-semibold text-ink">
@@ -382,9 +393,9 @@ function Room({
               {phase === 'live' ? 'LIVE AUDIO' : phase === 'connecting' ? 'CONNECTING' : 'STANDBY'}
             </span>
             <span className="font-mono-code text-[14px] font-bold tracking-tight text-ink" aria-label="Time left">
-              {clock(left)}
+              {formatClock(left)}
             </span>
-            <span className="font-mono-code text-[11px] text-muted">/ {clock(data.seconds)}</span>
+            <span className="font-mono-code text-[11px] text-muted">/ {formatClock(data.seconds)}</span>
           </div>
 
           {(phase === 'live' || resuming) && (
@@ -429,9 +440,7 @@ function Room({
                 <span className="text-muted uppercase">Repository Hook Sync</span>
                 <span className="font-bold text-good">SYNCHRONIZED (100%)</span>
               </div>
-              <div className="h-1.5 w-full overflow-hidden rounded-full bg-well">
-                <div className="score-bar-fill h-full w-full bg-good" style={{ transform: 'scaleX(1)' }} />
-              </div>
+              <ScoreBar value={100} max={100} tone="good" heightClass="h-1.5" trackClass="bg-well" />
               <p className="text-[12px] leading-relaxed text-muted">
                 {questions.length} code snippets extracted from commit{' '}
                 <code className="font-mono-code text-ink">{interview.commit_sha?.slice(0, 7) ?? 'HEAD'}</code> for
@@ -444,22 +453,7 @@ function Room({
                 <span className="uppercase">Acoustic Input Stream</span>
                 <span className="font-semibold text-ink">{phase === 'live' ? 'MIC ACTIVE' : 'MIC STANDBY'}</span>
               </div>
-              <div
-                aria-label="Microphone Amplitude Visualizer"
-                className="flex h-8 items-end justify-between gap-1 rounded-[3px] border border-line bg-[#F0F6FF] p-1"
-              >
-                {bars.map((h, i) => (
-                  <span
-                    key={i}
-                    className="w-full bg-accent transition-transform duration-200"
-                    style={{
-                      height: '100%',
-                      transformOrigin: 'bottom',
-                      transform: `scaleY(${phase === 'live' ? h / 100 : 0.2})`,
-                    }}
-                  />
-                ))}
-              </div>
+              <WaveformVisualizer bars={bars} active={phase === 'live'} />
               <div className="font-mono-code flex items-center justify-between pt-0.5 text-[10px] text-muted">
                 <span>Echo Cancellation: ON</span>
                 <span>Noise Suppression: ON</span>
@@ -699,7 +693,7 @@ function Room({
           <div className="flex items-center justify-between border-t border-line pt-3">
             <div className="font-mono-code flex items-center gap-1.5 text-[11px] text-muted">
               <span className="material-symbols-outlined text-[15px]">timer</span>
-              <span>{phase === 'live' ? `Remaining: ${clock(left)}` : 'Clock starts on microphone grant'}</span>
+              <span>{phase === 'live' ? `Remaining: ${formatClock(left)}` : 'Clock starts on microphone grant'}</span>
             </div>
             {phase === 'live' && (
               <Button variant="secondary" onClick={() => void finish()} className="py-1.5 text-[12px]">
@@ -717,7 +711,6 @@ export function InterviewPage() {
   const { id } = useParams();
   const { me } = useAuth();
   const [liveActive, setLiveActive] = useState(false);
-  const [copied, setCopied] = useState(false);
 
   const { data, error, loading, reload } = useLoad<InterviewResponse>(
     `/api/interviews/${id}`,
@@ -730,26 +723,15 @@ export function InterviewPage() {
   const profile = me?.public_profile;
   const publicUrl = profile?.slug ? `${window.location.origin}/p/${profile.slug}` : null;
 
-  async function copyPublicLink() {
-    if (!publicUrl) return;
-    try {
-      await navigator.clipboard.writeText(publicUrl);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      // clipboard unavailable
-    }
-  }
-
   return (
     <div className="space-y-8">
       {/* Top Stage Controller */}
       <StageController status={interview.status} liveActive={liveActive} />
 
       {/* Page Masthead */}
-      <header className="flex flex-col justify-between gap-4 border-b border-line pb-5 md:flex-row md:items-end">
-        <div className="space-y-1.5">
-          <div className="font-mono-code flex flex-wrap items-center gap-2 text-[11px] text-muted">
+      <DossierPageHeader
+        eyebrow={
+          <div className="flex flex-wrap items-center gap-2">
             <Link to="/interview/new" className="text-accent hover:underline">
               ← MY INTERVIEWS
             </Link>
@@ -764,22 +746,21 @@ export function InterviewPage() {
               </>
             )}
           </div>
-          <h1 className="font-serif-heading text-[28px] leading-[34px] font-medium tracking-tight text-ink sm:text-[34px] sm:leading-[40px]">
-            Oral Verification: {interview.repo.owner}/{interview.repo.name}
-          </h1>
-          {interview.summary && <p className="max-w-3xl text-[14px] leading-[22px] text-muted">{interview.summary}</p>}
-        </div>
-
-        <a
-          href={interview.repo.url}
-          target="_blank"
-          rel="noreferrer"
-          className="btn-tactile font-mono-code inline-flex shrink-0 items-center gap-1.5 rounded-[4px] border border-line bg-white px-3 py-1.5 text-[11px] font-semibold text-ink hover:border-accent hover:text-accent"
-        >
-          <span>Inspect GitHub Repo</span>
-          <span>↗</span>
-        </a>
-      </header>
+        }
+        title={`Oral Verification: ${interview.repo.owner}/${interview.repo.name}`}
+        subtitle={interview.summary}
+        rightSlot={
+          <a
+            href={interview.repo.url}
+            target="_blank"
+            rel="noreferrer"
+            className="btn-tactile font-mono-code inline-flex shrink-0 items-center gap-1.5 rounded-[4px] border border-line bg-white px-3 py-1.5 text-[11px] font-semibold text-ink hover:border-accent hover:text-accent"
+          >
+            <span>Inspect GitHub Repo</span>
+            <span>↗</span>
+          </a>
+        }
+      />
 
       {/* Stage 01: Preparing Repository & Questions */}
       {interview.status === 'preparing' && (
@@ -905,14 +886,11 @@ export function InterviewPage() {
               </div>
 
               {interview.is_owner && profile?.is_public && publicUrl && (
-                <button
-                  type="button"
-                  onClick={() => void copyPublicLink()}
-                  className="btn-tactile font-mono-code inline-flex cursor-pointer items-center gap-2 rounded-[4px] border border-line bg-white px-3 py-1.5 text-[11px] font-semibold text-ink hover:border-accent hover:text-accent"
-                >
-                  <span className="material-symbols-outlined text-[15px] text-good">content_copy</span>
-                  <span>{copied ? 'COPIED RECRUITER LINK!' : 'Copy Recruiter Access Link'}</span>
-                </button>
+                <CopyLinkButton
+                  value={publicUrl}
+                  label="Copy Recruiter Access Link"
+                  copiedLabel="COPIED RECRUITER LINK!"
+                />
               )}
             </footer>
           </article>

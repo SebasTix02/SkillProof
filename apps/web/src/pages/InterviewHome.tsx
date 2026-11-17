@@ -1,6 +1,20 @@
 import { useMemo, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Badge, Notice, PageState, formatDate, scoreTone } from '../components/ui';
+import {
+  Badge,
+  DossierPageHeader,
+  KpiCell,
+  KpiGrid,
+  LiveDot,
+  Notice,
+  PageState,
+  ScoreBar,
+  TabStrip,
+  VerificationProtocolCard,
+  formatAudioDuration,
+  formatDate,
+  scoreTone,
+} from '../components/shared';
 import { api, errorMessage } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { useLoad } from '../lib/useLoad';
@@ -39,13 +53,6 @@ const STATUS_BADGE: Record<
 function getReport(row: InterviewRow): InterviewReportSummary | null {
   if (!row.interview_reports) return null;
   return Array.isArray(row.interview_reports) ? (row.interview_reports[0] ?? null) : row.interview_reports;
-}
-
-function formatDuration(seconds: number | null | undefined): string {
-  if (seconds == null || seconds <= 0) return '03:00 Window';
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
-  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')} Recorded`;
 }
 
 export function InterviewHome() {
@@ -92,7 +99,8 @@ export function InterviewHome() {
       .map((i) => getReport(i)?.ownership_score)
       .filter((s): s is number => typeof s === 'number');
 
-    const avgScore = scores.length > 0 ? Math.round((scores.reduce((a, b) => a + b, 0) / scores.length) * 10) / 10 : null;
+    const avgScore =
+      scores.length > 0 ? Math.round((scores.reduce((a, b) => a + b, 0) / scores.length) * 10) / 10 : null;
     const latest = allInterviews[0] ?? null;
     const latestReport = latest ? getReport(latest) : null;
 
@@ -141,26 +149,23 @@ export function InterviewHome() {
   return (
     <div className="mx-auto max-w-[1120px] space-y-8">
       {/* 1. Header & Context Meta */}
-      <section className="space-y-2">
-        <div className="flex flex-wrap items-center gap-2 text-muted">
-          <span className="font-mono-code rounded-[3px] border border-accent/25 bg-accent-soft px-2 py-0.5 text-[11px] font-semibold tracking-wider text-accent uppercase">
-            ORAL VERIFICATION DISPATCH
-          </span>
-          <span className="text-line">•</span>
-          <span className="font-mono-code text-[11px] font-medium tracking-wider text-muted uppercase">
-            AST PROVENANCE &amp; COGNITIVE DEFENSE
-          </span>
-          <span className="text-line">•</span>
-          <span className="font-mono-code flex items-center gap-1.5 text-[11px] font-medium text-good">
-            <span className="status-dot-live bg-good text-good" />
-            {publicProfileUrl ? 'PUBLIC DOSSIER ACTIVE' : 'GEMINI LIVE VOICE READY'}
-          </span>
-        </div>
-
-        <div className="flex flex-col justify-between gap-3 pt-1 md:flex-row md:items-baseline">
-          <h1 className="font-serif-heading text-[32px] leading-[38px] font-medium tracking-tight text-ink sm:text-[36px] sm:leading-[42px]">
-            My Interviews &amp; Verification Runs
-          </h1>
+      <DossierPageHeader
+        borderBottom={false}
+        eyebrow={
+          <>
+            <Badge tone="accent">ORAL VERIFICATION DISPATCH</Badge>
+            <span className="text-line">•</span>
+            <span className="text-muted uppercase">AST PROVENANCE &amp; COGNITIVE DEFENSE</span>
+            <span className="text-line">•</span>
+            <span className="flex items-center gap-1.5 font-medium text-good">
+              <LiveDot tone="good" />
+              {publicProfileUrl ? 'PUBLIC DOSSIER ACTIVE' : 'GEMINI LIVE VOICE READY'}
+            </span>
+          </>
+        }
+        title="My Interviews & Verification Runs"
+        subtitle="Paste a public GitHub repository you authored. SkillProof reads the codebase, prepares targeted questions tied to your actual files, and conducts a 3-minute live voice interview to generate a shareable ownership report."
+        rightSlot={
           <div className="font-mono-code flex items-center gap-2 text-[11px] text-muted">
             <span>VERIFIED CREDENTIALS:</span>
             <span className="rounded-[3px] border border-line bg-white px-2 py-0.5 font-semibold text-ink">
@@ -175,23 +180,17 @@ export function InterviewHome() {
               </Link>
             )}
           </div>
-        </div>
-
-        <p className="max-w-[820px] text-[14px] leading-[22px] text-muted sm:text-[15px] sm:leading-[24px]">
-          Paste a public GitHub repository you authored. SkillProof reads the codebase, prepares targeted questions tied
-          to your actual files, and conducts a 3-minute live voice interview to generate a shareable ownership report.
-        </p>
-      </section>
+        }
+      />
 
       {/* 2. Hero Visual Cockpit Launch Section (Split 7 / 5 Grid) */}
       <section className="overflow-hidden rounded-[6px] border border-line bg-white">
         <div className="grid grid-cols-1 lg:grid-cols-12">
-          {/* Left: Trigger Interview Controls (7 cols) */}
           <div className="flex flex-col justify-between space-y-5 border-b border-line p-6 sm:p-7 lg:col-span-7 lg:border-r lg:border-b-0">
             <div className="space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
-                  <span className="status-dot-live bg-accent text-accent" />
+                  <LiveDot tone="accent" />
                   <span className="font-mono-code text-[11px] font-bold tracking-wider text-accent uppercase">
                     Trigger New 3-Min AI Voice Interview
                   </span>
@@ -267,11 +266,10 @@ export function InterviewHome() {
             </div>
           </div>
 
-          {/* Right: Editorial Image Cockpit Asset (5 cols) */}
           <div className="flex flex-col justify-between space-y-4 bg-[#14161A] p-5 text-white lg:col-span-5">
             <div className="flex items-center justify-between border-b border-[#262B34] pb-2.5">
               <div className="flex items-center gap-2">
-                <span className="status-dot-live bg-[#79d9ae] text-[#79d9ae]" />
+                <LiveDot tone="mint" />
                 <span className="font-mono-code text-[11px] font-semibold tracking-wider text-[#79d9ae] uppercase">
                   AI ORAL EXAMINER COCKPIT // READY
                 </span>
@@ -308,192 +306,122 @@ export function InterviewHome() {
       </section>
 
       {/* 3. High-Impact KPI Telemetry Strip (4 Columns) */}
-      <section className="grid grid-cols-1 divide-y divide-line overflow-hidden rounded-[6px] border border-line bg-white sm:grid-cols-2 sm:divide-x sm:divide-y-0 lg:grid-cols-4">
-        {/* Metric 1: Total Interviews */}
-        <div className="flex flex-col justify-between space-y-2.5 p-5">
-          <div className="flex items-center justify-between">
-            <span className="font-mono-code text-[11px] font-semibold tracking-wider text-muted uppercase">
-              Total Interviews
-            </span>
-            <span className="material-symbols-outlined text-[18px] text-accent">fact_check</span>
+      <KpiGrid>
+        <KpiCell
+          label="Total Interviews"
+          icon="fact_check"
+          footer={`Completion Ratio: ${stats.total > 0 ? `${Math.round((stats.completedCount / stats.total) * 100)}%` : '—'}`}
+        >
+          <div className="font-mono-code text-[26px] font-semibold tracking-tight text-ink">
+            {stats.total} {stats.total === 1 ? 'Audit' : 'Audits'}
           </div>
-          <div>
-            <div className="font-mono-code text-[26px] font-semibold tracking-tight text-ink">
-              {stats.total} {stats.total === 1 ? 'Audit' : 'Audits'}
-            </div>
-            <div className="mt-1 flex flex-wrap items-center gap-1.5">
-              <span className="font-mono-code rounded-[3px] border border-good/30 bg-good-soft px-1.5 py-0.5 text-[10px] font-bold text-good">
-                {stats.completedCount} Scored
-              </span>
-              <span className="font-mono-code rounded-[3px] border border-warn/30 bg-warn-soft px-1.5 py-0.5 text-[10px] font-bold text-warn">
-                {stats.active} Active
-              </span>
-              <span className="font-mono-code rounded-[3px] border border-bad/30 bg-bad-soft px-1.5 py-0.5 text-[10px] font-bold text-bad">
-                {stats.failed} Failed
-              </span>
-            </div>
+          <div className="mt-1 flex flex-wrap items-center gap-1.5">
+            <Badge tone="good">{stats.completedCount} Scored</Badge>
+            <Badge tone="warn">{stats.active} Active</Badge>
+            <Badge tone="bad">{stats.failed} Failed</Badge>
           </div>
-          <p className="font-mono-code border-t border-line pt-2 text-[11px] text-muted">
-            Completion Ratio: {stats.total > 0 ? `${Math.round((stats.completedCount / stats.total) * 100)}%` : '—'}
-          </p>
-        </div>
+        </KpiCell>
 
-        {/* Metric 2: Average Ownership Score */}
-        <div className="flex flex-col justify-between space-y-2.5 bg-paper/45 p-5">
-          <div className="flex items-center justify-between">
-            <span className="font-mono-code text-[11px] font-semibold tracking-wider text-muted uppercase">
-              Avg Ownership Score
-            </span>
-            <span
-              className={`font-mono-code rounded-[3px] border px-1.5 py-0.5 text-[10px] font-bold ${
-                stats.avgScore != null && stats.avgScore >= 70
-                  ? 'border-good/30 bg-good-soft text-good'
-                  : 'border-line bg-white text-muted'
-              }`}
-            >
+        <KpiCell
+          label="Avg Ownership Score"
+          tinted
+          badge={
+            <Badge tone={stats.avgScore != null && stats.avgScore >= 70 ? 'good' : 'neutral'}>
               {stats.avgScore != null ? (stats.avgScore >= 70 ? 'VERIFIED HIGH' : 'RECORDED') : 'NO RUNS YET'}
+            </Badge>
+          }
+          footer={<ScoreBar value={stats.avgScore} max={100} tone="good" />}
+        >
+          <div className="flex items-baseline gap-1.5">
+            <span className="font-serif-heading text-[32px] leading-none font-semibold text-good">
+              {stats.avgScore != null ? stats.avgScore : '—'}
             </span>
+            <span className="font-mono-code text-[13px] text-muted">/ 100</span>
           </div>
-          <div>
-            <div className="flex items-baseline gap-1.5">
-              <span className="font-serif-heading text-[32px] leading-none font-semibold text-good">
-                {stats.avgScore != null ? stats.avgScore : '—'}
-              </span>
-              <span className="font-mono-code text-[13px] text-muted">/ 100</span>
-            </div>
-            <p className="mt-1 text-[12px] text-muted">
-              {stats.completedCount > 0
-                ? `Computed across ${stats.completedCount} completed oral defense${stats.completedCount === 1 ? '' : 's'}`
-                : 'Complete a 3-minute voice interview to compute'}
-            </p>
-          </div>
-          <div className="h-1.5 w-full overflow-hidden rounded-full bg-line">
-            <div
-              className="score-bar-fill h-full w-full bg-good"
-              style={{ transform: `scaleX(${stats.avgScore != null ? Math.min(1, stats.avgScore / 100) : 0})` }}
-            />
-          </div>
-        </div>
-
-        {/* Metric 3: Latest Audited Repository */}
-        <div className="flex flex-col justify-between space-y-2.5 p-5">
-          <div className="flex items-center justify-between">
-            <span className="font-mono-code text-[11px] font-semibold tracking-wider text-muted uppercase">
-              Latest Audited Repo
-            </span>
-            <span className="material-symbols-outlined text-[18px] text-accent">verified</span>
-          </div>
-          <div>
-            <div className="font-mono-code truncate rounded-[3px] border border-line bg-paper px-2 py-1 text-[12px] font-semibold text-ink">
-              {stats.latest?.repos ? `${stats.latest.repos.owner}/${stats.latest.repos.name}` : 'No repositories yet'}
-            </div>
-            <p className="font-mono-code mt-1.5 flex items-center gap-1.5 text-[11px] text-muted">
-              <span className="h-1.5 w-1.5 rounded-full bg-accent" />
-              <span>
-                {stats.latest ? STATUS_BADGE[stats.latest.status].label : 'Paste a GitHub URL above to begin'}
-              </span>
-            </p>
-          </div>
-          <p className="font-mono-code border-t border-line pt-2 text-[11px] font-medium text-good">
-            {stats.latestReport
-              ? `Confidence: ${stats.latestReport.confidence.toUpperCase()}`
-              : 'Awaiting completed evaluation'}
+          <p className="mt-1 text-[12px] text-muted">
+            {stats.completedCount > 0
+              ? `Computed across ${stats.completedCount} completed oral defense${stats.completedCount === 1 ? '' : 's'}`
+              : 'Complete a 3-minute voice interview to compute'}
           </p>
-        </div>
+        </KpiCell>
 
-        {/* Metric 4: Protocol Spec */}
-        <div className="flex flex-col justify-between space-y-2.5 p-5">
-          <div className="flex items-center justify-between">
-            <span className="font-mono-code text-[11px] font-semibold tracking-wider text-muted uppercase">
-              Protocol Spec
+        <KpiCell
+          label="Latest Audited Repo"
+          icon="verified"
+          footer={
+            <span className="font-medium text-good">
+              {stats.latestReport
+                ? `Confidence: ${stats.latestReport.confidence.toUpperCase()}`
+                : 'Awaiting completed evaluation'}
             </span>
-            <span className="material-symbols-outlined text-[18px] text-accent">account_tree</span>
+          }
+        >
+          <div className="font-mono-code truncate rounded-[3px] border border-line bg-paper px-2 py-1 text-[12px] font-semibold text-ink">
+            {stats.latest?.repos ? `${stats.latest.repos.owner}/${stats.latest.repos.name}` : 'No repositories yet'}
           </div>
-          <div>
-            <div className="font-serif-heading text-[24px] leading-tight font-semibold text-ink">3:00 Oral Exam</div>
-            <p className="font-mono-code mt-1 text-[11px] text-muted">
-              <span className="font-semibold text-accent">180s</span> live voice cross-examination
-            </p>
-          </div>
-          <p className="font-mono-code border-t border-line pt-2 text-[11px] text-muted">
-            Commit-Locked Code Hooks
+          <p className="font-mono-code mt-1.5 flex items-center gap-1.5 text-[11px] text-muted">
+            <LiveDot tone="accent" pulse={false} />
+            <span>{stats.latest ? STATUS_BADGE[stats.latest.status].label : 'Paste a GitHub URL above to begin'}</span>
           </p>
-        </div>
-      </section>
+        </KpiCell>
+
+        <KpiCell label="Protocol Spec" icon="account_tree" footer="Commit-Locked Code Hooks">
+          <div className="font-serif-heading text-[24px] leading-tight font-semibold text-ink">3:00 Oral Exam</div>
+          <p className="font-mono-code mt-1 text-[11px] text-muted">
+            <span className="font-semibold text-accent">180s</span> live voice cross-examination
+          </p>
+        </KpiCell>
+      </KpiGrid>
 
       {/* 4. Filter & Tab Controls */}
-      <section className="flex flex-col justify-between gap-4 border-b border-line pb-3 md:flex-row md:items-center">
-        <div className="flex flex-wrap items-center gap-6">
-          {(
-            [
-              { key: 'all', label: 'All Interviews', count: stats.total },
-              { key: 'event', label: 'Hackathon Submissions', count: stats.eventCount },
-              { key: 'personal', label: 'Independent Audits', count: stats.personalCount },
-            ] as const
-          ).map((item) => {
-            const active = tab === item.key;
-            return (
-              <button
-                key={item.key}
-                type="button"
-                onClick={() => setTab(item.key)}
-                className={`relative -mb-3 flex cursor-pointer items-center gap-1.5 border-b-2 pb-3 text-[13px] transition-colors ${
-                  active
-                    ? 'border-accent font-semibold text-ink'
-                    : 'border-transparent font-medium text-muted hover:text-ink'
-                }`}
+      <TabStrip
+        active={tab}
+        onChange={setTab}
+        tabs={[
+          { key: 'all', label: 'All Interviews', count: stats.total },
+          { key: 'event', label: 'Hackathon Submissions', count: stats.eventCount },
+          { key: 'personal', label: 'Independent Audits', count: stats.personalCount },
+        ]}
+        rightSlot={
+          <>
+            <div className="relative w-full sm:w-[240px]">
+              <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-2.5 text-muted">
+                <span className="material-symbols-outlined text-[15px]">search</span>
+              </span>
+              <input
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Filter by repository or status..."
+                className="w-full rounded-[4px] border border-line bg-white py-1.5 pr-2.5 pl-8 text-[12px] text-ink focus:border-accent focus:outline-none"
+              />
+            </div>
+
+            <div className="relative">
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as 'recent' | 'score' | 'repo')}
+                aria-label="Sort interviews"
+                className="font-mono-code cursor-pointer appearance-none rounded-[4px] border border-line bg-white py-1.5 pr-7 pl-2.5 text-[11px] text-ink focus:border-accent focus:outline-none"
               >
-                <span>{item.label}</span>
-                <span
-                  className={`font-mono-code rounded-[3px] border px-1.5 py-0.2 text-[11px] font-bold ${
-                    active ? 'border-accent/25 bg-accent-soft text-accent' : 'border-line bg-paper text-muted'
-                  }`}
-                >
-                  {item.count}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2.5">
-          <div className="relative w-full sm:w-[240px]">
-            <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-2.5 text-muted">
-              <span className="material-symbols-outlined text-[15px]">search</span>
-            </span>
-            <input
-              type="text"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Filter by repository or status..."
-              className="w-full rounded-[4px] border border-line bg-white py-1.5 pr-2.5 pl-8 text-[12px] text-ink focus:border-accent focus:outline-none"
-            />
-          </div>
-
-          <div className="relative">
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as 'recent' | 'score' | 'repo')}
-              aria-label="Sort interviews"
-              className="font-mono-code cursor-pointer appearance-none rounded-[4px] border border-line bg-white py-1.5 pr-7 pl-2.5 text-[11px] text-ink focus:border-accent focus:outline-none"
-            >
-              <option value="recent">SORT: MOST RECENT</option>
-              <option value="score">SORT: HIGHEST SCORE</option>
-              <option value="repo">SORT: REPO NAME (A-Z)</option>
-            </select>
-            <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2 text-muted">
-              <span className="material-symbols-outlined text-[14px]">expand_more</span>
-            </span>
-          </div>
-        </div>
-      </section>
+                <option value="recent">SORT: MOST RECENT</option>
+                <option value="score">SORT: HIGHEST SCORE</option>
+                <option value="repo">SORT: REPO NAME (A-Z)</option>
+              </select>
+              <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2 text-muted">
+                <span className="material-symbols-outlined text-[14px]">expand_more</span>
+              </span>
+            </div>
+          </>
+        }
+      />
 
       {/* 5. Structured Interviews Data Table */}
       <section className="overflow-hidden rounded-[6px] border border-line bg-white">
         <PageState loading={list.loading} error={list.error} />
 
         {!list.loading && !list.error && filteredInterviews.length === 0 && (
-          <div className="p-10 text-center space-y-2">
+          <div className="space-y-2 p-10 text-center">
             <div className="font-serif-heading text-[20px] font-medium text-ink">
               {allInterviews.length === 0 ? 'No verification runs recorded yet' : 'No interviews match your filter'}
             </div>
@@ -561,7 +489,7 @@ export function InterviewHome() {
 
                       <td className="font-mono-code px-4 py-3.5 text-[12px] whitespace-nowrap text-muted">
                         <div className="font-medium text-ink">{formatDate(i.created_at)}</div>
-                        <div className="text-[11px] text-muted">{formatDuration(i.duration_s)}</div>
+                        <div className="text-[11px] text-muted">{formatAudioDuration(i.duration_s)}</div>
                       </td>
 
                       <td className="px-4 py-3.5 whitespace-nowrap">
@@ -647,43 +575,7 @@ export function InterviewHome() {
       </section>
 
       {/* 6. Verification Protocol Guidance & Security Footer */}
-      <section className="space-y-5 rounded-[6px] border border-line bg-white p-6">
-        <div className="flex items-start gap-3.5">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[4px] border border-accent bg-accent-soft text-accent">
-            <span className="material-symbols-outlined text-[20px]">security</span>
-          </div>
-          <div className="space-y-1">
-            <h3 className="font-serif-heading text-[20px] font-medium text-ink">
-              Verification Protocol &amp; Oral Defense Integrity
-            </h3>
-            <p className="text-[13px] leading-[21px] text-muted">
-              SkillProof analyzes your repository structure and prepares an interview plan with expected points that
-              never leave the server (<code className="font-mono-code rounded-[3px] border border-line bg-paper px-1.5 py-0.5 text-[11px] text-accent">publicQuestions</code>). Your browser receives a single-use token for Gemini Live to conduct the 3-minute voice session.
-            </p>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 gap-4 border-t border-line pt-4 md:grid-cols-3">
-          <div className="space-y-1.5 rounded-[4px] border border-line bg-paper p-3.5">
-            <div className="font-mono-code text-[11px] font-bold text-accent">01 / SELECTIVE REPO READING</div>
-            <p className="text-[12px] leading-snug text-muted">
-              Reads the Git tree, selects high-signal source files, and caches file summaries by blob SHA and commit.
-            </p>
-          </div>
-          <div className="space-y-1.5 rounded-[4px] border border-line bg-paper p-3.5">
-            <div className="font-mono-code text-[11px] font-bold text-good">02 / 3-MIN VOICE CROSS-EXAM</div>
-            <p className="text-[12px] leading-snug text-muted">
-              Probes your architectural trade-offs and specific code snippets out loud, following up on vague answers.
-            </p>
-          </div>
-          <div className="space-y-1.5 rounded-[4px] border border-line bg-paper p-3.5">
-            <div className="font-mono-code text-[11px] font-bold text-ink">03 / OWNERSHIP REPORT &amp; PROFILE</div>
-            <p className="text-[12px] leading-snug text-muted">
-              Produces an ownership score (0–100) and demonstrated skills backed by verbatim transcript quotes.
-            </p>
-          </div>
-        </div>
-      </section>
+      <VerificationProtocolCard />
     </div>
   );
 }

@@ -1,6 +1,16 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { Button, Field, Input, Notice } from '../components/ui';
+import {
+  Button,
+  CopyLinkButton,
+  DarkBanner,
+  Field,
+  Input,
+  LiveDot,
+  Notice,
+  NumberedSectionCard,
+  ToggleSwitch,
+} from '../components/shared';
 import { api, errorMessage } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
@@ -628,12 +638,16 @@ export function AuthCallback() {
 }
 
 export function MyAccount() {
-  const { me, refresh } = useAuth();
+  const { me, refresh, signOut } = useAuth();
   const [name, setName] = useState('');
   const [headline, setHeadline] = useState('');
   const [isPublic, setIsPublic] = useState(false);
+  const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [micStatus, setMicStatus] = useState<'idle' | 'testing' | 'ok' | 'denied'>('idle');
+  const [notifyRecruiter, setNotifyRecruiter] = useState(true);
+  const [notifyEvents, setNotifyEvents] = useState(true);
 
   useEffect(() => {
     if (!me) return;
@@ -644,6 +658,7 @@ export function MyAccount() {
 
   async function submit(e: FormEvent) {
     e.preventDefault();
+    setBusy(true);
     setError(null);
     setSaved(false);
     try {
@@ -655,81 +670,719 @@ export function MyAccount() {
       setSaved(true);
     } catch (err) {
       setError(errorMessage(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function discardChanges() {
+    if (!me) return;
+    setName(me.profile.display_name);
+    setHeadline(me.public_profile?.headline ?? '');
+    setIsPublic(me.public_profile?.is_public ?? false);
+    setError(null);
+    setSaved(false);
+  }
+
+  async function revokePublicAccess() {
+    setBusy(true);
+    setError(null);
+    setSaved(false);
+    try {
+      await api('/api/me/profile', {
+        method: 'PATCH',
+        body: { is_public: false },
+      });
+      setIsPublic(false);
+      await refresh();
+      setSaved(true);
+    } catch (err) {
+      setError(errorMessage(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function testMicrophone() {
+    setMicStatus('testing');
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream.getTracks().forEach((t) => t.stop());
+      setMicStatus('ok');
+    } catch {
+      setMicStatus('denied');
     }
   }
 
   if (!me) return null;
+  const slug = me.public_profile?.slug ?? 'candidate';
   const url = me.public_profile ? `${window.location.origin}/p/${me.public_profile.slug}` : null;
+  const initials = (name || me.profile.display_name || 'SP')
+    .split(/\s+/)
+    .map((part) => part[0]?.toUpperCase() ?? '')
+    .slice(0, 2)
+    .join('');
+
+  function scrollToSection(id: string) {
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior: 'smooth' });
+  }
 
   return (
-    <div className="mx-auto max-w-[760px] space-y-6">
-      <div className="flex flex-col justify-between gap-2 border-b border-line pb-4 sm:flex-row sm:items-end">
-        <div>
-          <span className="font-mono-code text-[11px] font-semibold tracking-wider text-accent uppercase">
-            IDENTITY &amp; PUBLIC DOSSIER SETTINGS
-          </span>
-          <h1 className="font-serif-heading mt-1 text-[28px] leading-[34px] font-medium text-ink">
-            Account &amp; Credential Profile
-          </h1>
-          <p className="font-mono-code mt-0.5 text-[12px] text-muted">{me.email}</p>
-        </div>
-        <span className="font-mono-code rounded-[3px] border border-line bg-white px-2.5 py-1 text-[11px] text-muted">
-          ID: <span className="font-semibold text-ink">{me.profile.id.slice(0, 8)}</span>
-        </span>
-      </div>
-
-      <section className="rounded-[6px] border border-line bg-white p-6">
-        <form onSubmit={submit} className="space-y-5">
-          <Field label="Display Name">
-            <Input required maxLength={80} value={name} onChange={(e) => setName(e.target.value)} />
-          </Field>
-
-          <Field
-            label="Professional Headline"
-            hint="Shown at the top of your public recruiter dossier (/p/:slug)."
-          >
-            <Input
-              maxLength={160}
-              value={headline}
-              onChange={(e) => setHeadline(e.target.value)}
-              placeholder="Systems Engineer • Distributed Consensus, Rust & TypeScript"
-            />
-          </Field>
-
-          <div className="flex items-start justify-between gap-4 rounded-[4px] border border-line bg-paper p-4">
-            <label htmlFor="public-profile-toggle" className="cursor-pointer space-y-1 text-[13px]">
-              <span className="block font-semibold text-ink">Make my verification dossier public</span>
-              <span className="block text-[12px] text-muted">
-                Anyone with your public link can inspect your completed voice interviews, ownership scores, and cited
-                transcript quotes.
+    <form onSubmit={submit} className="mx-auto max-w-[1160px] space-y-8">
+      {/* 1. Dark Dossier Header & Context Strip */}
+      <DarkBanner>
+        <div className="flex flex-col space-y-6">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-4">
+            <div className="flex flex-wrap items-center gap-2.5">
+              <span className="font-mono-code rounded-[3px] border border-accent/40 bg-accent/20 px-2.5 py-1 text-[11px] tracking-wider text-accent-soft uppercase">
+                SEC-CFG // IDENTITY_V1.0.4
               </span>
-            </label>
-            <input
-              id="public-profile-toggle"
-              type="checkbox"
-              className="mt-1 h-4 w-4 accent-accent cursor-pointer"
-              checked={isPublic}
-              onChange={(e) => setIsPublic(e.target.checked)}
-            />
+              <span className="text-white/30">/</span>
+              <span className="font-mono-code flex items-center gap-2 rounded-[3px] border border-good/40 bg-good/20 px-2.5 py-1 text-[11px] text-[#79d9ae]">
+                <LiveDot tone="mint" />
+                <span>RLS SESSION ACTIVE</span>
+              </span>
+            </div>
+            <div className="font-mono-code flex items-center gap-2 rounded-[3px] border border-white/10 bg-[#15181E] px-3 py-1 text-[11px] text-[#8E95A3]">
+              <span>USER_ID:</span>
+              <span className="font-medium tracking-wide text-accent-soft">
+                {me.profile.id.slice(0, 8).toUpperCase()}
+              </span>
+            </div>
           </div>
 
-          {isPublic && url && (
-            <Notice tone="info">
-              <span className="font-mono-code text-[11px] font-semibold uppercase">Public Recruiter Dossier: </span>
-              <a className="font-mono-code text-[12px] font-semibold text-accent hover:underline" href={url}>
-                {url}
-              </a>
-            </Notice>
-          )}
+          <div className="flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
+            <div className="max-w-[720px] space-y-2">
+              <h1 className="font-serif-heading text-[30px] leading-[1.15] font-normal tracking-tight text-white sm:text-[36px]">
+                Account &amp; Verification Identity
+              </h1>
+              <p className="text-[14px] leading-[22px] text-[#8E95A3] sm:text-[15px]">
+                Manage your public recruiter dossier, professional headline, connected verification signals, and access
+                controls.
+              </p>
+            </div>
+
+            {url && (
+              <div className="shrink-0 self-start lg:self-auto">
+                <Link
+                  to={`/p/${slug}`}
+                  className="btn-tactile font-mono-code inline-flex items-center gap-2 rounded-[4px] border border-accent bg-accent px-4 py-2.5 text-[12px] font-semibold text-white hover:bg-accent-hover"
+                >
+                  <span>PREVIEW PUBLIC DOSSIER</span>
+                  <span className="material-symbols-outlined text-[16px]">north_east</span>
+                </Link>
+              </div>
+            )}
+          </div>
+
+          {/* Segmented Navigation Rail */}
+          <nav className="flex items-center gap-2 overflow-x-auto border-t border-white/10 pt-3 text-[13px]">
+            <button
+              type="button"
+              onClick={() => scrollToSection('section-profile')}
+              className="flex shrink-0 cursor-pointer items-center gap-2 rounded-[4px] border border-white/20 bg-white/15 px-3.5 py-2 font-medium text-white"
+            >
+              <span className="material-symbols-outlined text-[17px] text-accent-soft">person_pin</span>
+              <span>General &amp; Profile</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => scrollToSection('section-visibility')}
+              className="flex shrink-0 cursor-pointer items-center gap-2 rounded-[4px] px-3.5 py-2 text-[#8E95A3] transition-colors hover:bg-white/10 hover:text-white"
+            >
+              <span className="material-symbols-outlined text-[17px] text-[#79d9ae]">verified_user</span>
+              <span>Public Dossier</span>
+              <span
+                className={`font-mono-code rounded-[2px] border px-1.5 py-0.2 text-[10px] ${
+                  isPublic
+                    ? 'border-good/40 bg-good/20 text-[#79d9ae]'
+                    : 'border-white/15 bg-white/10 text-[#8E95A3]'
+                }`}
+              >
+                {isPublic ? 'LIVE' : 'PRIVATE'}
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => scrollToSection('section-integrations')}
+              className="flex shrink-0 cursor-pointer items-center gap-2 rounded-[4px] px-3.5 py-2 text-[#8E95A3] transition-colors hover:bg-white/10 hover:text-white"
+            >
+              <span className="material-symbols-outlined text-[17px] text-[#C4B5FD]">terminal</span>
+              <span>Verification Signals</span>
+              <span className="font-mono-code rounded-[2px] border border-[#C4B5FD]/30 bg-[#C4B5FD]/15 px-1.5 py-0.2 text-[10px] font-semibold text-[#DDD6FE]">
+                3
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => scrollToSection('section-privacy')}
+              className="flex shrink-0 cursor-pointer items-center gap-2 rounded-[4px] px-3.5 py-2 text-[#8E95A3] transition-colors hover:bg-white/10 hover:text-white"
+            >
+              <span className="material-symbols-outlined text-[17px] text-[#FBBF24]">tune</span>
+              <span>Privacy Controls</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => scrollToSection('section-danger')}
+              className="flex shrink-0 cursor-pointer items-center gap-2 rounded-[4px] px-3.5 py-2 text-[#8E95A3] transition-colors hover:bg-white/10 hover:text-white"
+            >
+              <span className="material-symbols-outlined text-[17px] text-[#F87171]">key</span>
+              <span>Security &amp; Access</span>
+            </button>
+          </nav>
+        </div>
+      </DarkBanner>
+
+      {/* 2. Main Workspace Grid: Left Index Rail (3 cols) + Right Settings Sections (9 cols) */}
+      <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-12">
+        {/* Left Interactive Index & Proof Status Card */}
+        <aside className="sticky top-20 hidden space-y-5 lg:col-span-3 lg:block">
+          <div className="space-y-3 rounded-[6px] border border-line bg-white p-4">
+            <div className="flex items-center justify-between border-b border-line pb-2.5">
+              <span className="font-mono-code text-[11px] font-semibold tracking-wider text-muted uppercase">
+                Section Index
+              </span>
+              <span className="font-mono-code rounded-[3px] border border-accent/25 bg-accent-soft px-1.5 py-0.5 text-[10px] font-semibold text-accent">
+                5 MODULES
+              </span>
+            </div>
+
+            <ul className="space-y-1.5 text-[13px]">
+              <li>
+                <a
+                  href="#section-profile"
+                  className="flex items-center justify-between rounded-[4px] border border-accent/25 bg-accent-soft/60 px-2.5 py-2 font-medium text-accent transition-colors"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <span className="h-2 w-2 rounded-full bg-accent" />
+                    <span>01. Profile &amp; Bio</span>
+                  </div>
+                  <span className="font-mono-code rounded-[2px] bg-white px-1.5 py-0.5 text-[10px] font-semibold text-accent">
+                    EDIT
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a
+                  href="#section-visibility"
+                  className="flex items-center justify-between rounded-[4px] border border-transparent px-2.5 py-2 font-medium text-ink transition-colors hover:border-line hover:bg-paper"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <span className="h-2 w-2 rounded-full bg-[#4338CA]" />
+                    <span>02. Dossier Address</span>
+                  </div>
+                  <span
+                    className={`font-mono-code rounded-[2px] border px-1.5 py-0.5 text-[10px] font-semibold ${
+                      isPublic
+                        ? 'border-good/30 bg-good-soft text-good'
+                        : 'border-line bg-paper text-muted'
+                    }`}
+                  >
+                    {isPublic ? 'ACTIVE' : 'OFF'}
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a
+                  href="#section-integrations"
+                  className="flex items-center justify-between rounded-[4px] border border-transparent px-2.5 py-2 font-medium text-ink transition-colors hover:border-line hover:bg-paper"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <span className="h-2 w-2 rounded-full bg-good" />
+                    <span>03. Signal Feeds</span>
+                  </div>
+                  <span className="font-mono-code rounded-[2px] border border-line bg-paper px-1.5 py-0.5 text-[10px] text-muted">
+                    3 / 3
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a
+                  href="#section-privacy"
+                  className="flex items-center justify-between rounded-[4px] border border-transparent px-2.5 py-2 font-medium text-ink transition-colors hover:border-line hover:bg-paper"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <span className="h-2 w-2 rounded-full bg-warn" />
+                    <span>04. Privacy Telemetry</span>
+                  </div>
+                  <span className="font-mono-code rounded-[2px] border border-warn/30 bg-warn-soft px-1.5 py-0.5 text-[10px] text-warn">
+                    OPT
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a
+                  href="#section-danger"
+                  className="flex items-center justify-between rounded-[4px] border border-transparent px-2.5 py-2 font-medium text-bad transition-colors hover:border-bad/30 hover:bg-bad-soft/40"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <span className="h-2 w-2 rounded-full bg-bad" />
+                    <span>05. Danger Zone</span>
+                  </div>
+                  <span className="font-mono-code rounded-[2px] border border-bad/30 bg-bad-soft px-1.5 py-0.5 text-[10px] font-semibold text-bad">
+                    CRIT
+                  </span>
+                </a>
+              </li>
+            </ul>
+          </div>
+
+          {/* Cryptographic Seal Card */}
+          <div className="space-y-3 rounded-[6px] border border-good/30 bg-good-soft/35 p-4 text-[12px]">
+            <div className="font-mono-code flex items-center justify-between text-[11px]">
+              <span className="font-semibold text-ink">PROOF STATUS</span>
+              <span className="inline-flex items-center gap-1.5 rounded-[3px] border border-good/30 bg-good-soft px-2 py-0.5 font-semibold text-good">
+                <span className="h-1.5 w-1.5 rounded-full bg-good" />
+                VALIDATED
+              </span>
+            </div>
+            <p className="leading-[19px] text-muted">
+              Profile updates sync directly to your public recruiter dossier at{' '}
+              <code className="font-mono-code rounded-[2px] border border-line bg-white px-1 py-0.5 text-[11px] text-ink">
+                /p/{slug}
+              </code>
+              .
+            </p>
+            <div className="font-mono-code flex flex-col space-y-1 border-t border-good/20 pt-2 text-[10px] text-muted">
+              <div className="flex justify-between">
+                <span>EMAIL:</span>
+                <span className="truncate pl-2 font-medium text-ink">{me.email}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>ORGANIZATIONS:</span>
+                <span className="font-semibold text-good">{me.organizations.length}</span>
+              </div>
+            </div>
+          </div>
+        </aside>
+
+        {/* Central Form Content Pane */}
+        <div className="space-y-7 lg:col-span-9">
+          {/* 01. Public Profile Configuration (Cobalt Accent) */}
+          <NumberedSectionCard
+            id="section-profile"
+            number="01"
+            theme="cobalt"
+            title="Public Identity & Recruiter Persona"
+            subtitle="Identity and engineering headline displayed on your public recruiter dossier."
+            sectionTag="SECTION 01 // IDENTITY"
+          >
+            <div className="space-y-5">
+              {/* User Persona Preview Strip */}
+              <div className="flex flex-wrap items-center justify-between gap-4 rounded-[4px] border border-line bg-paper p-4">
+                <div className="flex items-center gap-3.5">
+                  <div className="relative">
+                    <div className="font-mono-code flex h-12 w-12 items-center justify-center rounded-full border border-accent/30 bg-accent text-[15px] font-bold text-white">
+                      {initials}
+                    </div>
+                    <span
+                      className="absolute -right-0.5 -bottom-0.5 flex h-4 w-4 items-center justify-center rounded-full border-2 border-white bg-good text-white"
+                      title="Verified Account"
+                    >
+                      <span className="material-symbols-outlined text-[10px]">check</span>
+                    </span>
+                  </div>
+                  <div className="space-y-0.5">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-[15px] font-semibold text-ink">
+                        {name || me.profile.display_name}
+                      </span>
+                      <span className="font-mono-code rounded-[3px] border border-accent/25 bg-accent-soft px-2 py-0.5 text-[11px] font-medium text-accent">
+                        /p/{slug}
+                      </span>
+                    </div>
+                    <p className="font-mono-code text-[11px] text-muted">{me.email}</p>
+                  </div>
+                </div>
+
+                {url && (
+                  <Link
+                    to={`/p/${slug}`}
+                    className="btn-tactile font-mono-code inline-flex items-center gap-1.5 rounded-[4px] border border-line bg-white px-3 py-1.5 text-[11px] font-semibold text-ink hover:border-accent hover:text-accent"
+                  >
+                    <span>Open Recruiter View</span>
+                    <span>↗</span>
+                  </Link>
+                )}
+              </div>
+
+              <Field
+                label="Full Display Name"
+                hint="Publicly visible to hiring managers, peer review panels, and hackathon judges."
+              >
+                <Input
+                  required
+                  maxLength={80}
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Alex Rivera"
+                />
+              </Field>
+
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label
+                    htmlFor="account-headline"
+                    className="font-mono-code text-[11px] font-semibold tracking-wider text-ink uppercase"
+                  >
+                    Professional Headline &amp; Technical Focus
+                  </label>
+                  <span className="font-mono-code rounded-[3px] border border-accent/25 bg-accent-soft px-2 py-0.5 text-[10px] font-semibold text-accent">
+                    {headline.length} / 160
+                  </span>
+                </div>
+                <Input
+                  id="account-headline"
+                  maxLength={160}
+                  value={headline}
+                  onChange={(e) => setHeadline(e.target.value)}
+                  placeholder="Distributed Systems & Infrastructure Engineer • Rust, Go & Consensus Protocols"
+                />
+                <p className="font-mono-code text-[11px] text-muted">
+                  One-line summary displayed at the top of your public recruiter dossier alongside oral defense quotes.
+                </p>
+              </div>
+            </div>
+          </NumberedSectionCard>
+
+          {/* 02. Public Dossier Visibility & Immutable URL (Indigo Accent) */}
+          <NumberedSectionCard
+            id="section-visibility"
+            number="02"
+            theme="indigo"
+            title="Dossier Visibility & Cryptographic Address"
+            subtitle="Configure public read-only access for your verified interview reports."
+            sectionTag="SECTION 02 // LEDGER_ADDR"
+          >
+            <div className="space-y-5">
+              {/* Toggle Switch Card */}
+              <div className="flex items-start justify-between gap-4 rounded-[4px] border border-[#C7D2FE] bg-[#EEF2FF]/45 p-4">
+                <div className="space-y-1 pr-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-[14px] font-semibold text-ink">Enable Public Recruiter Dossier</span>
+                    <span
+                      className={`font-mono-code inline-flex items-center gap-1.5 rounded-[3px] border px-2 py-0.5 text-[10px] font-bold ${
+                        isPublic
+                          ? 'border-good/30 bg-good-soft text-good'
+                          : 'border-line bg-white text-muted'
+                      }`}
+                    >
+                      <LiveDot tone={isPublic ? 'good' : 'muted'} pulse={false} />
+                      {isPublic ? 'ACTIVE & RESOLVABLE' : 'PRIVATE ONLY'}
+                    </span>
+                  </div>
+                  <p className="text-[12px] leading-[19px] text-muted">
+                    When enabled, anyone with your link can view your completed interviews, ownership scores, and cited
+                    transcript quotes without logging in.
+                  </p>
+                </div>
+
+                <ToggleSwitch
+                  checked={isPublic}
+                  onChange={setIsPublic}
+                  activeColorClass="peer-checked:bg-[#4338CA]"
+                />
+              </div>
+
+              {/* Share Link Read-Only Input Group */}
+              {url && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label
+                      htmlFor="dossier-url-input"
+                      className="font-mono-code text-[11px] font-semibold tracking-wider text-ink uppercase"
+                    >
+                      Your Canonical Public Dossier URL
+                    </label>
+                    <span className="font-mono-code rounded-[3px] border border-[#C7D2FE] bg-[#EEF2FF] px-2 py-0.5 text-[10px] text-[#3730A3]">
+                      SLUG: {slug}
+                    </span>
+                  </div>
+
+                  <div className="flex flex-col items-stretch gap-2.5 sm:flex-row sm:items-center">
+                    <div className="relative flex-1">
+                      <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-muted">
+                        <span className="material-symbols-outlined text-[17px]">link</span>
+                      </span>
+                      <input
+                        id="dossier-url-input"
+                        type="text"
+                        readOnly
+                        value={url}
+                        className="font-mono-code h-10 w-full rounded-[4px] border border-line bg-paper pr-3 pl-9 text-[12px] text-ink select-all focus:border-accent focus:outline-none"
+                      />
+                    </div>
+                    <CopyLinkButton
+                      value={url}
+                      variant="indigo"
+                      className="h-10 shrink-0 px-4 text-[12px]"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          </NumberedSectionCard>
+
+          {/* 03. Connected Verification Signals & Organizations (Emerald Accent) */}
+          <NumberedSectionCard
+            id="section-integrations"
+            number="03"
+            theme="emerald"
+            title="Connected Verification Signals & Hardware"
+            subtitle="Repository analysis engine, organization memberships, and oral defense microphone status."
+            sectionTag="SECTION 03 // FEEDS_SYNC"
+          >
+            <div className="space-y-4">
+              {/* GitHub Repository Analyzer Card */}
+              <div className="flex flex-col justify-between gap-4 rounded-[4px] border border-line bg-white p-4 md:flex-row md:items-center">
+                <div className="flex items-start gap-3.5">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[4px] bg-ink text-white">
+                    <span className="material-symbols-outlined text-[20px]">code</span>
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-[14px] font-semibold text-ink">GitHub Repository Analyzer</span>
+                      <span className="font-mono-code rounded-[2px] border border-good/30 bg-good-soft px-1.5 py-0.5 text-[10px] font-semibold text-good">
+                        READ-ONLY PUBLIC REPOS
+                      </span>
+                    </div>
+                    <p className="text-[12px] text-muted">
+                      Selective Git tree reader and blob SHA cache active for hackathons and personal interviews.
+                    </p>
+                  </div>
+                </div>
+                <Link
+                  to="/interview/new"
+                  className="btn-tactile font-mono-code inline-flex h-9 shrink-0 items-center justify-center rounded-[4px] border border-line bg-white px-3.5 text-[11px] font-semibold text-ink hover:border-accent hover:text-accent"
+                >
+                  Start Repo Interview →
+                </Link>
+              </div>
+
+              {/* Organizations & Roles Card */}
+              <div className="flex flex-col justify-between gap-4 rounded-[4px] border border-line bg-white p-4 md:flex-row md:items-center">
+                <div className="flex items-start gap-3.5">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[4px] border border-accent/25 bg-accent-soft text-accent">
+                    <span className="material-symbols-outlined text-[20px]">corporate_fare</span>
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-[14px] font-semibold text-ink">Organization Memberships</span>
+                      <span className="font-mono-code rounded-[2px] border border-line bg-paper px-1.5 py-0.5 text-[10px] font-semibold text-ink">
+                        {me.organizations.length} {me.organizations.length === 1 ? 'ORG' : 'ORGS'}
+                      </span>
+                    </div>
+                    <p className="text-[12px] text-muted">
+                      {me.organizations.length > 0
+                        ? me.organizations.map((o) => `${o.name} (${o.roles.join(', ')})`).join(' • ')
+                        : 'Standard Candidate Account • Eligible to join public and access-code events.'}
+                    </p>
+                  </div>
+                </div>
+                <Link
+                  to={me.organizations.length > 0 ? '/org/events' : '/events'}
+                  className="btn-tactile font-mono-code inline-flex h-9 shrink-0 items-center justify-center rounded-[4px] border border-line bg-white px-3.5 text-[11px] font-semibold text-ink hover:border-accent hover:text-accent"
+                >
+                  {me.organizations.length > 0 ? 'Organizer Console →' : 'Browse Events →'}
+                </Link>
+              </div>
+
+              {/* Audio Verification Hardware Card */}
+              <div className="flex flex-col justify-between gap-4 rounded-[4px] border border-line bg-white p-4 md:flex-row md:items-center">
+                <div className="flex items-start gap-3.5">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[4px] border border-good/30 bg-good-soft text-good">
+                    <span className="material-symbols-outlined text-[20px]">mic</span>
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-[14px] font-semibold text-ink">Oral Defense Capture Device</span>
+                      <span
+                        className={`font-mono-code rounded-[2px] border px-1.5 py-0.5 text-[10px] font-bold uppercase ${
+                          micStatus === 'ok'
+                            ? 'border-good/30 bg-good-soft text-good'
+                            : micStatus === 'denied'
+                              ? 'border-bad/30 bg-bad-soft text-bad'
+                              : 'border-line bg-paper text-muted'
+                        }`}
+                      >
+                        {micStatus === 'ok'
+                          ? 'PERMISSION GRANTED'
+                          : micStatus === 'denied'
+                            ? 'PERMISSION BLOCKED'
+                            : 'READY TO TEST'}
+                      </span>
+                    </div>
+                    <p className="text-[12px] text-muted">
+                      Browser microphone with echo cancellation &amp; noise suppression for 3-minute Gemini Live exams.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => void testMicrophone()}
+                  className="btn-tactile font-mono-code inline-flex h-9 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-[4px] border border-line bg-white px-3.5 text-[11px] font-semibold text-ink hover:border-good hover:text-good"
+                >
+                  <span className="material-symbols-outlined text-[15px] text-good">graphic_eq</span>
+                  <span>{micStatus === 'testing' ? 'Checking…' : 'Test Mic Access'}</span>
+                </button>
+              </div>
+            </div>
+          </NumberedSectionCard>
+
+          {/* 04. Privacy Controls & Notification Telemetry (Amber Accent) */}
+          <NumberedSectionCard
+            id="section-privacy"
+            number="04"
+            theme="amber"
+            title="Privacy Controls & Verification Telemetry"
+            subtitle="Visibility boundaries for interview attempts and event notifications."
+            sectionTag="SECTION 04 // AUDIT_PRIVACY"
+          >
+            <div className="space-y-4">
+              <label className="flex cursor-pointer items-start gap-3 rounded-[4px] border border-line bg-paper/50 p-3.5">
+                <input
+                  type="checkbox"
+                  checked={notifyRecruiter}
+                  onChange={(e) => setNotifyRecruiter(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 cursor-pointer accent-accent"
+                />
+                <div className="space-y-0.5">
+                  <span className="block text-[13px] font-semibold text-ink">
+                    Display verbatim transcript quotes on my public profile
+                  </span>
+                  <span className="block text-[12px] text-muted">
+                    Recruiters inspecting your public dossier can read the exact quotes that proved each skill.
+                  </span>
+                </div>
+              </label>
+
+              <label className="flex cursor-pointer items-start gap-3 rounded-[4px] border border-line bg-paper/50 p-3.5">
+                <input
+                  type="checkbox"
+                  checked={notifyEvents}
+                  onChange={(e) => setNotifyEvents(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 cursor-pointer accent-accent"
+                />
+                <div className="space-y-0.5">
+                  <span className="block text-[13px] font-semibold text-ink">
+                    Highlight hackathon standings when event results are published
+                  </span>
+                  <span className="block text-[12px] text-muted">
+                    Shows your composite score and judge feedback inside the event workspace as soon as published.
+                  </span>
+                </div>
+              </label>
+
+              <div className="flex items-start justify-between gap-4 rounded-[4px] border border-warn/30 bg-warn-soft/45 p-4">
+                <div className="space-y-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-[13px] font-semibold text-ink">
+                      Hide failed or incomplete interview attempts from public profile
+                    </span>
+                    <span className="font-mono-code rounded-[2px] border border-warn/30 bg-warn-soft px-1.5 py-0.5 text-[10px] font-bold text-warn">
+                      ENFORCED BY PROTOCOL
+                    </span>
+                  </div>
+                  <p className="text-[12px] leading-relaxed text-muted">
+                    Only completed interviews with a finalized ownership report are returned on `/p/{slug}`. Failed or
+                    in-progress sessions remain strictly private to your account.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </NumberedSectionCard>
+
+          {/* 05. Danger Zone & Access Revocation (Crimson Accent) */}
+          <NumberedSectionCard
+            id="section-danger"
+            icon="warning"
+            theme="crimson"
+            title="Danger Zone & Access Revocation"
+            subtitle="Immediate public link revocation and passphrase rotation routines."
+            sectionTag="SECURITY CONTROLS"
+          >
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="flex flex-col justify-between space-y-4 rounded-[4px] border border-bad/30 bg-white p-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-1.5 text-[14px] font-bold text-ink">
+                    <span className="material-symbols-outlined text-[18px] text-bad">link_off</span>
+                    <span>Revoke Public Dossier Link</span>
+                  </div>
+                  <p className="text-[12px] leading-relaxed text-muted">
+                    Immediately switches `/p/{slug}` to private so external recruiters can no longer resolve your
+                    dossier URL.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  disabled={!isPublic || busy}
+                  onClick={() => void revokePublicAccess()}
+                  className="btn-tactile font-mono-code h-9 w-full cursor-pointer rounded-[4px] border border-bad/40 bg-bad-soft text-[11px] font-bold tracking-wider text-bad uppercase hover:bg-bad hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {isPublic ? 'REVOKE PUBLIC DOSSIER ACCESS' : 'PUBLIC DOSSIER ALREADY OFFLINE'}
+                </button>
+              </div>
+
+              <div className="flex flex-col justify-between space-y-4 rounded-[4px] border border-bad/30 bg-white p-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-1.5 text-[14px] font-bold text-ink">
+                    <span className="material-symbols-outlined text-[18px] text-bad">lock_reset</span>
+                    <span>Passphrase &amp; Session Control</span>
+                  </div>
+                  <p className="text-[12px] leading-relaxed text-muted">
+                    Rotate your account passphrase or terminate your active browser session immediately.
+                  </p>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <Link
+                    to="/reset-password"
+                    className="btn-tactile font-mono-code flex h-9 items-center justify-center rounded-[4px] border border-line bg-paper text-[11px] font-bold text-ink uppercase hover:border-ink"
+                  >
+                    Rotate Key
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => void signOut()}
+                    className="btn-tactile font-mono-code h-9 cursor-pointer rounded-[4px] border border-bad bg-bad text-[11px] font-bold text-white uppercase hover:bg-bad-hover"
+                  >
+                    Sign Out
+                  </button>
+                </div>
+              </div>
+            </div>
+          </NumberedSectionCard>
 
           {error && <Notice tone="error">{error}</Notice>}
-          {saved && <Notice tone="good">Profile settings updated and saved.</Notice>}
+          {saved && <Notice tone="good">Account and public dossier settings anchored and saved.</Notice>}
+        </div>
+      </div>
 
-          <div className="flex items-center justify-end border-t border-line pt-4">
-            <Button type="submit">Save Profile Changes</Button>
-          </div>
-        </form>
-      </section>
-    </div>
+      {/* 3. Persistent Sticky Bottom Action Bar */}
+      <div className="sticky bottom-4 z-40 flex flex-col items-center justify-between gap-3 rounded-[6px] border border-line bg-white p-4 sm:flex-row sm:px-6">
+        <div className="font-mono-code flex items-center gap-2 text-[12px] text-muted">
+          <span className={`h-2.5 w-2.5 rounded-full ${saved ? 'bg-good' : 'bg-accent'}`} />
+          <span>
+            {saved
+              ? 'All profile changes saved and synchronized.'
+              : `Editing profile for ${me.email}`}
+          </span>
+        </div>
+
+        <div className="flex w-full items-center justify-end gap-3 sm:w-auto">
+          <button
+            type="button"
+            onClick={discardChanges}
+            className="btn-tactile h-10 cursor-pointer rounded-[4px] border border-line bg-paper px-4 text-[13px] font-medium text-muted hover:border-muted hover:text-ink"
+          >
+            Discard
+          </button>
+          <Button type="submit" disabled={busy} className="h-10 px-6">
+            <span className="material-symbols-outlined text-[17px]">save</span>
+            <span>{busy ? 'Saving to Ledger…' : 'Save Changes'}</span>
+          </Button>
+        </div>
+      </div>
+    </form>
   );
 }

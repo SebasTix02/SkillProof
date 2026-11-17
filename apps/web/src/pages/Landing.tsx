@@ -1,6 +1,16 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { linkButton, linkButtonSecondary } from '../components/ui';
+import {
+  Badge,
+  CodeEvidenceViewer,
+  DarkBanner,
+  EditorialQuoteBlock,
+  LiveDot,
+  ScoreBar,
+  SectionHeader,
+  linkButton,
+  linkButtonSecondary,
+} from '../components/shared';
 import { useAuth } from '../lib/auth';
 
 const HERO_IMAGE =
@@ -74,13 +84,11 @@ export function Landing() {
     <div className="space-y-16 pb-6">
       {/* 1. Hero Section */}
       <section className="pt-2">
-        {/* Top Badges & Meta Pill */}
         <div className="mb-6 flex flex-wrap items-center gap-2.5">
-          <span className="font-mono-code inline-flex items-center gap-2 rounded-[3px] border border-accent/25 bg-accent-soft px-2.5 py-1 text-[11px] font-semibold tracking-wide text-accent">
-            <span className="status-dot-live bg-accent text-accent" />
+          <Badge tone="accent" dot>
             REAL-TIME REPO &amp; ORAL DEFENSE PIPELINE
-          </span>
-          <span className="font-mono-code inline-flex items-center gap-1.5 rounded-[3px] border border-line bg-white px-2.5 py-1 text-[11px] text-muted">
+          </Badge>
+          <span className="font-mono-code inline-flex items-center gap-1.5 rounded-[3px] border border-line bg-white px-2.5 py-0.5 text-[11px] text-muted">
             <span className="material-symbols-outlined text-[14px] text-good">verified_user</span>
             POWERED BY GOOGLE GEMINI
           </span>
@@ -89,9 +97,7 @@ export function Landing() {
           </span>
         </div>
 
-        {/* Main Asymmetric 12-Col Hero Grid */}
         <div className="grid grid-cols-1 items-center gap-8 lg:grid-cols-12 lg:gap-10">
-          {/* Left: Editorial Masthead (6 cols) */}
           <div className="space-y-6 lg:col-span-6">
             <h1 className="font-serif-heading text-[36px] leading-[1.08] font-normal tracking-tight text-ink sm:text-[46px] lg:text-[52px]">
               Anyone can generate code. <br className="hidden sm:inline" />
@@ -107,7 +113,6 @@ export function Landing() {
               code that copy-pasted prompts cannot pass.
             </p>
 
-            {/* Action Buttons */}
             <div className="flex flex-wrap items-center gap-3 pt-1">
               <Link to={primaryHref} className={`${linkButton} px-5 py-2.5 text-[14px]`}>
                 <span>{primaryLabel}</span>
@@ -119,14 +124,13 @@ export function Landing() {
               </Link>
               <a
                 href="#specimen"
-                className="btn-tactile font-mono-code inline-flex items-center gap-1.5 rounded-[4px] border border-transparent px-3 py-2.5 text-[12px] font-medium text-muted hover:bg-white hover:border-line hover:text-ink"
+                className="btn-tactile font-mono-code inline-flex items-center gap-1.5 rounded-[4px] border border-transparent px-3 py-2.5 text-[12px] font-medium text-muted hover:border-line hover:bg-white hover:text-ink"
               >
                 <span>Inspect Dossier Specimen</span>
                 <span className="arrow-nudge">↓</span>
               </a>
             </div>
 
-            {/* Micro Telemetry Metrics */}
             <div className="font-mono-code grid grid-cols-3 gap-3 border-t border-line pt-4 text-[11px]">
               <div>
                 <div className="text-muted uppercase">ORAL DEFENSE</div>
@@ -143,7 +147,6 @@ export function Landing() {
             </div>
           </div>
 
-          {/* Right: Architectural Examiner Frame (6 cols) */}
           <div className="lg:col-span-6">
             <div className="card-interactive overflow-hidden rounded-[6px] border border-line bg-white p-2">
               <div className="flex h-8 items-center justify-between rounded-t-[4px] border border-line bg-paper px-3">
@@ -155,10 +158,9 @@ export function Landing() {
                     SKILLPROOF_EXAMINER // REPO_ANALYZER.TS
                   </span>
                 </div>
-                <div className="font-mono-code flex items-center gap-1.5 rounded-[3px] border border-good/30 bg-good-soft px-2 py-0.5 text-[10px] font-semibold text-good">
-                  <span className="status-dot-live bg-good text-good" />
-                  <span>AST LIVE MAPPING</span>
-                </div>
+                <Badge tone="good" dot>
+                  AST LIVE MAPPING
+                </Badge>
               </div>
 
               <div className="relative mt-1.5 overflow-hidden rounded-b-[4px] border border-line bg-paper">
@@ -168,8 +170,7 @@ export function Landing() {
                   className="block h-auto w-full object-cover"
                 />
 
-                {/* Flat Architectural Telemetry Overlay 1 */}
-                <div className=" hidden border border-line bg-white p-2.5 sm:absolute sm:top-3 sm:left-3 sm:flex sm:items-center sm:gap-2.5 sm:rounded-[4px]">
+                <div className="hidden border border-line bg-white p-2.5 sm:absolute sm:top-3 sm:left-3 sm:flex sm:items-center sm:gap-2.5 sm:rounded-[4px]">
                   <div className="flex h-7 w-7 items-center justify-center rounded-[3px] border border-accent/25 bg-accent-soft text-accent">
                     <span className="material-symbols-outlined text-[16px]">account_tree</span>
                   </div>
@@ -179,23 +180,19 @@ export function Landing() {
                   </div>
                 </div>
 
-                {/* Flat Architectural Telemetry Overlay 2 */}
                 <div className="hidden border border-line bg-white p-2.5 sm:absolute sm:right-3 sm:bottom-3 sm:flex sm:items-center sm:gap-3 sm:rounded-[4px]">
-                  <span className="status-dot-live bg-good text-good" />
+                  <LiveDot tone="good" />
                   <div>
                     <div className="font-mono-code text-[10px] text-muted uppercase">VOICE VERIFICATION</div>
                     <div className="font-mono-code text-[11px] font-semibold text-ink">180s Live • Evidence Linked</div>
                   </div>
-                  <span className="font-mono-code rounded-[3px] border border-good/30 bg-good-soft px-1.5 py-0.5 text-[10px] font-bold text-good">
-                    94 / 100
-                  </span>
+                  <Badge tone="good">94 / 100</Badge>
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Institutional & Hackathon Register Strip */}
         <div className="mt-10 flex flex-col items-start justify-between gap-4 border-t border-line pt-5 sm:flex-row sm:items-center">
           <div className="flex items-center gap-2.5 text-[12px] text-muted">
             <span className="font-mono-code rounded-[3px] border border-line bg-white px-2 py-0.5 text-[10px] font-semibold text-ink uppercase">
@@ -217,133 +214,80 @@ export function Landing() {
 
       {/* 2. Interactive Core Demo & 3 Pillars Section */}
       <section id="specimen" className="space-y-8 rounded-[6px] border border-line bg-white p-6 lg:p-8">
-        {/* Section Header */}
-        <div className="flex flex-col justify-between gap-4 border-b border-line pb-5 md:flex-row md:items-end">
-          <div>
-            <span className="font-mono-code mb-2 inline-flex items-center rounded-[3px] border border-accent/25 bg-accent-soft px-2 py-0.5 text-[11px] font-semibold text-accent uppercase">
-              01 // SYNCHRONIZED CODE &amp; VOICE VERIFICATION
-            </span>
-            <h2 className="font-serif-heading text-[26px] leading-[32px] font-medium text-ink sm:text-[32px] sm:leading-[38px]">
-              How SkillProof catches what static linters miss
-            </h2>
-            <p className="mt-1 max-w-[640px] text-[14px] leading-[22px] text-muted">
-              Every rubric score and interview skill is backed by concrete repository files and direct quotes from the
-              candidate&apos;s 3-minute oral defense.
-            </p>
-          </div>
-          <div className="flex shrink-0 flex-wrap items-center gap-2">
-            <span className="font-mono-code rounded-[3px] border border-line bg-paper px-2.5 py-1.5 text-[11px] text-muted">
-              TARGET: <span className="font-semibold text-ink">src/distributed/raft_consensus.rs</span>
-            </span>
-            <button
-              type="button"
-              onClick={() => setIsPlaying((prev) => !prev)}
-              className={`btn-tactile font-mono-code inline-flex cursor-pointer items-center gap-1.5 rounded-[4px] border px-3.5 py-1.5 text-[11px] font-semibold ${
-                isPlaying
-                  ? 'border-good bg-good text-white'
-                  : 'border-accent bg-accent text-white hover:border-accent-hover hover:bg-accent-hover'
-              }`}
-            >
-              <span className="material-symbols-outlined text-[15px]">{isPlaying ? 'pause' : 'play_arrow'}</span>
-              <span>{isPlaying ? 'Pause Citation [01:24]' : 'Simulate Oral Defense (01:24)'}</span>
-            </button>
-          </div>
-        </div>
+        <SectionHeader
+          eyebrow="01 // SYNCHRONIZED CODE & VOICE VERIFICATION"
+          eyebrowTone="accent"
+          title="How SkillProof catches what static linters miss"
+          subtitle="Every rubric score and interview skill is backed by concrete repository files and direct quotes from the candidate's 3-minute oral defense."
+          rightSlot={
+            <>
+              <span className="font-mono-code rounded-[3px] border border-line bg-paper px-2.5 py-1.5 text-[11px] text-muted">
+                TARGET: <span className="font-semibold text-ink">src/distributed/raft_consensus.rs</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => setIsPlaying((prev) => !prev)}
+                className={`btn-tactile font-mono-code inline-flex cursor-pointer items-center gap-1.5 rounded-[4px] border px-3.5 py-1.5 text-[11px] font-semibold ${
+                  isPlaying
+                    ? 'border-good bg-good text-white'
+                    : 'border-accent bg-accent text-white hover:border-accent-hover hover:bg-accent-hover'
+                }`}
+              >
+                <span className="material-symbols-outlined text-[15px]">{isPlaying ? 'pause' : 'play_arrow'}</span>
+                <span>{isPlaying ? 'Pause Citation [01:24]' : 'Simulate Oral Defense (01:24)'}</span>
+              </button>
+            </>
+          }
+        />
 
-        {/* Specimen Split Grid (7 / 5) */}
         <div className="grid grid-cols-1 items-stretch gap-6 lg:grid-cols-12">
-          {/* Left: Code Evidence Viewer + Editorial Quote Block (7 cols) */}
           <div className="flex flex-col justify-between space-y-4 lg:col-span-7">
-            {/* Code Evidence Viewer */}
-            <div className="overflow-hidden rounded-[6px] border border-line bg-white">
-              <div className="flex h-9 items-center justify-between border-b border-line bg-paper px-4">
-                <div className="flex items-center gap-2">
-                  <span className="h-2 w-2 rounded-full bg-good" />
-                  <span className="font-mono-code text-[11px] font-semibold text-ink">
-                    src/distributed/raft_consensus.rs
-                  </span>
-                  <span className="font-mono-code hidden text-[10px] text-muted sm:inline">
-                    LINES 174-181 (CITED EVIDENCE)
-                  </span>
-                </div>
-                <span className="font-mono-code rounded-[3px] border border-good/30 bg-good-soft px-2 py-0.5 text-[10px] font-bold text-good">
-                  RUBRIC PASS: 88.5 / 100
-                </span>
-              </div>
+            <CodeEvidenceViewer
+              filePath="src/distributed/raft_consensus.rs"
+              lineRangeLabel="LINES 174-181 (CITED EVIDENCE)"
+              commentHeader="// Frozen Commit @a4f91c2 • Rust UTF-8"
+              badge={<Badge tone="good">RUBRIC PASS: 88.5 / 100</Badge>}
+              lines={[
+                { lineNumber: 174, content: 'let (ack_tx, mut ack_rx) = mpsc::channel(peers.len());' },
+                { lineNumber: 175, content: 'for peer in peers.iter() {' },
+                { lineNumber: 176, content: '  tokio::spawn(async move {', highlighted: true, activeFlash: isPlaying },
+                {
+                  lineNumber: 177,
+                  content: '    let res = peer.send_heartbeat(current_term).await;',
+                  highlighted: true,
+                  activeFlash: isPlaying,
+                },
+                {
+                  lineNumber: 178,
+                  content: '    let _ = ack_tx.send(res).await;',
+                  highlighted: true,
+                  activeFlash: isPlaying,
+                },
+                { lineNumber: 179, content: '  });' },
+                { lineNumber: 180, content: '}' },
+                { lineNumber: 181, content: 'self.tally_quorum(&mut ack_rx).await?;' },
+              ]}
+            />
 
-              <div className="font-mono-code overflow-x-auto bg-white p-3 text-[12px] leading-[20px]">
-                <div className="pb-1 text-[11px] text-muted">// Frozen Commit @a4f91c2 • Rust UTF-8</div>
-                <div className="flex text-muted">
-                  <span className="w-8 pr-3 text-right text-muted/60 select-none">174</span>
-                  <span className="text-ink">let (ack_tx, mut ack_rx) = mpsc::channel(peers.len());</span>
-                </div>
-                <div className="flex text-muted">
-                  <span className="w-8 pr-3 text-right text-muted/60 select-none">175</span>
-                  <span className="text-ink">for peer in peers.iter() &#123;</span>
-                </div>
-                {[
-                  { line: 176, code: '  tokio::spawn(async move {' },
-                  { line: 177, code: '    let res = peer.send_heartbeat(current_term).await;' },
-                  { line: 178, code: '    let _ = ack_tx.send(res).await;' },
-                ].map((row) => (
-                  <div
-                    key={row.line}
-                    className={`-mx-3 flex border-l-2 px-3 transition-colors ${
-                      isPlaying
-                        ? 'border-accent bg-accent text-white font-semibold'
-                        : 'border-accent bg-accent-soft/65 text-ink font-medium'
-                    }`}
-                  >
-                    <span
-                      className={`w-8 pr-3 text-right font-semibold select-none ${
-                        isPlaying ? 'text-white' : 'text-accent'
-                      }`}
-                    >
-                      {row.line}
-                    </span>
-                    <span className="whitespace-pre">{row.code}</span>
-                  </div>
-                ))}
-                <div className="flex text-muted">
-                  <span className="w-8 pr-3 text-right text-muted/60 select-none">179</span>
-                  <span className="text-ink">  &#125;);</span>
-                </div>
-                <div className="flex text-muted">
-                  <span className="w-8 pr-3 text-right text-muted/60 select-none">180</span>
-                  <span className="text-ink">&#125;</span>
-                </div>
-                <div className="flex text-muted">
-                  <span className="w-8 pr-3 text-right text-muted/60 select-none">181</span>
-                  <span className="text-ink">self.tally_quorum(&amp;mut ack_rx).await?;</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Editorial Quote Block for Verified Interview Audio Transcripts */}
             <div className="flex flex-col justify-between space-y-3 rounded-[6px] border border-line bg-white p-4">
               <div className="flex items-center justify-between">
                 <span className="font-mono-code flex items-center gap-1.5 text-[11px] font-semibold tracking-wider text-good uppercase">
-                  <span className={isPlaying ? 'status-dot-live bg-good text-good' : 'h-1.5 w-1.5 rounded-full bg-good'} />
+                  <LiveDot tone="good" pulse={isPlaying} />
                   VERIFIED ORAL EVIDENCE (QUESTION 2 OF 4)
                 </span>
                 <span className="font-mono-code text-[11px] text-muted">TIMESTAMP: 01:24 / 03:00</span>
               </div>
 
-              <blockquote className="rounded-r-[4px] border-l-[3px] border-accent bg-paper/60 py-1.5 pl-4">
-                <p className="font-serif-heading text-[16px] leading-[24px] text-ink italic">
-                  &ldquo;We spawned non-blocking Tokio tasks per follower inside the broadcast loop so a partitioned peer
-                  cannot stall quorum tallying before the election timer expires.&rdquo;
-                </p>
-                <footer className="font-mono-code mt-1 text-[11px] text-muted">
-                  — Candidate Defense Transcript • Matched to lines 176–181
-                </footer>
-              </blockquote>
+              <EditorialQuoteBlock
+                size="md"
+                theme="cobalt"
+                quote="We spawned non-blocking Tokio tasks per follower inside the broadcast loop so a partitioned peer cannot stall quorum tallying before the election timer expires."
+                attribution="— Candidate Defense Transcript • Matched to lines 176–181"
+              />
 
               <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line pt-2.5">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-mono-code rounded-[3px] border border-good/30 bg-good-soft px-2 py-0.5 text-[11px] font-semibold text-good">
-                    SKILL: DISTRIBUTED CONCURRENCY · DEMONSTRATED
-                  </span>
+                  <Badge tone="good">SKILL: DISTRIBUTED CONCURRENCY · DEMONSTRATED</Badge>
                   <span className="font-mono-code text-[11px] text-muted">CONFIDENCE: HIGH</span>
                 </div>
                 <span className="font-mono-code text-[11px] text-muted">
@@ -353,7 +297,6 @@ export function Landing() {
             </div>
           </div>
 
-          {/* Right: Audit Cockpit Visualizer & Tabular Gauges (5 cols) */}
           <div className="flex flex-col justify-between space-y-4 lg:col-span-5">
             <div className="flex flex-col space-y-3 rounded-[6px] border border-line bg-paper p-4">
               <div className="flex items-center justify-between">
@@ -379,23 +322,21 @@ export function Landing() {
               </p>
             </div>
 
-            {/* Micro Score Gauge Row with GPU scaleX bars */}
             <div className="grid grid-cols-3 gap-2.5">
-              {[
-                { label: 'RUBRIC SCORE', value: '88.5%', scale: 0.885, tone: 'text-ink', bar: 'bg-ink' },
-                { label: 'OWNERSHIP', value: '94%', scale: 0.94, tone: 'text-good', bar: 'bg-good' },
-                { label: 'CITATIONS', value: '4 / 4', scale: 1, tone: 'text-accent', bar: 'bg-accent' },
-              ].map((m) => (
+              {(
+                [
+                  { label: 'RUBRIC SCORE', value: '88.5%', num: 88.5, tone: 'text-ink', bar: 'ink' },
+                  { label: 'OWNERSHIP', value: '94%', num: 94, tone: 'text-good', bar: 'good' },
+                  { label: 'CITATIONS', value: '4 / 4', num: 100, tone: 'text-accent', bar: 'accent' },
+                ] as const
+              ).map((m) => (
                 <div key={m.label} className="rounded-[6px] border border-line bg-white p-3">
                   <div className="font-mono-code text-[10px] text-muted uppercase">{m.label}</div>
                   <div className={`font-serif-heading mt-0.5 text-[22px] leading-tight font-semibold ${m.tone}`}>
                     {m.value}
                   </div>
-                  <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-well">
-                    <div
-                      className={`score-bar-fill h-full w-full ${m.bar}`}
-                      style={{ transform: `scaleX(${m.scale})` }}
-                    />
+                  <div className="mt-2">
+                    <ScoreBar value={m.num} max={100} tone={m.bar} heightClass="h-1" trackClass="bg-well" />
                   </div>
                 </div>
               ))}
@@ -405,83 +346,74 @@ export function Landing() {
 
         {/* 3 Pillars Feature Cards Grid */}
         <div className="grid grid-cols-1 gap-4 border-t border-line pt-6 md:grid-cols-3">
-          <div className="card-interactive rounded-[6px] border border-line bg-paper/60 p-5 space-y-2.5">
-            <div className="flex items-center justify-between">
-              <span className="font-mono-code flex h-7 w-7 items-center justify-center rounded-[4px] border border-accent/25 bg-accent-soft text-[12px] font-bold text-accent">
-                01
-              </span>
-              <span className="material-symbols-outlined text-[20px] text-accent">account_tree</span>
+          {[
+            {
+              num: '01',
+              icon: 'account_tree',
+              tone: 'accent' as const,
+              title: 'Selective Repository Analysis',
+              desc: 'Inspects the Git tree, plans high-signal file reading, extracts code hooks, and caches summaries by blob SHA to evaluate real architecture rather than README fluff.',
+              foot: 'CACHED BY COMMIT & BLOB SHA →',
+            },
+            {
+              num: '02',
+              icon: 'graphic_eq',
+              tone: 'good' as const,
+              title: '3-Minute Live Voice Defense',
+              desc: "Generates targeted questions tied to actual code snippets in the author's repository. The answer key stays strictly on the server while Gemini Live conducts the oral exam.",
+              foot: 'ONE-TIME EPHEMERAL LIVE TOKEN →',
+            },
+            {
+              num: '03',
+              icon: 'fact_check',
+              tone: 'neutral' as const,
+              title: 'Auditable Dossiers & Overrides',
+              desc: 'Organizers inspect AI justifications, cited files, similarity warnings, and manual score overrides with an immutable audit log before publishing final standings.',
+              foot: 'HUMAN-IN-THE-LOOP ADJUDICATION →',
+            },
+          ].map((p) => (
+            <div key={p.num} className="card-interactive space-y-2.5 rounded-[6px] border border-line bg-paper/60 p-5">
+              <div className="flex items-center justify-between">
+                <Badge tone={p.tone}>{p.num}</Badge>
+                <span
+                  className={`material-symbols-outlined text-[20px] ${
+                    p.tone === 'accent' ? 'text-accent' : p.tone === 'good' ? 'text-good' : 'text-ink'
+                  }`}
+                >
+                  {p.icon}
+                </span>
+              </div>
+              <h3 className="font-serif-heading text-[18px] font-medium text-ink">{p.title}</h3>
+              <p className="text-[13px] leading-[20px] text-muted">{p.desc}</p>
+              <div
+                className={`font-mono-code pt-1 text-[11px] font-semibold ${
+                  p.tone === 'accent' ? 'text-accent' : p.tone === 'good' ? 'text-good' : 'text-ink'
+                }`}
+              >
+                {p.foot}
+              </div>
             </div>
-            <h3 className="font-serif-heading text-[18px] font-medium text-ink">Selective Repository Analysis</h3>
-            <p className="text-[13px] leading-[20px] text-muted">
-              Inspects the Git tree, plans high-signal file reading, extracts code hooks, and caches summaries by blob
-              SHA to evaluate real architecture rather than README fluff.
-            </p>
-            <div className="font-mono-code pt-1 text-[11px] font-semibold text-accent">
-              CACHED BY COMMIT &amp; BLOB SHA →
-            </div>
-          </div>
-
-          <div className="card-interactive rounded-[6px] border border-line bg-paper/60 p-5 space-y-2.5">
-            <div className="flex items-center justify-between">
-              <span className="font-mono-code flex h-7 w-7 items-center justify-center rounded-[4px] border border-good/30 bg-good-soft text-[12px] font-bold text-good">
-                02
-              </span>
-              <span className="material-symbols-outlined text-[20px] text-good">graphic_eq</span>
-            </div>
-            <h3 className="font-serif-heading text-[18px] font-medium text-ink">3-Minute Live Voice Defense</h3>
-            <p className="text-[13px] leading-[20px] text-muted">
-              Generates targeted questions tied to actual code snippets in the author&apos;s repository. The answer key
-              stays strictly on the server while Gemini Live conducts the oral exam.
-            </p>
-            <div className="font-mono-code pt-1 text-[11px] font-semibold text-good">
-              ONE-TIME EPHEMERAL LIVE TOKEN →
-            </div>
-          </div>
-
-          <div className="card-interactive rounded-[6px] border border-line bg-paper/60 p-5 space-y-2.5">
-            <div className="flex items-center justify-between">
-              <span className="font-mono-code flex h-7 w-7 items-center justify-center rounded-[4px] border border-line bg-white text-[12px] font-bold text-ink">
-                03
-              </span>
-              <span className="material-symbols-outlined text-[20px] text-ink">fact_check</span>
-            </div>
-            <h3 className="font-serif-heading text-[18px] font-medium text-ink">Auditable Dossiers &amp; Overrides</h3>
-            <p className="text-[13px] leading-[20px] text-muted">
-              Organizers inspect AI justifications, cited files, similarity warnings, and manual score overrides with an
-              immutable audit log before publishing final standings.
-            </p>
-            <div className="font-mono-code pt-1 text-[11px] font-semibold text-ink">
-              HUMAN-IN-THE-LOOP ADJUDICATION →
-            </div>
-          </div>
+          ))}
         </div>
       </section>
 
-      {/* 3. Dual Workflow Comparison (Organizers vs. Students/Engineers) */}
+      {/* 3. Dual Workflow Comparison */}
       <section id="organizers" className="space-y-6">
-        <div className="flex flex-col justify-between gap-2 border-b border-line pb-4 sm:flex-row sm:items-end">
-          <div>
-            <span className="font-mono-code text-[11px] font-semibold tracking-wider text-muted uppercase">
-              02 // TAILORED OPERATIONAL WORKFLOWS
+        <SectionHeader
+          eyebrow="02 // TAILORED OPERATIONAL WORKFLOWS"
+          title="Built for high-stakes adjudication and career proof"
+          rightSlot={
+            <span className="font-mono-code text-[11px] text-muted uppercase">
+              DUAL ROLE ARCHITECTURE: ORGANIZER &amp; CANDIDATE
             </span>
-            <h2 className="font-serif-heading mt-1 text-[28px] leading-[34px] font-medium text-ink sm:text-[34px] sm:leading-[40px]">
-              Built for high-stakes adjudication and career proof
-            </h2>
-          </div>
-          <span className="font-mono-code text-[11px] text-muted uppercase">
-            DUAL ROLE ARCHITECTURE: ORGANIZER &amp; CANDIDATE
-          </span>
-        </div>
+          }
+        />
 
         <div className="grid grid-cols-1 items-stretch gap-6 md:grid-cols-2">
-          {/* Left: For Organizers & Hackathons */}
           <div className="card-interactive flex flex-col justify-between space-y-6 rounded-[6px] border border-line bg-white p-6 lg:p-8">
             <div className="space-y-5">
               <div className="flex items-center justify-between border-b border-line pb-4">
-                <span className="font-mono-code rounded-[3px] border border-accent/25 bg-accent-soft px-2.5 py-0.5 text-[11px] font-bold text-accent">
-                  ORGANIZER SUITE
-                </span>
+                <Badge tone="accent">ORGANIZER SUITE</Badge>
                 <span className="font-mono-code text-[11px] text-muted">HACKATHONS &amp; COHORTS</span>
               </div>
 
@@ -539,13 +471,10 @@ export function Landing() {
             </div>
           </div>
 
-          {/* Right: For Students & Engineers */}
           <div className="card-interactive flex flex-col justify-between space-y-6 rounded-[6px] border border-line bg-white p-6 lg:p-8">
             <div className="space-y-5">
               <div className="flex items-center justify-between border-b border-line pb-4">
-                <span className="font-mono-code rounded-[3px] border border-good/30 bg-good-soft px-2.5 py-0.5 text-[11px] font-bold text-good">
-                  CANDIDATE CREDENTIALING
-                </span>
+                <Badge tone="good">CANDIDATE CREDENTIALING</Badge>
                 <span className="font-mono-code text-[11px] text-muted">STUDENTS &amp; ENGINEERS</span>
               </div>
 
@@ -607,20 +536,17 @@ export function Landing() {
 
       {/* 4. Public Verification Stream / Specimen Registry */}
       <section id="registry" className="space-y-5">
-        <div className="flex flex-col justify-between gap-2 border-b border-line pb-4 sm:flex-row sm:items-end">
-          <div>
-            <span className="font-mono-code text-[11px] font-semibold tracking-wider text-accent uppercase">
-              03 // PUBLIC VERIFICATION SPECIMENS
-            </span>
-            <h2 className="font-serif-heading mt-1 text-[26px] leading-[32px] font-medium text-ink sm:text-[32px] sm:leading-[38px]">
-              Verified Proof Dossier Examples
-            </h2>
-          </div>
-          <div className="font-mono-code flex items-center gap-2 text-[11px] text-muted">
-            <span className="status-dot-live bg-good text-good" />
-            <span>COMMIT-ANCHORED ORAL EXAM SPECIMENS</span>
-          </div>
-        </div>
+        <SectionHeader
+          eyebrow="03 // PUBLIC VERIFICATION SPECIMENS"
+          eyebrowTone="accent"
+          title="Verified Proof Dossier Examples"
+          rightSlot={
+            <div className="font-mono-code flex items-center gap-2 text-[11px] text-muted">
+              <LiveDot tone="good" />
+              <span>COMMIT-ANCHORED ORAL EXAM SPECIMENS</span>
+            </div>
+          }
+        />
 
         <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
           {DOSSIERS.map((d, idx) => {
@@ -632,12 +558,8 @@ export function Landing() {
               >
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="font-mono-code rounded-[3px] border border-line bg-paper px-2 py-0.5 text-[11px] text-muted">
-                      {d.hash}
-                    </span>
-                    <span className="font-mono-code rounded-[3px] border border-good/30 bg-good-soft px-2 py-0.5 text-[11px] font-bold text-good">
-                      OWNERSHIP: {d.score} / 100
-                    </span>
+                    <Badge>{d.hash}</Badge>
+                    <Badge tone="good">OWNERSHIP: {d.score} / 100</Badge>
                   </div>
 
                   <div>
@@ -647,15 +569,11 @@ export function Landing() {
 
                   <div className="font-mono-code space-y-1 rounded-[4px] border border-line bg-paper p-2.5 text-[11px] text-muted">
                     <div>{d.depth}</div>
-                    <div className="text-ink font-medium">{d.proof}</div>
+                    <div className="font-medium text-ink">{d.proof}</div>
                     <div className="text-accent">{d.citedLine}</div>
                   </div>
 
-                  {expanded && (
-                    <blockquote className="rounded-r-[4px] border-l-[3px] border-accent bg-accent-soft/35 py-1.5 pl-3 text-[12px] text-ink italic">
-                      &ldquo;{d.quote}&rdquo;
-                    </blockquote>
-                  )}
+                  {expanded && <EditorialQuoteBlock quote={d.quote} theme="cobalt" />}
                 </div>
 
                 <div className="flex items-center justify-between border-t border-line pt-3">
@@ -677,14 +595,11 @@ export function Landing() {
         </div>
       </section>
 
-      {/* 5. High-Impact Dark Architectural Call to Action (Dark Theme Companion Spec) */}
-      <section
-        id="demo"
-        className="rounded-[6px] border border-[#262B34] bg-[#0D0F12] p-8 text-[#EDEDEC] sm:p-12 lg:p-14"
-      >
+      {/* 5. High-Impact Dark Architectural Call to Action */}
+      <DarkBanner id="demo" className="p-8 sm:p-12 lg:p-14">
         <div className="mx-auto max-w-[740px] space-y-5 text-center">
           <div className="font-mono-code inline-flex items-center gap-2 rounded-[3px] border border-[#262B34] bg-[#15181E] px-3 py-1 text-[11px] font-semibold tracking-wider text-accent-soft uppercase">
-            <span className="h-1.5 w-1.5 rounded-full bg-accent" />
+            <LiveDot tone="accent" pulse={false} />
             THE STANDARD FOR AUTHENTIC CODE CREDENTIALING
           </div>
 
@@ -718,9 +633,8 @@ export function Landing() {
             <span>3-MINUTE GEMINI LIVE INTERVIEWS</span>
           </div>
         </div>
-      </section>
+      </DarkBanner>
 
-      {/* Technical Editorial Footer */}
       <footer className="font-mono-code flex flex-col items-center justify-between gap-4 border-t border-line pt-6 text-[11px] text-muted sm:flex-row">
         <div className="flex items-center gap-2">
           <span className="font-serif-heading text-[16px] font-semibold text-ink">SkillProof</span>

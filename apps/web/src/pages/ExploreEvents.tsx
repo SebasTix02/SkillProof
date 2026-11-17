@@ -1,6 +1,17 @@
 import { useMemo, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Badge, PageState, formatDate, linkButton } from '../components/ui';
+import {
+  Badge,
+  DarkBanner,
+  DossierPageHeader,
+  LiveDot,
+  MetricTile,
+  PageState,
+  SectionHeader,
+  formatCountdown,
+  formatDate,
+  linkButton,
+} from '../components/shared';
 import { useAuth } from '../lib/auth';
 import { STATUS_LABEL, VISIBILITY_LABEL, type EventView } from '../lib/types';
 import { useLoad } from '../lib/useLoad';
@@ -16,27 +27,6 @@ function statusTone(status: EventView['status']): 'good' | 'warn' | 'accent' | '
   if (status === 'judging' || status === 'review') return 'warn';
   if (status === 'published') return 'accent';
   return 'neutral';
-}
-
-function formatTimeRemaining(deadlineIso: string): { label: string; urgent: boolean; closed: boolean } {
-  const diffMs = Date.parse(deadlineIso) - Date.now();
-  if (diffMs <= 0) return { label: 'DEADLINE PASSED', urgent: false, closed: true };
-  const totalHours = Math.floor(diffMs / 3_600_000);
-  const days = Math.floor(totalHours / 24);
-  const hours = totalHours % 24;
-  const mins = Math.floor((diffMs % 3_600_000) / 60_000);
-  if (days > 0) {
-    return {
-      label: `ENDS IN ${String(days).padStart(2, '0')}D : ${String(hours).padStart(2, '0')}H`,
-      urgent: days <= 2,
-      closed: false,
-    };
-  }
-  return {
-    label: `ENDS IN ${String(hours).padStart(2, '0')}H : ${String(mins).padStart(2, '0')}M`,
-    urgent: true,
-    closed: false,
-  };
 }
 
 export function ExploreEvents() {
@@ -96,34 +86,29 @@ export function ExploreEvents() {
     if (slug) navigate(`/e/${encodeURIComponent(slug)}`);
   }
 
-  const featuredCountdown = featured ? formatTimeRemaining(featured.submission_deadline) : null;
+  const featuredCountdown = featured ? formatCountdown(featured.submission_deadline) : null;
 
   return (
     <div className="space-y-10">
       {/* 1. Directory Header & Featured Flagship Arena */}
       <header className="space-y-6">
-        <div className="flex flex-col justify-between gap-4 border-b border-line pb-5 md:flex-row md:items-end">
-          <div className="space-y-1.5">
-            <div className="font-mono-code flex flex-wrap items-center gap-2 text-[11px]">
+        <DossierPageHeader
+          eyebrow={
+            <>
               <span className="font-semibold tracking-widest text-accent uppercase">
                 REGISTRY INDEX // HACKATHON &amp; COHORT DIRECTORY
               </span>
               <span className="text-line">•</span>
               <span className="flex items-center gap-1.5 font-medium text-good">
-                <span className="status-dot-live bg-good text-good" />
+                <LiveDot tone="good" />
                 {openEvents.length} PUBLIC {openEvents.length === 1 ? 'ARENA' : 'ARENAS'} LIVE
               </span>
-            </div>
-            <h1 className="font-serif-heading text-[34px] leading-[40px] font-normal tracking-tight text-ink sm:text-[40px] sm:leading-[46px]">
-              Events &amp; Algorithmic Hackathons
-            </h1>
-            <p className="max-w-2xl text-[14px] leading-[22px] text-muted sm:text-[15px]">
-              Commit-locked repository evaluations, weighted rubric audits, and 3-minute live oral defense trials.
-            </p>
-          </div>
-
-          <div className="flex shrink-0 flex-wrap items-center gap-2.5">
-            {org ? (
+            </>
+          }
+          title="Events & Algorithmic Hackathons"
+          subtitle="Commit-locked repository evaluations, weighted rubric audits, and 3-minute live oral defense trials."
+          rightSlot={
+            org ? (
               <>
                 <Link
                   to="/org/events"
@@ -147,13 +132,11 @@ export function ExploreEvents() {
                 <span className="material-symbols-outlined text-[16px]">mic</span>
                 <span>Take Independent Interview</span>
               </Link>
-            )}
-          </div>
-        </div>
+            )
+          }
+        />
 
-        {/* Featured Flagship Arena (Split 7 / 5 Grid) */}
         <div className="grid grid-cols-1 items-stretch gap-6 lg:grid-cols-12">
-          {/* Left 7 Cols: Visual Globe Banner */}
           <div className="relative flex min-h-[300px] flex-col justify-between overflow-hidden rounded-[6px] border border-line bg-[#14161A] lg:col-span-7">
             <div className="absolute inset-0 z-0">
               <img
@@ -166,7 +149,7 @@ export function ExploreEvents() {
 
             <div className="relative z-10 flex flex-wrap items-center justify-between gap-2 p-5">
               <span className="font-mono-code inline-flex items-center gap-2 rounded-[3px] border border-white/20 bg-[#14161A]/90 px-2.5 py-1 text-[11px] font-medium tracking-wide text-white">
-                <span className="status-dot-live bg-good text-good" />
+                <LiveDot tone="good" />
                 COMMIT-LOCKED EVALUATION // GEMINI RUBRIC ENGINE
               </span>
               <span className="font-mono-code rounded-[3px] border border-white/15 bg-black/70 px-2 py-0.5 text-[11px] text-white/90">
@@ -188,7 +171,6 @@ export function ExploreEvents() {
             </div>
           </div>
 
-          {/* Right 5 Cols: Featured Arena Telemetry & CTA */}
           <div className="flex flex-col justify-between space-y-5 rounded-[6px] border border-line bg-white p-6 lg:col-span-5">
             {featured ? (
               <>
@@ -220,27 +202,24 @@ export function ExploreEvents() {
                   </div>
 
                   <div className="grid grid-cols-2 gap-3 pt-1">
-                    <div className="rounded-[4px] border border-line bg-paper p-3">
-                      <div className="font-mono-code text-[10px] text-muted uppercase">VISIBILITY</div>
-                      <div className="font-mono-code mt-0.5 text-[15px] font-bold text-ink">
-                        {VISIBILITY_LABEL[featured.visibility]}
-                      </div>
-                      <div className="font-mono-code mt-0.5 text-[11px] text-good">
-                        {joinedIds.has(featured.id) ? 'Registered Participant' : 'Open to Join'}
-                      </div>
-                    </div>
-
-                    <div className="rounded-[4px] border border-line bg-paper p-3">
-                      <div className="font-mono-code text-[10px] text-muted uppercase">ORAL DEFENSE</div>
-                      <div className="font-mono-code mt-0.5 text-[15px] font-bold text-ink">
-                        {featured.interviews_enabled ? '3-Min Voice Exam' : 'Code Rubric Only'}
-                      </div>
-                      <div className="font-mono-code mt-0.5 text-[11px] text-muted">
-                        {Array.isArray(featured.rubric_json)
+                    <MetricTile
+                      label="VISIBILITY"
+                      value={VISIBILITY_LABEL[featured.visibility]}
+                      sub={
+                        <span className="text-good">
+                          {joinedIds.has(featured.id) ? 'Registered Participant' : 'Open to Join'}
+                        </span>
+                      }
+                    />
+                    <MetricTile
+                      label="ORAL DEFENSE"
+                      value={featured.interviews_enabled ? '3-Min Voice Exam' : 'Code Rubric Only'}
+                      sub={
+                        Array.isArray(featured.rubric_json)
                           ? `${featured.rubric_json.length} Rubric Criteria`
-                          : 'Weighted Rubric'}
-                      </div>
-                    </div>
+                          : 'Weighted Rubric'
+                      }
+                    />
                   </div>
                 </div>
 
@@ -323,7 +302,6 @@ export function ExploreEvents() {
             </div>
           </div>
 
-          {/* Private Event Slug / Access Code Quick Navigation */}
           <div className="flex flex-col items-stretch gap-2 border-t border-line pt-4 sm:flex-row sm:items-center lg:border-t-0 lg:border-l lg:pt-0 lg:pl-5">
             <div className="mr-1 flex shrink-0 items-center gap-1.5 text-muted">
               <span className="material-symbols-outlined text-[18px] text-accent">vpn_key</span>
@@ -348,19 +326,14 @@ export function ExploreEvents() {
         </div>
       </section>
 
-      {/* 3. My Active & Past Events (/api/me/events) */}
+      {/* 3. My Active & Past Events */}
       <section className="space-y-4">
-        <div className="flex items-center justify-between border-b border-line pb-3">
-          <div className="flex items-center gap-3">
-            <h2 className="font-serif-heading text-[22px] font-medium text-ink">My Active &amp; Past Events</h2>
-            <span className="font-mono-code rounded-[3px] border border-line bg-white px-2 py-0.5 text-[11px] font-semibold text-muted">
-              {String(filteredMine.length).padStart(2, '0')} REGISTERED WORKSPACES
-            </span>
-          </div>
-          <span className="font-mono-code hidden text-[11px] tracking-wider text-muted uppercase sm:inline-block">
-            PARTICIPANT LEDGER
-          </span>
-        </div>
+        <SectionHeader
+          title="My Active & Past Events"
+          rightSlot={
+            <Badge>{String(filteredMine.length).padStart(2, '0')} REGISTERED WORKSPACES</Badge>
+          }
+        />
 
         <PageState loading={mine.loading} error={mine.error} />
 
@@ -375,7 +348,7 @@ export function ExploreEvents() {
         {!mine.loading && !mine.error && filteredMine.length > 0 && (
           <div className="space-y-3.5">
             {filteredMine.map((e) => {
-              const countdown = formatTimeRemaining(e.submission_deadline);
+              const countdown = formatCountdown(e.submission_deadline);
               const tone = statusTone(e.status);
               return (
                 <article
@@ -388,16 +361,8 @@ export function ExploreEvents() {
                         <Badge tone={tone} dot>
                           {STATUS_LABEL[e.status]}
                         </Badge>
-                        <span className="font-mono-code inline-flex items-center gap-1 rounded-[3px] border border-line bg-paper px-2 py-0.5 text-[11px] font-medium text-ink">
-                          <span className="material-symbols-outlined text-[13px] text-accent">groups</span>
-                          <span>REGISTERED PARTICIPANT</span>
-                        </span>
-                        {e.interviews_enabled && (
-                          <span className="font-mono-code inline-flex items-center gap-1 rounded-[3px] border border-accent/25 bg-accent-soft px-2 py-0.5 text-[11px] font-medium text-accent">
-                            <span className="material-symbols-outlined text-[13px]">mic</span>
-                            <span>3-MIN VOICE DEFENSE</span>
-                          </span>
-                        )}
+                        <Badge>REGISTERED PARTICIPANT</Badge>
+                        {e.interviews_enabled && <Badge tone="accent">3-MIN VOICE DEFENSE</Badge>}
                         <span className="font-mono-code ml-1 flex items-center gap-1 text-[11px] text-muted">
                           <span className="material-symbols-outlined text-[14px]">
                             {e.status === 'open' ? 'timer' : 'lock'}
@@ -458,21 +423,12 @@ export function ExploreEvents() {
         )}
       </section>
 
-      {/* 4. Open Hackathons & Benchmark Arenas (/api/events) */}
+      {/* 4. Open Hackathons & Benchmark Arenas */}
       <section className="space-y-4">
-        <div className="flex items-center justify-between border-b border-line pb-3">
-          <div className="flex items-center gap-3">
-            <h2 className="font-serif-heading text-[22px] font-medium text-ink">
-              Open Hackathons &amp; Benchmark Arenas
-            </h2>
-            <span className="font-mono-code rounded-[3px] border border-line bg-white px-2 py-0.5 text-[11px] font-semibold text-muted">
-              {String(filteredOpen.length).padStart(2, '0')} PUBLIC ARENAS AVAILABLE
-            </span>
-          </div>
-          <span className="font-mono-code hidden text-[11px] tracking-wider text-muted uppercase sm:inline-block">
-            FILTER: PUBLIC &amp; ACCEPTING SUBMISSIONS
-          </span>
-        </div>
+        <SectionHeader
+          title="Open Hackathons & Benchmark Arenas"
+          rightSlot={<Badge>{String(filteredOpen.length).padStart(2, '0')} PUBLIC ARENAS AVAILABLE</Badge>}
+        />
 
         <PageState loading={open.loading} error={open.error} />
 
@@ -490,7 +446,7 @@ export function ExploreEvents() {
         {!open.loading && !open.error && filteredOpen.length > 0 && (
           <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
             {filteredOpen.map((e, idx) => {
-              const countdown = formatTimeRemaining(e.submission_deadline);
+              const countdown = formatCountdown(e.submission_deadline);
               const isFirst = idx === 0;
               return (
                 <div
@@ -499,11 +455,7 @@ export function ExploreEvents() {
                 >
                   {isFirst && (
                     <div className="relative h-40 w-full overflow-hidden border-b border-line bg-[#14161A]">
-                      <img
-                        src={ARENA_THUMB}
-                        alt={e.name}
-                        className="h-full w-full object-cover"
-                      />
+                      <img src={ARENA_THUMB} alt={e.name} className="h-full w-full object-cover" />
                       <div className="absolute top-3 left-3 flex items-center gap-1.5">
                         <Badge tone="good" dot>
                           {STATUS_LABEL[e.status]}
@@ -578,8 +530,8 @@ export function ExploreEvents() {
         )}
       </section>
 
-      {/* 5. Dark Telemetry Banner (Consensus Ledger Metrics & Independent Interview CTA) */}
-      <section className="rounded-[6px] border border-[#262B34] bg-[#14161A] p-6 text-white md:p-8">
+      {/* 5. Dark Telemetry Banner */}
+      <DarkBanner>
         <div className="flex flex-col justify-between gap-6 lg:flex-row lg:items-center">
           <div className="space-y-1.5">
             <div className="font-mono-code text-[11px] font-semibold tracking-widest text-accent uppercase">
@@ -618,7 +570,7 @@ export function ExploreEvents() {
             </Link>
           </div>
         </div>
-      </section>
+      </DarkBanner>
     </div>
   );
 }
