@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Badge, Button, Card, Field, Input, Notice, PageState, Textarea, formatDate, linkButton, scoreTone } from '../components/ui';
+import { useToast } from '../components/toast';
 import { api, errorMessage } from '../lib/api';
 import { STATUS_LABEL, VISIBILITY_LABEL, type EventView, type Feedback, type ScoreView, type VersionView } from '../lib/types';
 import { useLoad } from '../lib/useLoad';
@@ -70,6 +71,7 @@ function Join({ event, onJoined }: { event: EventView; onJoined: () => Promise<v
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const toast = useToast();
   const open = event.status === 'open' && Date.parse(event.submission_deadline) > Date.now();
 
   async function join(e: FormEvent) {
@@ -78,6 +80,7 @@ function Join({ event, onJoined }: { event: EventView; onJoined: () => Promise<v
     setError(null);
     try {
       await api(`/api/events/${event.id}/join`, { body: { access_code: code || undefined } });
+      toast.success(`You joined ${event.name}.`);
       await onJoined();
     } catch (err) {
       setError(errorMessage(err));

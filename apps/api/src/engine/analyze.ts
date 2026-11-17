@@ -2,6 +2,7 @@ import { MODELS, RepoMapSchema, pruneUnknownPaths, type CommitProfile, type Repo
 import { z } from 'zod';
 import { env } from '../env.js';
 import { badRequest } from '../lib/errors.js';
+import { currentActivity } from '../lib/activity.js';
 import { UNTRUSTED_NOTICE, generateJson, type UsageContext } from '../lib/gemini.js';
 import { downloadZip, getCommitProfile, getHeadSha, getRepoMeta, type RepoMeta } from '../lib/github.js';
 import { db, must } from '../lib/supabase.js';
@@ -142,15 +143,27 @@ export async function analyzeRepo(owner: string, name: string, opts: AnalyzeOpti
   const cached = must(
     await db().from('repo_analyses').select('*').eq('repo_id', repo.id).eq('commit_sha', sha).maybeSingle(),
   ) as AnalysisRow | null;
-  if (cached) return { repo, analysis: cached };
+  const activity = currentActivity();
+  if (cached) {
+    await activity?.step(`Commit ${sha.slice(0, 7)} was already read before, so its repository map is reused at no extra cost.`);
+    return { repo, analysis: cached };
+  }
 
+  await activity?.step(`Downloading ${meta.owner}/${meta.name} at commit ${sha.slice(0, 7)} from GitHub.`);
   const files = extractFiles(await downloadZip(meta.owner, meta.name, sha));
   if (files.length === 0) throw badRequest('repo_empty', 'There is no source code to read in this repository.');
 
   const { full, overflow } = splitByBudget(files, env().REPO_TOKEN_BUDGET);
+  await activity?.step(
+    `Found ${files.length} source files after skipping dependencies, binaries and generated code.` +
+      (overflow.length ? ` ${full.length} are read in full and ${overflow.length} are summarised first.` : ' All of them are read in full.'),
+  );
+  if (overflow.length) await activity?.step(`Summarising ${overflow.length} files that do not fit in full.`, MODELS.summaries);
   const summaries = overflow.length ? await summariseOverflow(overflow, opts.usage) : new Map<string, string>();
 
-  const { data, usage } = await generateJson({
+  await activity?.step('Mapping the repository: what it does, its components, key decisions, weak points and code worth asking about.', MODELS.analysis);
+
+  const { data, usage, model } = await generateJson({
     model: MODELS.analysis,
     schema: RepoMapSchema,
     system: MAP_SYSTEM,
@@ -166,9 +179,18 @@ export async function analyzeRepo(owner: string, name: string, opts: AnalyzeOpti
     return { path: h.path, start_line: cut.start, end_line: cut.end, why: h.why, text: cut.text };
   });
 
+  await activity?.step(
+    `Repository map ready: ${map.components.length} components, ${map.key_decisions.length} key decisions, ${map.weaknesses.length} weak points.`,
+  );
+
   let commitProfile: CommitProfile | null = null;
   try {
     commitProfile = await getCommitProfile(meta.owner, meta.name, sha, opts.eventStart);
+    const before = commitProfile.commits_before_start;
+    await activity?.step(
+      `Read the commit history: ${commitProfile.total_commits} commits by ${commitProfile.authors.length} author${commitProfile.authors.length === 1 ? '' : 's'}` +
+        (before ? `, ${before} of them before the event started.` : '.'),
+    );
   } catch (err) {
     console.warn('Commit profile failed:', err);
   }
@@ -176,7 +198,7 @@ export async function analyzeRepo(owner: string, name: string, opts: AnalyzeOpti
   const row = {
     repo_id: repo.id,
     commit_sha: sha,
-    model: MODELS.analysis,
+    model,
     map_json: map,
     hooks_json: hooks,
     commit_profile_json: commitProfile,

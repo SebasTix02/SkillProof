@@ -2,6 +2,8 @@ import { zipSync, strToU8 } from 'fflate';
 import { describe, expect, it } from 'vitest';
 import { batchByTokens, extractFiles, isIgnoredPath, priority, renderFile, sliceLines, splitByBudget } from './engine/files.js';
 import { AttemptLimiter, hashAccessCode, verifyAccessCode } from './lib/accessCode.js';
+import { AiUnavailableError, aiErrorStatus, isTransientAiError } from './lib/gemini.js';
+import { friendlyJobError } from './lib/jobErrors.js';
 import { can, isOrgMember, type RoleGrant } from './lib/permissions.js';
 import { slugify } from './lib/slug.js';
 
@@ -104,5 +106,33 @@ describe('slugs', () => {
     expect(slugify('Echo Engineers — Hack 2026!')).toBe('echo-engineers-hack-2026');
     expect(slugify('Ñandú Día')).toBe('nandu-dia');
     expect(slugify('!!')).toBe('event');
+  });
+});
+
+describe('Gemini errors', () => {
+  const overloaded = new Error('{"error":{"code":503,"message":"This model is currently experiencing high demand.","status":"UNAVAILABLE"}}');
+
+  it('reads the status from the SDK error or from the JSON in the message', () => {
+    expect(aiErrorStatus(overloaded)).toBe(503);
+    expect(aiErrorStatus(Object.assign(new Error('x'), { status: 429 }))).toBe(429);
+    expect(aiErrorStatus(new Error('plain'))).toBeNull();
+  });
+
+  it('treats overload, rate limits and dropped connections as worth another try', () => {
+    expect(isTransientAiError(overloaded)).toBe(true);
+    expect(isTransientAiError(Object.assign(new Error('x'), { status: 429 }))).toBe(true);
+    expect(isTransientAiError(new TypeError('fetch failed'))).toBe(true);
+    expect(isTransientAiError(Object.assign(new Error('bad request'), { status: 400 }))).toBe(false);
+    expect(isTransientAiError(new Error('The answer does not match the schema'))).toBe(false);
+  });
+
+  it('never shows raw JSON to people', () => {
+    const all = new AiUnavailableError(['gemini-3.8-flash', 'gemini-3.6-flash', 'gemini-3.5-flash-lite'], overloaded);
+    const text = friendlyJobError(all, 'judge');
+    expect(text).toContain('tried 3 models');
+    expect(text).toContain('Judge again');
+    expect(text).not.toContain('{');
+    expect(friendlyJobError(overloaded, 'prepare')).not.toContain('{');
+    expect(friendlyJobError(Object.assign(new Error('x'), { status: 403 }), 'evaluate')).toContain('API key');
   });
 });

@@ -1,6 +1,8 @@
 import { RubricSchema } from '@skillproof/shared';
 import { analyzeRepo, type RepoRow } from '../engine/analyze.js';
+import { Activity, withActivity } from '../lib/activity.js';
 import { getHeadSha, getRepoMeta } from '../lib/github.js';
+import { friendlyJobError, technicalDetail } from '../lib/jobErrors.js';
 import { db, must } from '../lib/supabase.js';
 import { enqueue } from './queue.js';
 import { scoreSubmission } from './scoring.js';
@@ -27,8 +29,6 @@ async function mapLimit<T>(items: T[], limit: number, fn: (item: T) => Promise<v
   await Promise.all(workers);
 }
 
-const short = (err: unknown) => (err instanceof Error ? err.message : String(err)).slice(0, 500);
-
 /**
  * Freezes the code of one submission: asks GitHub which commit the default branch points at right now and
  * stores it. Judging later downloads exactly this commit, so anything pushed afterwards is never seen.
@@ -47,7 +47,8 @@ async function lockCommit(sub: SubmissionRow): Promise<boolean> {
     );
     return true;
   } catch (err) {
-    must(await db().from('submissions').update({ status: 'error', error: `Could not freeze the code: ${short(err)}` }).eq('id', sub.id));
+    console.warn(`Freezing ${sub.id} failed:`, err);
+    must(await db().from('submissions').update({ status: 'error', error: `Could not freeze the code. ${friendlyJobError(err, 'judge')}` }).eq('id', sub.id));
     return false;
   }
 }
@@ -146,35 +147,47 @@ export async function judgeSubmission(submissionId: string): Promise<void> {
 
   // Claim the job, so a retried task does not run next to the first attempt.
   const claimed = must(
-    await db().from('submissions').update({ status: 'analyzing', error: null, updated_at: new Date().toISOString() }).eq('id', sub.id).in('status', ['queued', 'error']).select('id'),
+    await db()
+      .from('submissions')
+      .update({ status: 'analyzing', error: null, updated_at: new Date().toISOString(), activity_json: [], models_used: [] })
+      .eq('id', sub.id)
+      .in('status', ['queued', 'error'])
+      .select('id'),
   ) as { id: string }[];
   if (claimed.length === 0) return;
 
+  const activity = new Activity('submissions', sub.id);
   try {
-    const event = must(await db().from('events').select('rubric_json, starts_at').eq('id', sub.event_id).single()) as {
-      rubric_json: unknown;
-      starts_at: string;
-    };
-    const usage = { kind: 'judge', organizationId: sub.organization_id };
-    const { analysis } = await analyzeRepo(version.repos.owner, version.repos.name, {
-      sha: sub.locked_commit_sha,
-      eventStart: event.starts_at,
-      usage,
+    await withActivity(activity, async () => {
+      await activity.step(`Judging started on the code frozen at commit ${sub.locked_commit_sha!.slice(0, 7)}.`);
+      const event = must(await db().from('events').select('rubric_json, starts_at').eq('id', sub.event_id).single()) as {
+        rubric_json: unknown;
+        starts_at: string;
+      };
+      const usage = { kind: 'judge', organizationId: sub.organization_id };
+      const { analysis } = await analyzeRepo(version.repos.owner, version.repos.name, {
+        sha: sub.locked_commit_sha!,
+        eventStart: event.starts_at,
+        usage,
+      });
+      const rubric = RubricSchema.parse(event.rubric_json);
+      const { note } = await scoreSubmission({
+        submissionId: sub.id,
+        organizationId: sub.organization_id,
+        rubric,
+        analysis,
+        teamName: sub.team_name,
+        description: version.description,
+        videoUrl: version.video_url,
+        usage,
+      });
+      must(await db().from('submissions').update({ status: 'scored', analysis_id: analysis.id, error: note }).eq('id', sub.id));
+      await activity.add('done', `Done. ${rubric.length} criteria scored, each with its reason and evidence.`);
     });
-    const { note } = await scoreSubmission({
-      submissionId: sub.id,
-      organizationId: sub.organization_id,
-      rubric: RubricSchema.parse(event.rubric_json),
-      analysis,
-      teamName: sub.team_name,
-      description: version.description,
-      videoUrl: version.video_url,
-      usage,
-    });
-    must(await db().from('submissions').update({ status: 'scored', analysis_id: analysis.id, error: note }).eq('id', sub.id));
   } catch (err) {
     console.error(`Judging ${sub.id} failed:`, err);
-    must(await db().from('submissions').update({ status: 'error', error: short(err) }).eq('id', sub.id));
+    await activity.add('error', technicalDetail(err));
+    must(await db().from('submissions').update({ status: 'error', error: friendlyJobError(err, 'judge') }).eq('id', sub.id));
   } finally {
     await settleEvent(sub.event_id).catch((err) => console.warn('settleEvent failed:', err));
   }
