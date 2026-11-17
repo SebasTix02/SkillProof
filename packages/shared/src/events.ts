@@ -19,6 +19,8 @@ export const CreateEventSchema = z
     name: z.string().min(3).max(120),
     description: z.string().max(4000).default(''),
     kind: z.enum(['hackathon', 'assignment']).default('hackathon'),
+    /** Course of an assignment, in course mode. */
+    course_id: z.uuid().nullable().default(null),
     starts_at: z.iso.datetime({ offset: true }),
     submission_deadline: z.iso.datetime({ offset: true }),
     visibility: z.enum(EVENT_VISIBILITY),

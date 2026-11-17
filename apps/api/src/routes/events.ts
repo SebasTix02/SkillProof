@@ -13,6 +13,7 @@ import { uniqueSlug } from '../lib/slug.js';
 import { db, must } from '../lib/supabase.js';
 import { closeEvent } from '../services/judge.js';
 import { primaryModels } from '../lib/models.js';
+import { audit } from '../lib/audit.js';
 import { dispatchJudging } from '../services/judgeQueue.js';
 
 interface EventRow {
@@ -117,12 +118,17 @@ export async function eventRoutes(app: FastifyInstance): Promise<void> {
     const { id: orgId } = parse(IdParams, req.params);
     requirePermission(user, 'event.create', orgId);
     const input = parse(CreateEventSchema, req.body);
+    if (input.course_id) {
+      const course = must(await db().from('courses').select('organization_id').eq('id', input.course_id).maybeSingle()) as { organization_id: string } | null;
+      if (!course || course.organization_id !== orgId) throw badRequest('unknown_course', 'That course is not part of this organization.');
+    }
     const row = must(
       await db()
         .from('events')
         .insert({
           organization_id: orgId,
-          kind: input.kind,
+          kind: input.course_id ? 'assignment' : input.kind,
+          course_id: input.course_id,
           name: input.name,
           slug: uniqueSlug(input.name),
           description: input.description,
@@ -192,6 +198,7 @@ export async function eventRoutes(app: FastifyInstance): Promise<void> {
     const event = await managedEvent(parse(IdParams, req.params).id, user);
     if (event.status !== 'open') throw conflict('not_open', 'Only an open event can be closed.');
     const result = await closeEvent(event.id);
+    if (result.closed) await audit({ organizationId: event.organization_id, actorId: user.id, action: 'event.closed', subjectType: 'event', subjectId: event.id, detail: { frozen: result.queued } });
     if (!result.closed) throw conflict('already_closed', 'This event was already closed.');
     return result;
   });
@@ -201,6 +208,7 @@ export async function eventRoutes(app: FastifyInstance): Promise<void> {
     const event = await managedEvent(parse(IdParams, req.params).id, user, 'results.publish');
     if (event.status !== 'review') throw conflict('not_ready', 'Results can be published once judging has finished.');
     must(await db().from('events').update({ status: 'published', published_at: new Date().toISOString() }).eq('id', event.id).eq('status', 'review'));
+    await audit({ organizationId: event.organization_id, actorId: user.id, action: 'results.published', subjectType: 'event', subjectId: event.id });
     return { ok: true };
   });
 
@@ -266,6 +274,7 @@ export async function eventRoutes(app: FastifyInstance): Promise<void> {
         .select('*')
         .single(),
     );
+    await audit({ organizationId: score.organization_id, actorId: user.id, action: 'score.override', subjectType: 'score', subjectId: id, detail: { override_score } });
     return { score: updated };
   });
 
@@ -288,6 +297,7 @@ export async function eventRoutes(app: FastifyInstance): Promise<void> {
         .eq('status', 'error'),
     );
     await dispatchJudging();
+    await audit({ organizationId: sub.organization_id, actorId: user.id, action: 'submission.rejudged', subjectType: 'submission', subjectId: sub.id });
     return { ok: true };
   });
 

@@ -13,4 +13,4 @@ run "$BIN/pg_ctl -D $DIR/data -o '-p $PORT -k $DIR -c listen_addresses=' -l $DIR
 P="psql -X -q -v ON_ERROR_STOP=1 -h $DIR -p $PORT -U postgres"
 $P -f "$ROOT/supabase/tests/00_stub_auth.sql"
 for f in "$ROOT"/supabase/migrations/*.sql; do $P -f "$f"; done
-$P -f "$ROOT/supabase/tests/01_rls.sql" 2>&1 | grep -E "ok  |FAIL|ERROR|PASSED" 
+for t in "$ROOT"/supabase/tests/0[1-9]_*.sql; do $P -f "$t" 2>&1 | grep -E "ok  |FAIL|ERROR|PASSED"; done 
