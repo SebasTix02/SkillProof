@@ -86,3 +86,26 @@ describe('one interview per commit', async () => {
     expect(oneInterviewPerCommit([row('error', true)]).blocked?.id).toBe('error-true');
   });
 });
+
+describe('4 or 5 questions', async () => {
+  const { QuestionPlanDraftSchema } = await import('@skillproof/shared');
+  const { alignPlan } = await import('./services/interviews.js');
+  const q = (i: number) => ({ id: `x${i}`, kind: 'why' as const, question: `Q${i}?`, path: `src/f${i}.ts`, start_line: 1, end_line: 5, expected_points: ['p'], skill: 's' });
+  const hooks = Array.from({ length: 7 }, (_, i) => ({ path: `src/f${i}.ts`, start_line: 1, end_line: 5, why: '', text: 'x' }));
+
+  it('asks the model for at least 4', () => {
+    expect(QuestionPlanDraftSchema.safeParse({ questions: [q(0), q(1), q(2)] }).success).toBe(false);
+    expect(QuestionPlanDraftSchema.safeParse({ questions: [q(0), q(1), q(2), q(3)] }).success).toBe(true);
+  });
+
+  it('keeps the 5 most revealing when the model writes more', () => {
+    const plan = alignPlan({ questions: [0, 1, 2, 3, 4, 5, 6].map(q) }, hooks);
+    expect(plan.questions.map((x) => x.question)).toEqual(['Q0?', 'Q1?', 'Q2?', 'Q3?', 'Q4?']);
+  });
+
+  it('tells the interviewer how long each question gets and how to close when time is up', () => {
+    const text = interviewerInstruction({ questions: [0, 1, 2, 3].map(q) }, 'a/b');
+    expect(text).toContain('about 45 seconds for each');
+    expect(text).toContain('When you receive "Time is up", finish the sentence you are saying');
+  });
+});

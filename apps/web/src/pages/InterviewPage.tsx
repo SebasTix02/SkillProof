@@ -26,6 +26,7 @@ import { useToast } from '../components/toast';
 import { useAuth } from '../lib/auth';
 import { MIC_MIME, Speaker, startMic } from '../lib/liveAudio';
 import { useLoad } from '../lib/useLoad';
+import { WrapUp } from '../lib/wrapUp';
 
 const SPECTROGRAM_ASSET =
   'https://lh3.googleusercontent.com/aida/ALJJyrCoegBM7lcY0q0DQ28N-jVRexrVR2oFEc93h_uF6SRADyZPBxlq6_MfcPv5z-OonkUHI4590rx0C9380oaQAj9acapo1HgaFxTxvnzFompyX-nwrCNuwg035w_yMkKW8AnBslMqo2qWM173UbZ8AppajZ0IfbHA5sH4XIx1PIjVrcDn0JtXBKgonMDDDQxzEKszxuojU2Y-gJBNsIwD4bEeUSLY5EWY82q-OGzcabYq';
@@ -64,8 +65,7 @@ interface LiveToken {
   seconds: number;
 }
 
-/** Seconds the interviewer gets to say goodbye once the clock runs out. */
-const WRAP_UP_SECONDS = 12;
+
 
 function StageController({
   status,
@@ -190,6 +190,11 @@ function Room({
   const speakerRef = useRef<Speaker | null>(null);
   // Only the interview itself goes full screen: the code, the chat, the clock and the controls.
   const stageRef = useRef<HTMLDivElement | null>(null);
+  // Ending without cutting anyone off: see lib/wrapUp.ts.
+  const wrap = useRef(new WrapUp());
+  const [wrapping, setWrapping] = useState<'time' | 'end' | null>(null);
+  // After "Time is up" is sent, the candidate's microphone is no longer sent.
+  const micClosed = useRef(false);
   const startedAt = useRef(0);
   const finished = useRef(false);
   const cleanup = useRef<(() => void) | null>(null);
@@ -307,7 +312,8 @@ function Room({
     });
     setMessages([...transcript.current]);
     if (isLast) {
-      void finish();
+      wrap.current.endNow(Date.now());
+      setWrapping((w) => w ?? 'end');
       return;
     }
     setSkipLocked(true);
@@ -334,7 +340,7 @@ function Room({
   }
 
   function pause() {
-    if (pausedRef.current || pauseCount >= MAX_INTERVIEW_PAUSES || pausedMs.current >= MAX_INTERVIEW_PAUSE_MS) return;
+    if (pausedRef.current || wrap.current.wrappingUp || pauseCount >= MAX_INTERVIEW_PAUSES || pausedMs.current >= MAX_INTERVIEW_PAUSE_MS) return;
     pausedRef.current = true;
     pauseStart.current = Date.now();
     setPaused(true);
@@ -360,8 +366,10 @@ function Room({
   }
 
   function confirmEnd() {
-    if (window.confirm('End the interview now? Your report is written from what you said so far, and you cannot take another interview on this commit.'))
-      void finish();
+    if (!window.confirm('End the interview now? Your report is written from what you said so far, and you cannot take another interview on this commit.')) return;
+    // The interviewer finishes the sentence it is saying, then the interview ends.
+    wrap.current.endNow(Date.now());
+    setWrapping((w) => w ?? 'end');
   }
 
   async function start() {
@@ -410,9 +418,16 @@ function Room({
       const content = msg.serverContent;
       if (content?.interrupted) speaker.flush();
       for (const part of content?.modelTurn?.parts ?? []) {
-        if (part.inlineData?.data && !pausedRef.current) speaker.play(part.inlineData.data);
+        if (part.inlineData?.data) {
+          wrap.current.modelTurnStarted();
+          if (!pausedRef.current) speaker.play(part.inlineData.data);
+        }
       }
-      if (content?.inputTranscription?.text) say('candidate', content.inputTranscription.text);
+      if (content?.turnComplete || content?.generationComplete) wrap.current.modelTurnEnded();
+      if (content?.inputTranscription?.text) {
+        wrap.current.candidateSpoke(Date.now());
+        say('candidate', content.inputTranscription.text);
+      }
       if (content?.outputTranscription?.text) say('interviewer', content.outputTranscription.text);
 
       const calls = msg.toolCall?.functionCalls ?? [];
@@ -432,7 +447,11 @@ function Room({
       session?.sendToolResponse({
         functionResponses: calls.map((c) => ({ id: c.id, name: c.name, response: { ok: true } })),
       });
-      if (ended) timers.push(setTimeout(() => void finish(), Math.min(8000, speaker.pending() * 1000 + 600)));
+      // The goodbye is played to the end before the interview finishes (see the wrap-up loop).
+      if (ended) {
+        wrap.current.endRequestedByModel(Date.now());
+        setWrapping((w) => w ?? 'end');
+      }
     };
 
     try {
@@ -463,7 +482,7 @@ function Room({
       sessionRef.current = session;
       stopMic = await startMic(stream, (audioData) => {
         // While paused the microphone sends nothing.
-        if (pausedRef.current) return;
+        if (pausedRef.current || micClosed.current) return;
         try {
           open.sendRealtimeInput({ audio: { data: audioData, mimeType: MIC_MIME } });
         } catch {
@@ -476,21 +495,30 @@ function Room({
 
       const total = live.seconds;
       const tick = () => {
+        if (finished.current) return;
+        const now = Date.now();
         if (pausedRef.current && pausedSoFar() >= MAX_INTERVIEW_PAUSE_MS) resume();
-        const remaining = total - Math.floor((Date.now() - startedAt.current - pausedSoFar()) / 1000);
+        const remaining = total - Math.floor((now - startedAt.current - pausedSoFar()) / 1000);
         setLeft(Math.max(0, remaining));
-        if (remaining > 0 || pausedRef.current) {
-          timers.push(setTimeout(tick, 500));
+        if (remaining <= 0 && !pausedRef.current && wrap.current.phase === 'running') {
+          wrap.current.timeUp(now);
+          setWrapping('time');
+        }
+        // Closing time does not count on the clock; what is said is still in the transcript.
+        const action = wrap.current.step(now, speaker.pending());
+        if (action.sendNotice) {
+          micClosed.current = true;
+          try {
+            open.sendRealtimeInput({ text: 'Time is up. Thank the candidate in one or two sentences and call end_interview.' });
+          } catch {
+            // socket is closing
+          }
+        }
+        if (action.finish) {
+          void finish();
           return;
         }
-        try {
-          open.sendRealtimeInput({
-            text: 'Time is up. Thank the candidate in one sentence and call end_interview now.',
-          });
-        } catch {
-          // socket is closing
-        }
-        timers.push(setTimeout(() => void finish(), WRAP_UP_SECONDS * 1000));
+        timers.push(setTimeout(tick, 250));
       };
       tick();
     } catch (err) {
@@ -637,8 +665,13 @@ function Room({
             <span className="font-bold text-[#4338CA] uppercase">Question {activeIdx + 1} of {Math.max(1, questions.length)}</span>
             <span className="font-bold text-ink" aria-label="Time left">{formatClock(left)}</span>
             {paused && <span className="rounded-[3px] bg-warn px-2 py-0.5 text-[10px] font-bold text-white uppercase">Paused</span>}
+            {wrapping && (
+              <span className="rounded-[3px] bg-accent px-2 py-0.5 text-[10px] font-bold text-white">
+                {wrapping === 'time' ? 'Time is up. The interviewer is wrapping up…' : 'Ending: the interviewer is finishing what it is saying…'}
+              </span>
+            )}
           </div>
-          {phase === 'live' && (
+          {phase === 'live' && !wrapping && (
             <div className="flex flex-wrap gap-2">
               {paused ? (
                 <Button onClick={resume} className="py-1.5 text-[12px]">Resume</Button>
@@ -796,7 +829,7 @@ function Room({
                     <span className="font-mono-code mt-0.5 text-[11px] font-bold text-accent">01</span>
                     <span>
                       Lasts <strong>{Math.round(data.seconds / 60)} minutes</strong> with{' '}
-                      <strong>{questions.length} code-anchored questions</strong> about your own repository.
+                      <strong>{questions.length} questions</strong> about your own repository (4 or 5, depending on how much each needs). If the clock runs out, the interviewer finishes its sentence and closes.
                     </span>
                   </li>
                   <li className="flex items-start gap-2">

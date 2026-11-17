@@ -18,6 +18,15 @@ export const QuestionPlanSchema = z.object({
     .max(6),
 });
 export type QuestionPlan = z.infer<typeof QuestionPlanSchema>;
+
+/** Questions per interview: 5 when they are short and the code has enough worth asking, 4 when some need more time. */
+export const MIN_QUESTIONS = 4;
+export const MAX_QUESTIONS = 5;
+
+/** What the planning model must return: 4 to 5 questions, a few more tolerated and trimmed to the best 5. */
+export const QuestionPlanDraftSchema = QuestionPlanSchema.extend({
+  questions: QuestionPlanSchema.shape.questions.min(MIN_QUESTIONS).max(8),
+});
 export type PlannedQuestion = QuestionPlan['questions'][number];
 
 /** What the browser is allowed to see: no expected points. */
