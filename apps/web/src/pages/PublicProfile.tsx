@@ -17,6 +17,7 @@ import {
   formatDate,
   scoreTone,
 } from '../components/shared';
+import { PrintMasthead } from '../components/PrintMasthead';
 import { useToast } from '../components/toast';
 import { useLoad } from '../lib/useLoad';
 
@@ -108,8 +109,15 @@ export function PublicProfile() {
 
   return (
     <div className="space-y-8">
+      <PrintMasthead
+        kind="Public candidate dossier"
+        name={profile.display_name || profile.slug}
+        repo={profile.github_login ? `github.com/${profile.github_login}` : null}
+        date={new Date().toISOString()}
+        url={`${window.location.origin}/p/${profile.slug}`}
+      />
       {/* 1. Recruiter Access Header Bar */}
-      <DarkBanner className="flex flex-col justify-between gap-4 p-4 sm:p-5 lg:flex-row lg:items-center">
+      <DarkBanner className="no-print flex flex-col justify-between gap-4 p-4 sm:p-5 lg:flex-row lg:items-center">
         <div className="flex flex-wrap items-center gap-3">
           <div className="font-mono-code flex items-center gap-2 rounded-[4px] border border-accent/40 bg-accent/20 px-3 py-1.5 text-[11px] font-bold tracking-wider text-accent-soft">
             <span className="material-symbols-outlined text-[16px] text-accent">verified_user</span>
@@ -223,7 +231,7 @@ export function PublicProfile() {
             </span>
             <span className="font-mono-code flex items-center gap-1.5 text-[11px] font-bold text-good">
               <LiveDot tone="good" />
-              Direct Author / Verbatim Quotes Verified
+              Quotes from the candidate's own interview
             </span>
           </div>
         </div>
@@ -249,7 +257,7 @@ export function PublicProfile() {
               </div>
               <span className="font-mono-code inline-flex items-center gap-1 rounded-[3px] border border-good/30 bg-good-soft px-2 py-1 text-[11px] font-bold text-good">
                 <span className="material-symbols-outlined text-[14px]">psychology</span>
-                AST + VOICE
+                CODE + VOICE
               </span>
             </div>
 
@@ -282,7 +290,7 @@ export function PublicProfile() {
             </span>
             <span className="flex items-center gap-1.5">
               <LiveDot tone="good" pulse={false} />
-              Commit SHA Pinned
+              Judged on a fixed commit
             </span>
           </div>
         </div>
@@ -296,7 +304,7 @@ export function PublicProfile() {
           </div>
           <div>
             <h2 className="font-serif-heading text-[20px] leading-none font-medium text-ink">
-              Chronological Verification Ledger
+              Interview history
             </h2>
             <span className="mt-1 inline-block text-[12px] text-muted">
               Audited GitHub repositories with verbatim oral defense citations
@@ -317,7 +325,7 @@ export function PublicProfile() {
           </button>
           <span className="hidden items-center gap-1 rounded-[3px] border border-good/30 bg-good-soft px-2.5 py-1.5 font-semibold text-good sm:flex">
             <span className="material-symbols-outlined text-[14px]">check_circle</span>
-            Verified Transcripts
+            From transcripts
           </span>
         </div>
       </div>
@@ -365,7 +373,7 @@ export function PublicProfile() {
                       </span>
                     )}
                     <span className="font-mono-code rounded-[3px] border border-line bg-white px-2 py-0.5 text-[11px] text-muted">
-                      {formatAudioDuration(i.duration_s, 'Audio Sealed', '03:00 Audio Sealed')}
+                      {formatAudioDuration(i.duration_s, 'voice interview', '03:00 voice interview')}
                     </span>
                   </div>
 
@@ -503,7 +511,7 @@ export function PublicProfile() {
             </div>
           </div>
 
-          <div className="flex flex-col gap-3.5 rounded-[6px] border border-line bg-white p-6 text-ink lg:col-span-5">
+          <div className="no-print flex flex-col gap-3.5 rounded-[6px] border border-line bg-white p-6 text-ink lg:col-span-5">
             <div className="flex items-center justify-between border-b border-line pb-2.5">
               <span className="font-mono-code text-[11px] font-bold tracking-wider text-muted uppercase">
                 Recruiter Actions for {profile.display_name}

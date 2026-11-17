@@ -64,6 +64,20 @@ function App() {
   );
 }
 
+// Printing opens every folded section (transcripts, details), and folds them back afterwards.
+window.addEventListener('beforeprint', () => {
+  document.querySelectorAll('details:not([open])').forEach((d) => {
+    d.setAttribute('open', '');
+    d.setAttribute('data-print-opened', '');
+  });
+});
+window.addEventListener('afterprint', () => {
+  document.querySelectorAll('details[data-print-opened]').forEach((d) => {
+    d.removeAttribute('open');
+    d.removeAttribute('data-print-opened');
+  });
+});
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
