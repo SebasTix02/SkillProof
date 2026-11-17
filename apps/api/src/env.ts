@@ -47,12 +47,26 @@ const EnvSchema = z.object({
   GEMINI_MIN_GAP_MS: z.coerce.number().int().min(0).default(400),
   /** A Gemini call that takes longer than this is treated as busy and retried. */
   GEMINI_TIMEOUT_MS: z.coerce.number().int().min(10_000).default(120_000),
+  /** Main model for the repository map, scoring and interviews. Default in packages/shared/src/models.ts. */
+  GEMINI_MODEL_ANALYSIS: z.string().optional(),
+  /** Main model for one-line file summaries. */
+  GEMINI_MODEL_SUMMARIES: z.string().optional(),
+  /** Backups for each, comma separated, tried in order. Replace the defaults in MODEL_FALLBACKS. */
+  GEMINI_FALLBACKS_ANALYSIS: z.string().optional(),
+  GEMINI_FALLBACKS_SUMMARIES: z.string().optional(),
+  /**
+   * When every model is busy through the main provider, try the other one too: Vertex AI when the main one is the
+   * Gemini API key, or the key when the main one is Vertex. Needs both to be configured.
+   */
+  GEMINI_CROSS_PROVIDER: bool.default(false),
   /** Tokens of source code the repository map reads in full. Everything else is outlined. */
-  REPO_TOKEN_BUDGET: z.coerce.number().int().min(5_000).default(45_000),
+  REPO_TOKEN_BUDGET: z.coerce.number().int().min(5_000).default(40_000),
+  /** A repository whose readable code fits in this many tokens is read whole, in one call with no summaries. */
+  REPO_SMALL_REPO_TOKENS: z.coerce.number().int().min(5_000).default(50_000),
   /** Most files read in full. */
   REPO_MAX_FULL_FILES: z.coerce.number().int().min(5).default(30),
   /** Files outside the budget that get a one-sentence AI summary. The others get a local outline only. */
-  REPO_MAX_SUMMARISED_FILES: z.coerce.number().int().min(0).default(40),
+  REPO_MAX_SUMMARISED_FILES: z.coerce.number().int().min(0).default(20),
 });
 export type Env = z.infer<typeof EnvSchema>;
 

@@ -7,6 +7,7 @@ import { analyzeRepo, type AnalysisRow, type HookSnippet, type RepoRow } from '.
 import { Activity, withActivity } from '../lib/activity.js';
 import { badRequest } from '../lib/errors.js';
 import { UNTRUSTED_NOTICE, generateJson, isTransientAiError, liveAi, AiUnavailableError } from '../lib/gemini.js';
+import { analysisModel, summariesModel } from '../lib/models.js';
 import { friendlyJobError, technicalDetail } from '../lib/jobErrors.js';
 import { db, must } from '../lib/supabase.js';
 
@@ -73,9 +74,9 @@ export async function prepareInterview(interviewId: string): Promise<void> {
       });
       if (analysis.hooks_json.length < 3) throw badRequest('repo_too_small', 'There is not enough code in this repository to ask about.');
 
-      await activity.step('Choosing the parts of your code worth asking about and writing the questions.', MODELS.analysis);
+      await activity.step('Choosing the parts of your code worth asking about and writing the questions.', analysisModel());
       const { data } = await generateJson({
-        model: MODELS.analysis,
+        model: analysisModel(),
         schema: QuestionPlanSchema,
         system: PLAN_SYSTEM,
         parts: [{ text: planPrompt(analysis) }],
@@ -204,7 +205,7 @@ export async function evaluateInterview(interviewId: string): Promise<void> {
   const activity = new Activity('interviews', row.id, false);
   try {
     await withActivity(activity, async () => {
-      await activity.step('Comparing your answers with what the author of this code would know.', MODELS.analysis);
+      await activity.step('Comparing your answers with what the author of this code would know.', analysisModel());
       const planRow = must(await db().from('interview_plans').select('plan_json').eq('interview_id', row.id).single()) as { plan_json: QuestionPlan };
       const transcript = (row.transcript_json ?? [])
         .map((t) => `${t.role === 'interviewer' ? 'INTERVIEWER' : 'CANDIDATE'}: ${t.text}`)
@@ -213,7 +214,7 @@ export async function evaluateInterview(interviewId: string): Promise<void> {
         .map((q) => `${q.id} (${q.skill}): ${q.question}\n  Expected: ${q.expected_points.join('; ')}`)
         .join('\n');
       const { data } = await generateJson({
-        model: MODELS.analysis,
+        model: analysisModel(),
         schema: InterviewReportSchema,
         system: REPORT_SYSTEM,
         parts: [{ text: `Questions and answer key:\n${key}\n\nInterview length: ${row.duration_s ?? 0} seconds.\n\n<transcript>\n${transcript || '(the candidate said nothing)'}\n</transcript>` }],

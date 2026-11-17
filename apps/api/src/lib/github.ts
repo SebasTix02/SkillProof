@@ -1,5 +1,6 @@
 import type { CommitProfile } from '@skillproof/shared';
 import { env } from '../env.js';
+import { skipReason, zipEntries, type SkippedCounts } from '../engine/files.js';
 import { badRequest } from './errors.js';
 
 const API = 'https://api.github.com';
@@ -112,4 +113,67 @@ export async function getCommitProfile(owner: string, name: string, sha: string,
     last_commit_at: dates.at(-1) ?? null,
     commits_before_start: start == null ? null : dates.filter((d) => Date.parse(d) < start).length,
   };
+}
+
+/** Above this many files worth reading, one zip download is faster than fetching files one by one. */
+const MAX_SELECTIVE_FILES = 500;
+const RAW_CONCURRENCY = 8;
+
+export interface RepoEntries {
+  entries: { path: string; bytes: Uint8Array }[];
+  skipped: SkippedCounts;
+  /** How the code was fetched, for the activity log. */
+  method: 'selective' | 'zip';
+  downloadedBytes: number;
+}
+
+async function rawFile(owner: string, name: string, sha: string, path: string): Promise<Uint8Array> {
+  const url = `https://raw.githubusercontent.com/${enc(owner)}/${enc(name)}/${sha}/${path.split('/').map(enc).join('/')}`;
+  const res = await fetch(url, { headers: { 'User-Agent': 'skillproof' }, signal: AbortSignal.timeout(30_000) });
+  if (!res.ok) throw new Error(`GitHub answered ${res.status} for ${path}`);
+  return new Uint8Array(await res.arrayBuffer());
+}
+
+/**
+ * Downloads only the files worth reading at one exact commit. The file list comes from the git tree, which
+ * gives every path and size, so images, fonts, styles and dependencies are never downloaded. Falls back to the
+ * zipball when the tree is too large to list or holds too many files.
+ */
+export async function downloadRepoFiles(owner: string, name: string, sha: string): Promise<RepoEntries> {
+  try {
+    const res = await gh(`/repos/${enc(owner)}/${enc(name)}/git/trees/${sha}?recursive=1`);
+    const tree = (await res.json()) as { truncated: boolean; tree: { path: string; type: string; size?: number }[] };
+    if (!tree.truncated) {
+      const skipped: SkippedCounts = {};
+      const wanted: string[] = [];
+      for (const item of tree.tree) {
+        if (item.type !== 'blob') continue;
+        const reason = skipReason(item.path, item.size);
+        if (reason) skipped[reason] = (skipped[reason] ?? 0) + 1;
+        else wanted.push(item.path);
+      }
+      if (wanted.length <= MAX_SELECTIVE_FILES) {
+        const entries: { path: string; bytes: Uint8Array }[] = [];
+        let next = 0;
+        let downloadedBytes = 0;
+        await Promise.all(
+          Array.from({ length: Math.min(RAW_CONCURRENCY, wanted.length) }, async () => {
+            while (next < wanted.length) {
+              const path = wanted[next++]!;
+              const bytes = await rawFile(owner, name, sha, path);
+              downloadedBytes += bytes.byteLength;
+              entries.push({ path, bytes });
+            }
+          }),
+        );
+        return { entries, skipped, method: 'selective', downloadedBytes };
+      }
+    }
+  } catch (err) {
+    // A missing repository is a real answer. Anything else (rate limit, one file failing) falls back to the zip.
+    if ((err as { code?: string }).code === 'repo_not_found') throw err;
+    console.warn('Selective download failed, using the zipball:', err instanceof Error ? err.message : err);
+  }
+  const zip = await downloadZip(owner, name, sha);
+  return { ...zipEntries(zip), method: 'zip', downloadedBytes: zip.byteLength };
 }

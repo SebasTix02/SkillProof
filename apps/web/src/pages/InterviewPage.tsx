@@ -21,6 +21,7 @@ interface InterviewResponse {
     summary: string | null;
     is_owner: boolean;
     models_used?: string[];
+    primary_models?: string[];
   };
   activity?: ActivityEntry[];
   seconds: number;
@@ -321,7 +322,7 @@ export function InterviewPage() {
             <Report report={data.report} />
             {interview.models_used && interview.models_used.length > 0 && (
               <p className="mt-4 flex flex-wrap items-center gap-2 border-t border-line pt-3 text-xs text-muted">
-                Written with <ModelsUsed models={interview.models_used} />
+                Written with <ModelsUsed models={interview.models_used} primary={interview.primary_models} />
               </p>
             )}
           </Card>

@@ -19,6 +19,7 @@ interface Analysis {
 }
 
 interface DetailResponse {
+  primary_models?: string[];
   submission: {
     id: string;
     team_name: string;
@@ -184,7 +185,7 @@ export function SubmissionDetail() {
           {models.length > 0 && (
             <p className="flex flex-wrap items-center gap-2 text-sm">
               <span className="text-muted">Models used:</span>
-              <ModelsUsed models={models} />
+              <ModelsUsed models={models} primary={data.primary_models} />
             </p>
           )}
           {sub.status === 'queued' && sub.next_attempt_at && sub.error && <Notice tone="warn">{sub.error}</Notice>}

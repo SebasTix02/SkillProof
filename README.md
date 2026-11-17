@@ -164,42 +164,69 @@ picked up while no one has the site open.
 
 Reading a whole repository is the most expensive step, so it is kept small:
 
-- **Read in full:** only the most important files (README, manifests, entry points, `src/`), up to
-  `REPO_TOKEN_BUDGET` tokens (45 000) and `REPO_MAX_FULL_FILES` files (30). Blank lines are left out and a long
-  file keeps its start and end, with real line numbers so citations stay exact.
-- **Outlined without AI:** every other file gets a local outline: its size, its first comment and its
-  declarations (functions, classes, routes, tables). This costs no model call.
-- **Summarised:** the `REPO_MAX_SUMMARISED_FILES` (40) most relevant outlined files also get a one-line summary from
-  the cheap model, in one or two large calls with minimal thinking. Summaries are cached by the git blob sha of the
-  file (`file_summaries`), so an unchanged file is never summarised twice, in any commit or repository.
+- **Only useful files are downloaded.** The file list comes from the git tree of the frozen commit, with every
+  path and size, and only the files worth reading are fetched. Images, fonts, styles and dependencies are never
+  downloaded. A very large repository falls back to the zipball, unpacking only the kept files.
+- **Never read:** styles (css, scss, less…), images, fonts and other assets, `public/`, `static/` and `assets/`
+  folders, build output, dependencies and libraries pasted into the project (jQuery plugins, files that start with
+  a licence banner), lock files, generated code (protobuf, `.g.dart`, `.d.ts`, `.designer.cs`, minified bundles, files
+  marked "generated"), data and fixtures, translations, test snapshots, editor files, generated migrations and
+  documentation other than the root README. Notebooks are read as their cells, without outputs.
+- **Read in full:** the most important files (README, manifests, entry points, business logic), up to
+  `REPO_TOKEN_BUDGET` tokens (40 000) and `REPO_MAX_FULL_FILES` files (30). A long file is sent as a skeleton:
+  imports, every declaration and the start of each body, with real line numbers. A small project (under
+  `REPO_SMALL_REPO_TOKENS`, 50 000) is read whole in one call.
+- **HTML and templates** are outlined (title, headings, forms, scripts), unless they are most of the project, as in
+  a static site.
+- **Outlined without AI:** other files get a local outline with their size, first comment and declarations.
+- **Summarised:** only when 25 or more files are left out, the `REPO_MAX_SUMMARISED_FILES` (20) most relevant code
+  files get a one-line summary in one call, cached by git blob sha (`file_summaries`).
 - **Reused:** the repository map is cached per commit (`repo_analyses`), for judging and interviews alike.
-- **Scoring** gets the map without the interview snippets and a short commit summary.
 
-For a 110-file repository this went from about 230 000 input tokens to about 82 000 per analysis
-(summaries + map + score), and to about 50 000 when the summaries are already cached. The activity log says how
-many files were read, outlined and summarised.
+The activity log says what was skipped and why, for example "Skipped 270 files: 144 image, font or asset,
+57 documentation, 41 style, 20 generated or minified, 6 dependency or third-party library".
+
+Measured on a 286-file static site (Proyecto-Banco), without calling the model:
+
+| | Before | After the first round | Now |
+| --- | --- | --- | --- |
+| Downloaded | 24 MB zip | 24 MB zip | 131 KB, 16 files |
+| Files read in full | 62 | 26 | 16 (the whole app) |
+| Gemini calls | 3 | 3 | 2 (map, score) |
+| Input tokens | ~230 000 | ~82 000 | ~21 000 |
 
 ### When Gemini is busy
 
-- **One gate per server:** every Gemini call goes through a limiter: `GEMINI_CONCURRENCY` calls at a time (2) and
-  `GEMINI_MIN_GAP_MS` between starts (400 ms). A call that hangs longer than `GEMINI_TIMEOUT_MS` counts as busy.
-- **Backoff:** an overloaded (503) or rate-limited (429) model is retried after about 2, 5 and 12 seconds, with jitter,
-  or after the wait the API asks for when it gives one.
-- **Circuit breaker:** a model that stays busy is skipped for 3 minutes and its backup from `MODEL_FALLBACKS`
-  (`packages/shared/src/models.ts`) is used straight away. The state is stored in `ai_model_health`, so every
-  Vercel instance skips it too.
-- **A queue, not an avalanche:** when an event closes, only `JUDGE_CONCURRENCY` submissions (2) are judged at a time,
-  counted across all instances. Each one that finishes starts the next; the scheduler tick also checks.
-- **Automatic retries:** if judging fails only because Gemini was busy, the submission goes back to the queue and
-  is tried again automatically after about 2 and then 6 minutes, up to 3 attempts. The history shows
-  "Will try again automatically at HH:MM". After the last attempt it stops with "Judge again".
-- **Thinking:** summaries ask for minimal thinking, the map and the scores for a medium amount.
+A 503 "high demand" from Gemini is capacity on Google's side and rarely clears within seconds, so SkillProof
+switches instead of waiting:
 
-Each job keeps an activity log (`activity_json`) and the models that answered (`models_used`). The submission page
-shows the whole history in a scrolling panel that follows the newest step while the job runs, with the models used
-and, for judging, the model's own summary of its reasoning. The event console shows the latest step of each
-submission and can unfold its history. Interview jobs never record that reasoning, since it would reveal the
-points the candidate is expected to mention.
+- **One gate per server:** every call goes through a limiter: `GEMINI_CONCURRENCY` calls at a time (2) and
+  `GEMINI_MIN_GAP_MS` between starts (400 ms). A call that hangs longer than `GEMINI_TIMEOUT_MS` counts as busy.
+- **One short retry:** a busy (503) or rate-limited (429) model is tried once more after about 2 seconds, or after
+  the wait the API asks for when that is under 8 seconds. Then the next model in the chain answers.
+- **Model health:** a model that failed rests for 3 minutes, then 10, then 30 if it keeps failing. When its pause is
+  over, one probe call tests it (half-open); the others keep using the backup until it answers. Models that failed
+  more than half of their recent calls are tried after their backups. The state is in `ai_model_health`, shared by
+  every Vercel instance.
+- **Configurable models:** `GEMINI_MODEL_ANALYSIS`, `GEMINI_MODEL_SUMMARIES`, `GEMINI_FALLBACKS_ANALYSIS` and
+  `GEMINI_FALLBACKS_SUMMARIES` change the main models and their backups without a code change. The defaults are in
+  `packages/shared/src/models.ts`.
+- **A second provider:** with `GEMINI_CROSS_PROVIDER=true` and both the Gemini API key and a Google Cloud project
+  configured, the same models are tried through the other provider when every model is busy on the main one.
+  Vertex AI with billing enabled (where Google Cloud credits apply) usually has more capacity than a free AI
+  Studio key. The thinking settings and the backup chain work the same through both.
+- **A queue, not an avalanche:** `JUDGE_CONCURRENCY` submissions (2) are judged at a time across all instances.
+- **Automatic retries:** if judging fails only because every model was busy, it is tried again after about 2 and
+  6 minutes, up to 3 attempts, before "Judge again" is needed.
+- **Thinking:** minimal for summaries, medium for the map and the scores.
+
+In the activity log, retries and model switches for one call are a single line, such as "Gemini 3.8 Flash was
+busy, so Gemini 3.6 Flash answered instead", with each attempt and its error folded under "Details".
+
+Model order: the Gemini models page lists `gemini-3.8-flash`, `gemini-3.6-flash`, `gemini-3.5-flash-lite` and
+`gemini-3.1-flash-lite` as Stable, so the default chain has no preview model. It also lists a newer Gemini 4 family
+(`gemini-4-argon`, an efficient model) that has not been tried with SkillProof; it can be set as the main model with
+`GEMINI_MODEL_ANALYSIS` to compare.
 
 Not done yet: explicit context caching of the repository between the map and the score calls. The score call
 already receives only the compact map, so the shared part is small.
