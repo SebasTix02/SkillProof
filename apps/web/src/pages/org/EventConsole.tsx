@@ -27,9 +27,11 @@ import {
   type SimilaritySignal,
   type SubmissionPipelineStatus,
 } from '../../components/shared';
+import { JudgeAssignments } from '../../components/JudgeAssignments';
 import { useToast } from '../../components/toast';
 import { api, errorMessage } from '../../lib/api';
 import { STATUS_LABEL, VISIBILITY_LABEL, type EventView, type RepoRef, type ScoreView } from '../../lib/types';
+import { useAuth } from '../../lib/auth';
 import { useLoad } from '../../lib/useLoad';
 
 interface ConsoleSubmission {
@@ -181,6 +183,8 @@ export function EventConsole() {
   const [search, setSearch] = useState('');
   const [confirmClose, setConfirmClose] = useState(false);
   const toast = useToast();
+  const { org } = useAuth();
+  const canManage = !!org?.permissions.includes('event.manage');
 
   const toggleSteps = (sid: string) =>
     setOpenSteps((prev) => {
@@ -532,6 +536,8 @@ export function EventConsole() {
 
       {/* 4. Invite-Only Allowlist */}
       {event.visibility === 'invite' && <Allowlist eventId={event.id} />}
+
+      {canManage && event.status !== 'draft' && <JudgeAssignments eventId={event.id} submissions={submissions} />}
 
       {/* 5. Possible Duplicates / Forensic Similarity Signals */}
       {data.similarity_flags.length > 0 && (

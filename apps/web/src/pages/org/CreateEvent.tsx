@@ -1,6 +1,6 @@
 import { CreateEventSchema, DEFAULT_RUBRIC, type Rubric } from '@skillproof/shared';
 import { useState, type FormEvent } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Button,
   CommandConsoleHeader,
@@ -34,6 +34,9 @@ const keyFromName = (name: string) =>
 export function CreateEvent() {
   const { org } = useAuth();
   const navigate = useNavigate();
+  // Opened from a course ("New assignment"): the event is created as an assignment of that course.
+  const [params] = useSearchParams();
+  const courseId = params.get('course');
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [startsAt, setStartsAt] = useState(() => localInput(new Date()));
@@ -66,6 +69,7 @@ export function CreateEvent() {
       interviews_enabled: interviews,
       rubric: rubric.map((c) => ({ ...c, key: c.key || keyFromName(c.name) })),
       publish,
+      ...(courseId ? { kind: 'assignment', course_id: courseId } : {}),
     });
     if (!parsed.success) {
       const issue = parsed.error.issues[0];
@@ -75,7 +79,7 @@ export function CreateEvent() {
     setBusy(true);
     try {
       const res = await api<{ event: EventView }>(`/api/orgs/${org.id}/events`, { body: parsed.data });
-      navigate(`/org/events/${res.event.id}`);
+      navigate(courseId ? `/org/events/${res.event.id}/gradebook` : `/org/events/${res.event.id}`);
     } catch (err) {
       setError(errorMessage(err));
       setBusy(false);
@@ -100,7 +104,7 @@ export function CreateEvent() {
           </span>
         }
         eyebrowBadge="STAGE 02 // ASSESSMENT ARCHITECT"
-        title="Draft New Hackathon or Capstone Event"
+        title={courseId ? "New Course Assignment" : "Draft New Hackathon or Capstone Event"}
         subtitle="Configure the event schedule, cohort access control, submission limits, 3-minute voice defense option, and weighted evaluation rubric."
         actions={
           <Link to="/org/events" className={`${linkButtonSecondary} border-white/15 bg-white/10 text-white hover:bg-white/20`}>

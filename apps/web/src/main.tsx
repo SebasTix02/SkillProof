@@ -6,6 +6,7 @@ import { Layout, Notice, Spinner } from './components/ui';
 import './index.css';
 import { AuthProvider, useAuth } from './lib/auth';
 import { configured } from './lib/supabase';
+import { AcceptInvite } from './pages/AcceptInvite';
 import { AuthCallback, ForgotPassword, LogIn, MyAccount, ResetPassword, SignUp } from './pages/Account';
 import { EventPage } from './pages/EventPage';
 import { ExploreEvents } from './pages/ExploreEvents';
@@ -42,6 +43,7 @@ function App() {
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/auth/callback" element={<AuthCallback />} />
         <Route path="/p/:slug" element={<PublicProfile />} />
+        <Route path="/invite/:token" element={<Private><AcceptInvite /></Private>} />
         <Route path="/me" element={<Private><MyAccount /></Private>} />
         <Route path="/events" element={<Private><ExploreEvents /></Private>} />
         <Route path="/e/:slug" element={<Private><EventPage /></Private>} />

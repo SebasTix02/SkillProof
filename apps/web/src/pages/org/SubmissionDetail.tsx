@@ -19,6 +19,7 @@ import {
   linkButtonSecondary,
   scoreTone,
 } from '../../components/shared';
+import { JudgeReviewCard, JudgeReviewsList } from '../../components/JudgeReview';
 import { useToast } from '../../components/toast';
 import { api, errorMessage } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
@@ -68,6 +69,12 @@ interface QueueSubmission {
 interface QueueResponse {
   event: EventView;
   submissions: QueueSubmission[];
+}
+
+interface AssignmentRow {
+  submission_id: string;
+  submissions: { team_name: string; status: QueueSubmission['status']; locked_commit_sha: string | null } | null;
+  my_review: { status: 'draft' | 'submitted'; updated_at: string } | null;
 }
 
 function ScoreCalibrationRow({
@@ -210,9 +217,24 @@ export function SubmissionDetail() {
     `/api/submissions/${sid}`,
     (d) => d.submission.status === 'queued' || d.submission.status === 'analyzing',
   );
-  const consoleData = useLoad<QueueResponse>(id ? `/api/events/${id}/console` : null);
+  // Organizers see every submission of the event; a judge sees only the ones assigned to them.
+  const isManager = !!org?.permissions.includes('event.manage');
+  const canReview = !!org?.permissions.includes('submission.review');
+  const consoleData = useLoad<QueueResponse>(id && isManager ? `/api/events/${id}/console` : null);
+  const assignmentData = useLoad<{ assignments: AssignmentRow[] }>(id && !isManager ? `/api/me/assignments?event_id=${id}` : null);
 
-  const queue = consoleData.data?.submissions ?? [];
+  const queue: QueueSubmission[] = isManager
+    ? (consoleData.data?.submissions ?? [])
+    : (assignmentData.data?.assignments ?? []).map((a) => ({
+        id: a.submission_id,
+        team_name: a.submissions?.team_name ?? 'Submission',
+        submitted_by_name: a.my_review ? (a.my_review.status === 'submitted' ? 'Review submitted' : 'Draft saved') : 'Not reviewed yet',
+        status: a.submissions?.status ?? 'submitted',
+        locked_commit_sha: a.submissions?.locked_commit_sha ?? null,
+        total: null,
+        ownership: null,
+      }));
+  const queueLoading = isManager ? consoleData.loading : assignmentData.loading;
   const currentQueueIndex = useMemo(() => queue.findIndex((q) => q.id === sid), [queue, sid]);
   const prevSub = currentQueueIndex > 0 ? queue[currentQueueIndex - 1] : null;
   const nextSub =
@@ -415,7 +437,7 @@ export function SubmissionDetail() {
               </span>
             </div>
             <span className="font-mono-code rounded-full border border-line bg-paper px-2 py-0.5 text-[10px] font-semibold text-muted">
-              {queue.length || 1} Dossiers
+              {queue.length} {isManager ? 'Submissions' : 'Assigned'}
             </span>
           </div>
 
@@ -487,6 +509,12 @@ export function SubmissionDetail() {
                   </Link>
                 );
               })
+            ) : queueLoading ? (
+              <p className="py-3 text-center text-[12px] text-muted">Loading the queue…</p>
+            ) : !isManager && queue.length === 0 ? (
+              <p className="rounded-[4px] border border-line bg-paper p-3 text-[12px] text-muted">
+                No submissions of this event are assigned to you yet. An organizer assigns them from the event console.
+              </p>
             ) : (
               <div className="rounded-[4px] border border-accent bg-accent-soft/40 p-3">
                 <div className="flex items-center justify-between">
@@ -947,6 +975,11 @@ export function SubmissionDetail() {
               </Link>
             </div>
           </div>
+
+          {canReview && (!isManager || queue.length > 0) && (
+            <JudgeReviewCard submissionId={sub.id} rubric={rubric} locked={sub.events.status === 'published'} />
+          )}
+          {isManager && <JudgeReviewsList submissionId={sub.id} rubric={rubric} />}
 
           {/* Keyboard Shortcut Pill Bar */}
           <div className="font-mono-code flex items-center justify-between rounded-[6px] border border-line bg-white p-3 text-[11px] text-muted">

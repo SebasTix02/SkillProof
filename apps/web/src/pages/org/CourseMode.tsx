@@ -24,6 +24,7 @@ import {
   scoreTone,
   type SubmissionPipelineStatus,
 } from '../../components/shared';
+import { CoursePanel } from '../../components/CoursePanel';
 import { useToast } from '../../components/toast';
 import { api, errorMessage } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
@@ -83,6 +84,12 @@ interface DetailResponse {
 }
 
 type CourseTab = 'roster' | 'plagiarism' | 'grading' | 'rubric';
+
+const VERDICT_LABEL: Record<string, string> = {
+  code_of_conduct: 'Referred to committee',
+  live_defense: 'Live defense required',
+  clear: 'Cleared',
+};
 type RosterFilter = 'all' | 'flagged' | 'incomplete_defense' | 'scored';
 type SortKey = 'risk' | 'lowest_ownership' | 'highest_grade' | 'name';
 
@@ -92,13 +99,16 @@ export function CourseMode() {
   const toast = useToast();
 
   const orgEvents = useLoad<{ events: OrgEvent[] }>(org ? `/api/orgs/${org.id}/events` : null);
-  const events = orgEvents.data?.events ?? [];
+  const [courseFilter, setCourseFilter] = useState<string | null>(null);
+  const allEvents = orgEvents.data?.events ?? [];
+  // With a course picked, the selector lists only its assignments.
+  const events = courseFilter ? allEvents.filter((e) => (e as OrgEvent & { course_id?: string | null }).course_id === courseFilter) : allEvents;
 
   const [selectedEventId, setSelectedEventId] = useState<string | null>(routeEventId ?? null);
   const activeEventId =
     selectedEventId ??
     routeEventId ??
-    events.find((e) => e.kind === 'course')?.id ??
+    events.find((e) => e.kind === 'assignment')?.id ??
     events[0]?.id ??
     null;
 
@@ -112,6 +122,11 @@ export function CourseMode() {
   const [docketNote, setDocketNote] = useState('');
   const [verdictChoice, setVerdictChoice] = useState<'cod' | 'live_defense' | 'clear'>('live_defense');
   const [busyScoreId, setBusyScoreId] = useState<string | null>(null);
+  const [savingVerdict, setSavingVerdict] = useState(false);
+  const canDecide = !!org?.permissions.includes('integrity.decide');
+  const integrity = useLoad<{ decisions: { id: string; submission_id: string | null; verdict: string; note: string; created_at: string; profiles?: { display_name: string } | null }[] }>(
+    activeEventId && (canDecide || org?.permissions.includes('event.manage')) ? `/api/events/${activeEventId}/integrity` : null,
+  );
 
   const submissions = consoleData.data?.submissions ?? [];
   const flags = consoleData.data?.similarity_flags ?? [];
@@ -225,6 +240,23 @@ export function CourseMode() {
     toast.success('Course gradebook exported as CSV.');
   }
 
+  /** The faculty determination for one student, kept as history in integrity_decisions. */
+  async function saveVerdict(submissionId: string, who: string) {
+    setSavingVerdict(true);
+    try {
+      await api('/api/integrity-decisions', {
+        body: { submission_id: submissionId, verdict: verdictChoice === 'cod' ? 'code_of_conduct' : verdictChoice, note: docketNote },
+      });
+      toast.success(`Determination saved for ${who}.`);
+      setDocketNote('');
+      await integrity.reload();
+    } catch (err) {
+      toast.error(`Could not save the determination. ${errorMessage(err)}`);
+    } finally {
+      setSavingVerdict(false);
+    }
+  }
+
   async function overrideScore(scoreId: string, value: number) {
     setBusyScoreId(scoreId);
     try {
@@ -244,6 +276,14 @@ export function CourseMode() {
 
   return (
     <div className="space-y-6">
+      <CoursePanel
+        selectedId={courseFilter}
+        onSelect={(cid) => {
+          setCourseFilter(cid);
+          setSelectedEventId(null);
+          setSelectedSubId(null);
+        }}
+      />
       {/* 1. Faculty Portal Department Bar */}
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-[6px] border border-line bg-white px-5 py-2.5">
         <div className="font-mono-code flex flex-wrap items-center gap-2 text-[11px]">
@@ -901,15 +941,10 @@ export function CourseMode() {
                       type="button"
                       variant={verdictChoice === 'cod' ? 'danger' : 'primary'}
                       className="flex-1"
-                      onClick={() =>
-                        toast.success(
-                          `Faculty determination (${verdictChoice}) saved for ${
-                            selectedSummary.submitted_by_name || selectedSummary.team_name
-                          }.`,
-                        )
-                      }
+                      disabled={!canDecide || savingVerdict}
+                      onClick={() => void saveVerdict(selectedSummary.id, selectedSummary.submitted_by_name || selectedSummary.team_name)}
                     >
-                      Save Determination
+                      {savingVerdict ? 'Saving…' : 'Save Determination'}
                     </Button>
                     {event && (
                       <Link to={`/org/events/${event.id}/s/${selectedSummary.id}`} className={linkButtonSecondary}>
@@ -917,6 +952,22 @@ export function CourseMode() {
                       </Link>
                     )}
                   </div>
+                  {!canDecide && <p className="text-[11px] text-muted">Your role cannot record integrity determinations.</p>}
+                  {(() => {
+                    const history = (integrity.data?.decisions ?? []).filter((d) => d.submission_id === selectedSummary.id);
+                    if (history.length === 0) return <p className="text-[11px] text-muted">No determination recorded for this student yet.</p>;
+                    return (
+                      <ul className="space-y-1 border-t border-line pt-3 text-[11px]">
+                        {history.map((d) => (
+                          <li key={d.id}>
+                            <span className="font-mono-code font-semibold text-ink">{VERDICT_LABEL[d.verdict] ?? d.verdict}</span>
+                            <span className="text-muted"> · {d.profiles?.display_name || 'reviewer'} · {formatDate(d.created_at)}</span>
+                            {d.note && <span className="block text-muted">{d.note}</span>}
+                          </li>
+                        ))}
+                      </ul>
+                    );
+                  })()}
                 </div>
               </div>
             </section>

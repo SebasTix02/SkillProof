@@ -15,6 +15,7 @@ import {
   linkButton,
   linkButtonSecondary,
 } from '../../components/shared';
+import { MyReviewQueue } from '../../components/MyReviewQueue';
 import { useToast } from '../../components/toast';
 import { useAuth } from '../../lib/auth';
 import { STATUS_LABEL, VISIBILITY_LABEL, type EventView } from '../../lib/types';
@@ -94,8 +95,11 @@ export function OrgEvents() {
     toast.success('Master events ledger exported as CSV.');
   }
 
+  const isJudge = !!org?.permissions.includes('submission.review') && !org?.permissions.includes('event.manage');
+
   return (
     <div className="space-y-8">
+      {isJudge && <MyReviewQueue />}
       {/* 1. Sovereign Command Console Context Header */}
       <CommandConsoleHeader
         breadcrumbs={

@@ -24,6 +24,7 @@ import {
   type SimilaritySignal,
 } from '../../components/shared';
 import { useToast } from '../../components/toast';
+import { api, errorMessage } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
 import type { EventView, RepoRef, ScoreView, VersionView } from '../../lib/types';
 import { useLoad } from '../../lib/useLoad';
@@ -78,6 +79,11 @@ interface SubmissionDetailPayload {
 }
 
 type VerdictOption = 'direct_plagiarism' | 'collusion' | 'starter_template' | 'independent_invention';
+
+interface IntegrityResponse {
+  decisions: { id: string; flag_id: string | null; submission_id: string | null; verdict: string; note: string; created_at: string; profiles?: { display_name: string } | null }[];
+  matches: { id: string; flag_id: string; path_a: string; start_a: number; end_a: number; path_b: string; start_b: number; end_b: number; score: number | string }[];
+}
 
 function SubmissionComparisonPane({
   side,
@@ -294,7 +300,7 @@ function SubmissionComparisonPane({
 export function SimilarityCompare() {
   const { id } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { me } = useAuth();
+  const { me, org } = useAuth();
   const toast = useToast();
 
   const { data, error, loading } = useLoad<ConsoleResponse>(id ? `/api/events/${id}/console` : null);
@@ -302,7 +308,9 @@ export function SimilarityCompare() {
   const [viewMode, setViewMode] = useState<'side_by_side' | 'repo_overlap' | 'oral'>('side_by_side');
   const [verdict, setVerdict] = useState<VerdictOption>('direct_plagiarism');
   const [notes, setNotes] = useState('');
-  const [decisionSaved, setDecisionSaved] = useState<string | null>(null);
+  const [savingDecision, setSavingDecision] = useState(false);
+  const canDecide = !!org?.permissions.includes('integrity.decide');
+  const integrity = useLoad<IntegrityResponse>(id ? `/api/events/${id}/integrity` : null);
 
   const flags = data?.similarity_flags ?? [];
   const submissions = data?.submissions ?? [];
@@ -369,8 +377,7 @@ export function SimilarityCompare() {
       flag: activeFlag,
       submission_a: subA,
       submission_b: subB,
-      auditor_verdict: verdict,
-      auditor_notes: notes,
+      decisions: flagDecisions,
       exported_at: new Date().toISOString(),
     };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
@@ -383,10 +390,40 @@ export function SimilarityCompare() {
     toast.success('Forensic similarity dossier exported (JSON).');
   }
 
-  function submitVerdict(e: FormEvent) {
+  // Decisions and matching code recorded for the flag on screen, newest first.
+  const flagDecisions = (integrity.data?.decisions ?? []).filter((d) => activeFlag && d.flag_id === activeFlag.id);
+  const flagMatches = (integrity.data?.matches ?? []).filter((m) => activeFlag && m.flag_id === activeFlag.id);
+  const latestDecision = flagDecisions[0] ?? null;
+
+  async function dismissFalsePositive() {
+    if (!activeFlag) return;
+    setVerdict('independent_invention');
+    setSavingDecision(true);
+    try {
+      await api('/api/integrity-decisions', { body: { flag_id: activeFlag.id, verdict: 'independent_invention', note: notes || 'Dismissed as a false positive.' } });
+      toast.success('Marked as a false positive.');
+      await integrity.reload();
+    } catch (err) {
+      toast.error(`Could not record the decision. ${errorMessage(err)}`);
+    } finally {
+      setSavingDecision(false);
+    }
+  }
+
+  async function submitVerdict(e: FormEvent) {
     e.preventDefault();
-    setDecisionSaved(verdict);
-    toast.success('Forensic determination recorded for this comparison session.');
+    if (!activeFlag) return;
+    setSavingDecision(true);
+    try {
+      await api('/api/integrity-decisions', { body: { flag_id: activeFlag.id, verdict, note: notes } });
+      toast.success('Determination recorded in the audit trail.');
+      setNotes('');
+      await integrity.reload();
+    } catch (err) {
+      toast.error(`Could not record the determination. ${errorMessage(err)}`);
+    } finally {
+      setSavingDecision(false);
+    }
   }
 
   return (
@@ -427,11 +464,8 @@ export function SimilarityCompare() {
           <>
             <button
               type="button"
-              onClick={() => {
-                setVerdict('independent_invention');
-                setDecisionSaved('independent_invention');
-                toast.success('Marked as independent invention / false positive.');
-              }}
+              disabled={!canDecide || !activeFlag || savingDecision}
+              onClick={() => void dismissFalsePositive()}
               className="btn-tactile font-mono-code inline-flex cursor-pointer items-center gap-1.5 rounded-[4px] border border-white/15 bg-white/10 px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-white/20"
             >
               <span className="material-symbols-outlined text-[15px] text-[#79d9ae]">verified_user</span>
@@ -688,7 +722,7 @@ export function SimilarityCompare() {
         icon="gavel"
         title="Auditor Decision & Sanction Protocol"
         subtitle="Record your evidentiary determination after inspecting both repositories and oral defense transcripts."
-        sectionTag={decisionSaved ? `RECORDED: ${decisionSaved.toUpperCase()}` : 'FORMAL ADJUDICATION'}
+        sectionTag={latestDecision ? `LAST: ${latestDecision.verdict.toUpperCase()}` : 'FORMAL ADJUDICATION'}
         theme="amber"
       >
         <form onSubmit={submitVerdict} className="grid grid-cols-1 gap-6 lg:grid-cols-12">
@@ -766,14 +800,70 @@ export function SimilarityCompare() {
                 <Button type="button" variant="secondary" onClick={exportForensicJson}>
                   Export Forensic JSON
                 </Button>
-                <Button type="submit" variant={verdict === 'independent_invention' ? 'primary' : 'danger'}>
+                <Button
+                  type="submit"
+                  disabled={!canDecide || !activeFlag || savingDecision}
+                  variant={verdict === 'independent_invention' ? 'primary' : 'danger'}
+                >
                   <span className="material-symbols-outlined text-[16px]">lock</span>
-                  <span>Confirm Forensic Determination</span>
+                  <span>{savingDecision ? 'Recording…' : 'Confirm Forensic Determination'}</span>
                 </Button>
               </div>
             </div>
+            {!activeFlag && <p className="text-[12px] text-muted">Pick a flagged pair to record a decision. Pairs compared by hand have no flag to decide on.</p>}
+            {activeFlag && !canDecide && <p className="text-[12px] text-muted">Your role cannot record integrity decisions.</p>}
           </div>
         </form>
+
+        <div className="mt-6 space-y-2 border-t border-line pt-4">
+          <div className="font-mono-code text-[11px] font-semibold tracking-wider text-muted uppercase">Decision history</div>
+          {integrity.loading ? (
+            <p className="text-[12px] text-muted">Loading decisions…</p>
+          ) : integrity.error ? (
+            <p className="text-[12px] text-bad">{integrity.error}</p>
+          ) : flagDecisions.length === 0 ? (
+            <p className="text-[12px] text-muted">No decision recorded for this pair yet.</p>
+          ) : (
+            <ul className="divide-y divide-line rounded-[4px] border border-line">
+              {flagDecisions.map((d) => (
+                <li key={d.id} className="space-y-0.5 px-3 py-2 text-[12px]">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-mono-code font-semibold text-ink">{d.verdict.replace(/_/g, ' ')}</span>
+                    <span className="text-muted">by {d.profiles?.display_name || 'a reviewer'} · {formatDate(d.created_at)}</span>
+                  </div>
+                  {d.note && <p className="text-muted">{d.note}</p>}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </NumberedSectionCard>
+
+      <NumberedSectionCard
+        id="section-matches"
+        number="M"
+        icon="difference"
+        title="Matching Code"
+        subtitle="Fragments that are the same in both repositories."
+        sectionTag={`${flagMatches.length} FRAGMENTS`}
+        theme="sky"
+      >
+        {flagMatches.length === 0 ? (
+          <p className="text-[13px] text-muted">
+            File comparison is not available yet. This flag comes from the {activeFlag ? SIMILARITY_SIGNAL_LABEL[activeFlag.signal].toLowerCase() : 'similarity'} signal, not from comparing file contents.
+          </p>
+        ) : (
+          <ul className="font-mono-code divide-y divide-line rounded-[4px] border border-line text-[12px]">
+            {flagMatches.map((m) => (
+              <li key={m.id} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2">
+                <span>{m.path_a}:{m.start_a}-{m.end_a}</span>
+                <span className="text-muted">↔</span>
+                <span>{m.path_b}:{m.start_b}-{m.end_b}</span>
+                <span className="font-bold text-ink">{Math.round(Number(m.score) * 100)}%</span>
+              </li>
+            ))}
+          </ul>
+        )}
       </NumberedSectionCard>
     </div>
   );

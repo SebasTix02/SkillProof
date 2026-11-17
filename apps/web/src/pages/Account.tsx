@@ -12,6 +12,7 @@ import {
   ToggleSwitch,
 } from '../components/shared';
 import { api, errorMessage } from '../lib/api';
+import { useToast } from '../components/toast';
 import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
 
@@ -646,15 +647,33 @@ export function MyAccount() {
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [micStatus, setMicStatus] = useState<'idle' | 'testing' | 'ok' | 'denied'>('idle');
-  const [notifyRecruiter, setNotifyRecruiter] = useState(true);
-  const [notifyEvents, setNotifyEvents] = useState(true);
+  // Privacy preferences are saved as soon as they change, and put back if saving fails.
+  const [showQuotes, setShowQuotes] = useState(true);
+  const [notifyResults, setNotifyResults] = useState(true);
+  const [rotatedUrl, setRotatedUrl] = useState<string | null>(null);
+  const toast = useToast();
 
   useEffect(() => {
     if (!me) return;
     setName(me.profile.display_name);
     setHeadline(me.public_profile?.headline ?? '');
     setIsPublic(me.public_profile?.is_public ?? false);
+    setShowQuotes(me.public_profile?.show_quotes ?? true);
+    setNotifyResults(me.profile.notify_results ?? true);
   }, [me]);
+
+  async function savePreference(field: 'show_quotes' | 'notify_results', value: boolean) {
+    const set = field === 'show_quotes' ? setShowQuotes : setNotifyResults;
+    set(value);
+    try {
+      await api('/api/me/profile', { method: 'PATCH', body: { [field]: value } });
+      toast.success(field === 'show_quotes' ? (value ? 'Quotes are shown on your public profile.' : 'Quotes are hidden from your public profile.') : value ? 'You will be told when results are published.' : 'Result notices are off.');
+      await refresh();
+    } catch (err) {
+      set(!value);
+      toast.error(`Could not save your preference. ${errorMessage(err)}`);
+    }
+  }
 
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -684,20 +703,20 @@ export function MyAccount() {
     setSaved(false);
   }
 
+  /** Gives the public profile a new address, so every link shared before stops working. */
   async function revokePublicAccess() {
+    if (!window.confirm('Create a new public link? Every link you shared before will stop working.')) return;
     setBusy(true);
     setError(null);
     setSaved(false);
     try {
-      await api('/api/me/profile', {
-        method: 'PATCH',
-        body: { is_public: false },
-      });
-      setIsPublic(false);
+      const res = await api<{ slug: string }>('/api/me/profile/rotate-slug', { method: 'POST' });
+      const next = `${window.location.origin}/p/${res.slug}`;
+      setRotatedUrl(next);
+      toast.success('Old links no longer work. Your new public link is ready.');
       await refresh();
-      setSaved(true);
     } catch (err) {
-      setError(errorMessage(err));
+      toast.error(`Could not revoke the link. ${errorMessage(err)}`);
     } finally {
       setBusy(false);
     }
@@ -1243,8 +1262,8 @@ export function MyAccount() {
               <label className="flex cursor-pointer items-start gap-3 rounded-[4px] border border-line bg-paper/50 p-3.5">
                 <input
                   type="checkbox"
-                  checked={notifyRecruiter}
-                  onChange={(e) => setNotifyRecruiter(e.target.checked)}
+                  checked={showQuotes}
+                  onChange={(e) => void savePreference('show_quotes', e.target.checked)}
                   className="mt-0.5 h-4 w-4 cursor-pointer accent-accent"
                 />
                 <div className="space-y-0.5">
@@ -1260,16 +1279,16 @@ export function MyAccount() {
               <label className="flex cursor-pointer items-start gap-3 rounded-[4px] border border-line bg-paper/50 p-3.5">
                 <input
                   type="checkbox"
-                  checked={notifyEvents}
-                  onChange={(e) => setNotifyEvents(e.target.checked)}
+                  checked={notifyResults}
+                  onChange={(e) => void savePreference('notify_results', e.target.checked)}
                   className="mt-0.5 h-4 w-4 cursor-pointer accent-accent"
                 />
                 <div className="space-y-0.5">
                   <span className="block text-[13px] font-semibold text-ink">
-                    Highlight hackathon standings when event results are published
+                    Tell me when results of my events are published
                   </span>
                   <span className="block text-[12px] text-muted">
-                    Shows your composite score and judge feedback inside the event workspace as soon as published.
+                    Email notices are coming soon. Your choice is saved and used as soon as they are.
                   </span>
                 </div>
               </label>
@@ -1310,17 +1329,22 @@ export function MyAccount() {
                     <span>Revoke Public Dossier Link</span>
                   </div>
                   <p className="text-[12px] leading-relaxed text-muted">
-                    Immediately switches `/p/{slug}` to private so external recruiters can no longer resolve your
-                    dossier URL.
+                    Moves your dossier from `/p/{slug}` to a new address, so every link you shared before stops
+                    working. Your profile stays {isPublic ? 'public' : 'private'}.
                   </p>
+                  {rotatedUrl && (
+                    <p className="font-mono-code break-all rounded-[3px] border border-line bg-paper px-2 py-1 text-[11px] text-ink">
+                      New link: {rotatedUrl}
+                    </p>
+                  )}
                 </div>
                 <button
                   type="button"
-                  disabled={!isPublic || busy}
+                  disabled={busy}
                   onClick={() => void revokePublicAccess()}
                   className="btn-tactile font-mono-code h-9 w-full cursor-pointer rounded-[4px] border border-bad/40 bg-bad-soft text-[11px] font-bold tracking-wider text-bad uppercase hover:bg-bad hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  {isPublic ? 'REVOKE PUBLIC DOSSIER ACCESS' : 'PUBLIC DOSSIER ALREADY OFFLINE'}
+                  {busy ? 'CREATING NEW LINK…' : 'REVOKE AND CREATE A NEW LINK'}
                 </button>
               </div>
 

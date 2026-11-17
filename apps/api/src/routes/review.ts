@@ -47,6 +47,28 @@ export async function reviewRoutes(app: FastifyInstance): Promise<void> {
     return { assignments };
   });
 
+  /** People of the organization who can review submissions, to pick judges from. */
+  app.get('/api/events/:id/judges', async (req) => {
+    const user = await requireUser(req);
+    const { id } = parse(IdParams, req.params);
+    const orgId = await eventOrg(id);
+    requirePermission(user, 'event.manage', orgId);
+    const rows = must(
+      await db()
+        .from('user_roles')
+        .select('user_id, roles(key, role_permissions(permissions(key))), profiles!user_roles_user_id_fkey(display_name)')
+        .eq('organization_id', orgId),
+    ) as unknown as { user_id: string; roles: { key: string; role_permissions: { permissions: { key: string } | null }[] } | null; profiles: { display_name: string } | null }[];
+    const judges = new Map<string, { user_id: string; display_name: string; roles: string[] }>();
+    for (const r of rows) {
+      if (!r.roles?.role_permissions.some((rp) => rp.permissions?.key === 'submission.review')) continue;
+      const j = judges.get(r.user_id) ?? { user_id: r.user_id, display_name: r.profiles?.display_name ?? '', roles: [] };
+      j.roles.push(r.roles.key);
+      judges.set(r.user_id, j);
+    }
+    return { judges: [...judges.values()].sort((a, b) => a.display_name.localeCompare(b.display_name)) };
+  });
+
   app.post('/api/events/:id/assignments', async (req) => {
     const user = await requireUser(req);
     const { id } = parse(IdParams, req.params);

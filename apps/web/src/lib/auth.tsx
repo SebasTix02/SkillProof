@@ -13,9 +13,9 @@ export interface Organization {
 }
 
 export interface Me {
-  profile: { id: string; display_name: string };
+  profile: { id: string; display_name: string; notify_results?: boolean };
   email: string | null;
-  public_profile: { slug: string; is_public: boolean; headline: string } | null;
+  public_profile: { slug: string; is_public: boolean; headline: string; show_quotes?: boolean } | null;
   organizations: Organization[];
 }
 
