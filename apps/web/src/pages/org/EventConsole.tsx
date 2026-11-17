@@ -13,6 +13,8 @@ import {
   Notice,
   NumberedSectionCard,
   PageState,
+  SIMILARITY_SIGNAL_LABEL,
+  SUBMISSION_STATUS_LABEL,
   ScoreBar,
   SectionHeader,
   Spinner,
@@ -22,6 +24,8 @@ import {
   linkButton,
   linkButtonSecondary,
   scoreTone,
+  type SimilaritySignal,
+  type SubmissionPipelineStatus,
 } from '../../components/shared';
 import { useToast } from '../../components/toast';
 import { api, errorMessage } from '../../lib/api';
@@ -51,7 +55,7 @@ interface Flag {
   id: string;
   submission_a: string;
   submission_b: string;
-  signal: 'same_repo' | 'same_fork_parent' | 'identical_files' | 'embedding';
+  signal: SimilaritySignal;
   explanation: string;
 }
 
@@ -61,21 +65,6 @@ interface ConsoleResponse {
   submissions: ConsoleSubmission[];
   similarity_flags: Flag[];
 }
-
-const SUB_LABEL: Record<ConsoleSubmission['status'], string> = {
-  submitted: 'Submitted',
-  queued: 'Queued',
-  analyzing: 'Being judged',
-  scored: 'Scored',
-  error: 'Failed',
-};
-
-const SIGNAL_LABEL: Record<Flag['signal'], string> = {
-  same_repo: 'Same repository',
-  same_fork_parent: 'Forks of the same project',
-  identical_files: 'Identical files',
-  embedding: 'Very similar code',
-};
 
 const EMAIL = /[^\s,;<>"']+@[^\s,;<>"']+\.[^\s,;<>"']+/g;
 
@@ -326,6 +315,13 @@ export function EventConsole() {
                 <span>Open Judge Workspace</span>
               </Link>
             )}
+            <Link
+              to={`/org/events/${event.id}/gradebook`}
+              className="btn-tactile font-mono-code inline-flex items-center gap-1.5 rounded-[4px] border border-white/15 bg-white/10 px-3.5 py-1.5 text-[11px] font-semibold text-white hover:bg-white/20"
+            >
+              <span className="material-symbols-outlined text-[15px]">school</span>
+              <span>Course Gradebook</span>
+            </Link>
           </>
         }
       />
@@ -554,7 +550,7 @@ export function EventConsole() {
                 className="flex flex-wrap items-center justify-between gap-3 rounded-[4px] border border-warn/30 bg-warn-soft/35 p-3 text-[13px]"
               >
                 <div className="flex flex-wrap items-center gap-2">
-                  <Badge tone="warn">{SIGNAL_LABEL[f.signal]}</Badge>
+                  <Badge tone="warn">{SIMILARITY_SIGNAL_LABEL[f.signal]}</Badge>
                   <Link
                     to={`/org/events/${event.id}/s/${f.submission_a}`}
                     className="font-semibold text-ink hover:text-accent hover:underline"
@@ -570,18 +566,13 @@ export function EventConsole() {
                   </Link>
                   {f.explanation && <span className="font-mono-code text-[12px] text-muted">· {f.explanation}</span>}
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2.5">
                   <Link
-                    to={`/org/events/${event.id}/s/${f.submission_a}`}
-                    className="font-mono-code text-[11px] font-semibold text-accent hover:underline"
+                    to={`/org/events/${event.id}/compare?a=${f.submission_a}&b=${f.submission_b}&flag=${f.id}`}
+                    className="btn-tactile font-mono-code inline-flex items-center gap-1 rounded-[3px] border border-warn/40 bg-white px-2.5 py-1 text-[11px] font-semibold text-warn hover:bg-warn hover:text-white"
                   >
-                    Inspect A →
-                  </Link>
-                  <Link
-                    to={`/org/events/${event.id}/s/${f.submission_b}`}
-                    className="font-mono-code text-[11px] font-semibold text-accent hover:underline"
-                  >
-                    Inspect B →
+                    <span>Compare Side-by-Side</span>
+                    <span>→</span>
                   </Link>
                 </div>
               </li>
@@ -685,7 +676,7 @@ export function EventConsole() {
                               tone={s.status === 'scored' ? 'good' : s.status === 'error' ? 'bad' : 'neutral'}
                               dot={working}
                             >
-                              {SUB_LABEL[s.status]}
+                              {SUBMISSION_STATUS_LABEL[s.status as SubmissionPipelineStatus]}
                             </Badge>
                             {s.step_count > 0 && (
                               <button

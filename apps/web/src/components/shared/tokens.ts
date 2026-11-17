@@ -179,6 +179,25 @@ export function normalizeOrgRole(raw: string | undefined): OrgRoleKey {
   return 'organizer';
 }
 
+export type SimilaritySignal = 'same_repo' | 'same_fork_parent' | 'identical_files' | 'embedding';
+
+export const SIMILARITY_SIGNAL_LABEL: Record<SimilaritySignal, string> = {
+  same_repo: 'Same repository',
+  same_fork_parent: 'Forks of the same project',
+  identical_files: 'Identical files',
+  embedding: 'Very similar code',
+};
+
+export type SubmissionPipelineStatus = 'submitted' | 'queued' | 'analyzing' | 'scored' | 'error';
+
+export const SUBMISSION_STATUS_LABEL: Record<SubmissionPipelineStatus, string> = {
+  submitted: 'Submitted',
+  queued: 'Queued',
+  analyzing: 'Being judged',
+  scored: 'Scored',
+  error: 'Failed',
+};
+
 export function formatClock(seconds: number): string {
   const safe = Math.max(0, Math.floor(seconds));
   return `${String(Math.floor(safe / 60)).padStart(2, '0')}:${String(safe % 60).padStart(2, '0')}`;

@@ -181,11 +181,18 @@ export function OrgEvents() {
               </Link>
             )}
             <Link
+              to="/org/courses"
+              className="font-mono-code inline-flex items-center gap-2 rounded-[4px] border border-white/10 bg-white/5 px-3.5 py-1.5 text-[11px] font-medium text-white/80 transition-colors hover:bg-white/15 hover:text-white"
+            >
+              <span className="material-symbols-outlined text-[15px]">school</span>
+              <span>04. Teacher &amp; Course Mode</span>
+            </Link>
+            <Link
               to="/org/settings"
               className="font-mono-code inline-flex items-center gap-2 rounded-[4px] border border-white/10 bg-white/5 px-3.5 py-1.5 text-[11px] font-medium text-white/80 transition-colors hover:bg-white/15 hover:text-white"
             >
               <span className="material-symbols-outlined text-[15px]">admin_panel_settings</span>
-              <span>04. Organization &amp; Seats</span>
+              <span>05. Organization &amp; Seats</span>
             </Link>
           </nav>
         }

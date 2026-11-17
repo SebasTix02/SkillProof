@@ -210,3 +210,74 @@ export function RoleCapabilityGrid({ activeRole }: { activeRole?: OrgRoleKey }) 
     </div>
   );
 }
+
+export function SeverityAlertBanner({
+  tone = 'bad',
+  badge,
+  meta,
+  description,
+  metrics,
+}: {
+  tone?: 'bad' | 'warn';
+  badge: string;
+  meta?: ReactNode;
+  description: ReactNode;
+  metrics?: { label: string; value: ReactNode }[];
+}) {
+  const isBad = tone === 'bad';
+  return (
+    <div
+      className={`flex flex-col justify-between gap-6 rounded-[6px] border p-5 lg:flex-row lg:items-center ${
+        isBad ? 'border-bad/35 bg-bad-soft/55 text-ink' : 'border-warn/35 bg-warn-soft/55 text-ink'
+      }`}
+    >
+      <div className="flex items-start gap-4">
+        <div
+          className={`mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-[4px] text-white ${
+            isBad ? 'bg-bad' : 'bg-warn'
+          }`}
+        >
+          <span className="material-symbols-outlined text-[22px]">warning</span>
+        </div>
+        <div className="space-y-1.5">
+          <div className="flex flex-wrap items-center gap-2.5">
+            <span
+              className={`font-mono-code rounded-[3px] px-2.5 py-0.5 text-[11px] font-bold tracking-wider text-white uppercase ${
+                isBad ? 'bg-bad' : 'bg-warn'
+              }`}
+            >
+              {badge}
+            </span>
+            {meta && (
+              <span className={`font-mono-code text-[12px] font-bold ${isBad ? 'text-bad' : 'text-warn'}`}>
+                {meta}
+              </span>
+            )}
+          </div>
+          <p className="text-[13px] leading-relaxed text-ink/90">{description}</p>
+        </div>
+      </div>
+
+      {metrics && metrics.length > 0 && (
+        <div
+          className={`flex w-full shrink-0 items-center justify-end gap-6 border-t pt-4 lg:w-auto lg:border-t-0 lg:border-l lg:pt-0 lg:pl-6 ${
+            isBad ? 'border-bad/25' : 'border-warn/25'
+          }`}
+        >
+          {metrics.map((m, idx) => (
+            <div key={idx} className="text-right">
+              <span
+                className={`font-mono-code block text-[10px] font-semibold uppercase ${
+                  isBad ? 'text-bad' : 'text-warn'
+                }`}
+              >
+                {m.label}
+              </span>
+              <span className="font-mono-code text-[15px] font-bold text-ink">{m.value}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}

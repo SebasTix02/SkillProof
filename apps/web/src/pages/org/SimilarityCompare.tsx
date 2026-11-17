@@ -1,0 +1,780 @@
+import type { CommitProfile, RepoMap, Rubric } from '@skillproof/shared';
+import { useMemo, useState, type FormEvent } from 'react';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { one } from '../../components/Report';
+import {
+  Badge,
+  Button,
+  CommandConsoleHeader,
+  EditorialQuoteBlock,
+  LiveDot,
+  Notice,
+  NumberedSectionCard,
+  PageState,
+  SIMILARITY_SIGNAL_LABEL,
+  ScoreBar,
+  Select,
+  SeverityAlertBanner,
+  TabStrip,
+  Textarea,
+  TopAccentKpiCard,
+  formatDate,
+  linkButtonSecondary,
+  scoreTone,
+  type SimilaritySignal,
+} from '../../components/shared';
+import { useToast } from '../../components/toast';
+import { useAuth } from '../../lib/auth';
+import type { EventView, RepoRef, ScoreView, VersionView } from '../../lib/types';
+import { useLoad } from '../../lib/useLoad';
+
+interface ConsoleSubmission {
+  id: string;
+  team_name: string;
+  submitted_by_name: string;
+  status: string;
+  locked_commit_sha: string | null;
+  current_version: { repos: RepoRef } | null;
+  scores: ScoreView[];
+  total: number | null;
+  ownership: { score: number; confidence: string } | null;
+}
+
+interface Flag {
+  id: string;
+  submission_a: string;
+  submission_b: string;
+  signal: SimilaritySignal;
+  explanation: string;
+}
+
+interface ConsoleResponse {
+  event: EventView;
+  submissions: ConsoleSubmission[];
+  similarity_flags: Flag[];
+}
+
+interface Analysis {
+  commit_sha: string;
+  model: string | null;
+  map_json: RepoMap;
+  commit_profile_json: CommitProfile | null;
+  file_count: number;
+}
+
+interface SubmissionDetailPayload {
+  submission: {
+    id: string;
+    team_name: string;
+    status: string;
+    locked_commit_sha: string | null;
+    locked_at: string | null;
+    events: { id: string; name: string; rubric_json: Rubric; status: string };
+    repo_analyses: Analysis | Analysis[] | null;
+    submission_versions: VersionView[];
+  };
+  scores: ScoreView[];
+  interview: { id: string; status: string } | null;
+}
+
+type VerdictOption = 'direct_plagiarism' | 'collusion' | 'starter_template' | 'independent_invention';
+
+function SubmissionComparisonPane({
+  side,
+  summary,
+  detail,
+  rubric,
+}: {
+  side: 'A' | 'B';
+  summary: ConsoleSubmission;
+  detail: SubmissionDetailPayload | null;
+  rubric: Rubric;
+}) {
+  const isA = side === 'A';
+  const analysis = detail ? one(detail.submission.repo_analyses) : null;
+  const map = analysis?.map_json;
+  const commits = analysis?.commit_profile_json;
+  const versions = detail
+    ? [...detail.submission.submission_versions].sort((a, b) => b.version_no - a.version_no)
+    : [];
+  const current = versions[0];
+  const repo = current?.repos ?? summary.current_version?.repos ?? null;
+  const sha = summary.locked_commit_sha;
+
+  return (
+    <div className="flex flex-col overflow-hidden rounded-[6px] border border-line bg-white">
+      {/* Colored Header */}
+      <div
+        className={`space-y-2 border-b p-4 ${
+          isA ? 'border-good/25 bg-good-soft/55' : 'border-bad/25 bg-bad-soft/55'
+        }`}
+      >
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <span
+              className={`font-mono-code rounded-[3px] px-2 py-0.5 text-[10px] font-bold tracking-wider text-white uppercase ${
+                isA ? 'bg-good' : 'bg-bad'
+              }`}
+            >
+              SUBMISSION {side} ({isA ? 'REFERENCE' : 'COMPARED'})
+            </span>
+            {sha && (
+              <span className="font-mono-code text-[11px] text-muted">
+                SHA: <code className="font-bold text-ink">{sha.slice(0, 8)}</code>
+              </span>
+            )}
+          </div>
+          {summary.ownership ? (
+            <Badge tone={summary.ownership.score >= 70 ? 'good' : 'bad'} dot>
+              ORAL OWNERSHIP: {summary.ownership.score}%
+            </Badge>
+          ) : (
+            <Badge tone="neutral">NO VOICE DEFENSE</Badge>
+          )}
+        </div>
+
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <div>
+            <Link
+              to={`/org/events/${detail?.submission.events.id ?? ''}/s/${summary.id}`}
+              className="font-serif-heading text-[20px] font-medium text-ink hover:text-accent hover:underline"
+            >
+              {summary.team_name}
+            </Link>
+            <span className="ml-2 text-[12px] text-muted">({summary.submitted_by_name})</span>
+          </div>
+          {summary.total != null && (
+            <Badge tone={scoreTone(summary.total, 100)}>{summary.total.toFixed(1)} / 100</Badge>
+          )}
+        </div>
+
+        <div className="font-mono-code flex flex-wrap items-center gap-2 border-t border-line/70 pt-2 text-[11px] text-muted">
+          {repo && (
+            <a href={repo.url} target="_blank" rel="noreferrer" className="font-semibold text-accent hover:underline">
+              {repo.owner}/{repo.name} ↗
+            </a>
+          )}
+          {detail?.submission.locked_at && (
+            <>
+              <span>•</span>
+              <span>Frozen: {formatDate(detail.submission.locked_at)}</span>
+            </>
+          )}
+          {analysis && (
+            <>
+              <span>•</span>
+              <span>{analysis.file_count} files read</span>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Repo Map & Stack Comparison */}
+      <div className="flex-1 space-y-4 p-5">
+        {map ? (
+          <>
+            <div className="space-y-1.5">
+              <span className="font-mono-code text-[10px] font-bold tracking-wider text-muted uppercase">
+                Repository Architecture Summary
+              </span>
+              <p className="text-[13px] leading-relaxed text-ink">{map.summary}</p>
+            </div>
+
+            <div className="flex flex-wrap gap-1.5">
+              {[...map.stack.languages, ...map.stack.frameworks, ...map.stack.services].map((t) => (
+                <Badge key={t}>{t}</Badge>
+              ))}
+            </div>
+
+            {commits && (
+              <div className="font-mono-code grid grid-cols-3 gap-2 rounded-[4px] border border-line bg-paper p-3 text-[11px]">
+                <div>
+                  <span className="block text-[10px] text-muted uppercase">Commits</span>
+                  <span className="font-bold text-ink">{commits.total_commits}</span>
+                </div>
+                <div>
+                  <span className="block text-[10px] text-muted uppercase">Authors</span>
+                  <span className="font-bold text-ink">{commits.authors.length}</span>
+                </div>
+                <div>
+                  <span className="block text-[10px] text-muted uppercase">Pre-Event</span>
+                  <span className={`font-bold ${(commits.commits_before_start ?? 0) > 0 ? 'text-warn' : 'text-good'}`}>
+                    {commits.commits_before_start ?? 0}
+                  </span>
+                </div>
+              </div>
+            )}
+          </>
+        ) : (
+          <p className="text-[13px] text-muted">
+            Detailed repository analysis is not available yet for this submission.
+          </p>
+        )}
+
+        {/* Cited Evidence Files per Criterion */}
+        {rubric.length > 0 && (
+          <div className="space-y-2 border-t border-line pt-3">
+            <span className="font-mono-code block text-[10px] font-bold tracking-wider text-muted uppercase">
+              Rubric Scores &amp; Cited Files
+            </span>
+            <ul className="space-y-2">
+              {rubric.map((c) => {
+                const s = (detail?.scores ?? summary.scores).find((x) => x.criterion_key === c.key);
+                const val = s?.override_score ?? s?.ai_score ?? null;
+                return (
+                  <li key={c.key} className="rounded-[4px] border border-line bg-paper/55 p-2.5 text-[12px]">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-medium text-ink">{c.name}</span>
+                      <Badge tone={scoreTone(val)}>{val ?? '–'}/10</Badge>
+                    </div>
+                    {s?.evidence_json && s.evidence_json.length > 0 && (
+                      <div className="font-mono-code mt-1.5 flex flex-wrap gap-1 text-[10px]">
+                        {s.evidence_json.map((path) =>
+                          repo && sha ? (
+                            <a
+                              key={path}
+                              href={`${repo.url}/blob/${sha}/${path}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="rounded border border-line bg-white px-1.5 py-0.5 text-accent hover:underline"
+                            >
+                              {path}
+                            </a>
+                          ) : (
+                            <code key={path} className="rounded border border-line bg-white px-1.5 py-0.5 text-ink">
+                              {path}
+                            </code>
+                          ),
+                        )}
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
+      </div>
+
+      {/* Oral Defense Cross-Exam Footer */}
+      <div className="border-t border-line bg-paper/60 p-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="font-mono-code flex items-center gap-2 text-[11px] font-semibold text-ink">
+            <span className={`material-symbols-outlined text-[17px] ${isA ? 'text-good' : 'text-bad'}`}>
+              {detail?.interview ? 'graphic_eq' : 'mic_off'}
+            </span>
+            <span>
+              {detail?.interview
+                ? `Oral Defense (${detail.interview.status.toUpperCase()})`
+                : 'No Oral Defense Recorded'}
+            </span>
+          </div>
+          {detail?.interview && (
+            <Link
+              to={`/interview/${detail.interview.id}`}
+              className="font-mono-code text-[11px] font-semibold text-accent hover:underline"
+            >
+              Inspect Transcript →
+            </Link>
+          )}
+        </div>
+        {summary.ownership && (
+          <div className="mt-2.5">
+            <EditorialQuoteBlock
+              theme={isA ? 'emerald' : 'crimson'}
+              quote={`Ownership score ${summary.ownership.score}/100 (${summary.ownership.confidence} confidence).`}
+            />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export function SimilarityCompare() {
+  const { id } = useParams();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { me } = useAuth();
+  const toast = useToast();
+
+  const { data, error, loading } = useLoad<ConsoleResponse>(id ? `/api/events/${id}/console` : null);
+
+  const [viewMode, setViewMode] = useState<'side_by_side' | 'repo_overlap' | 'oral'>('side_by_side');
+  const [verdict, setVerdict] = useState<VerdictOption>('direct_plagiarism');
+  const [notes, setNotes] = useState('');
+  const [decisionSaved, setDecisionSaved] = useState<string | null>(null);
+
+  const flags = data?.similarity_flags ?? [];
+  const submissions = data?.submissions ?? [];
+
+  const activeFlag = useMemo(() => {
+    const flagId = searchParams.get('flag');
+    if (flagId) return flags.find((f) => f.id === flagId) ?? null;
+    const paramA = searchParams.get('a');
+    const paramB = searchParams.get('b');
+    if (paramA && paramB) {
+      return (
+        flags.find(
+          (f) =>
+            (f.submission_a === paramA && f.submission_b === paramB) ||
+            (f.submission_a === paramB && f.submission_b === paramA),
+        ) ?? null
+      );
+    }
+    return flags[0] ?? null;
+  }, [flags, searchParams]);
+
+  const idA = searchParams.get('a') ?? activeFlag?.submission_a ?? submissions[0]?.id ?? null;
+  const idB =
+    searchParams.get('b') ??
+    activeFlag?.submission_b ??
+    submissions.find((s) => s.id !== idA)?.id ??
+    null;
+
+  const detailA = useLoad<SubmissionDetailPayload>(idA ? `/api/submissions/${idA}` : null);
+  const detailB = useLoad<SubmissionDetailPayload>(idB ? `/api/submissions/${idB}` : null);
+
+  const subA = submissions.find((s) => s.id === idA) ?? null;
+  const subB = submissions.find((s) => s.id === idB) ?? null;
+
+  if (!data) return <PageState loading={loading} error={error} />;
+
+  const { event } = data;
+  const analysisA = detailA.data ? one(detailA.data.submission.repo_analyses) : null;
+  const analysisB = detailB.data ? one(detailB.data.submission.repo_analyses) : null;
+  const commitsA = analysisA?.commit_profile_json;
+  const commitsB = analysisB?.commit_profile_json;
+
+  const stackA = new Set([
+    ...(analysisA?.map_json.stack.languages ?? []),
+    ...(analysisA?.map_json.stack.frameworks ?? []),
+  ]);
+  const stackB = new Set([
+    ...(analysisB?.map_json.stack.languages ?? []),
+    ...(analysisB?.map_json.stack.frameworks ?? []),
+  ]);
+  const sharedStack = [...stackA].filter((t) => stackB.has(t));
+
+  function selectPair(nextA: string, nextB: string, flagId?: string) {
+    const next = new URLSearchParams();
+    next.set('a', nextA);
+    next.set('b', nextB);
+    if (flagId) next.set('flag', flagId);
+    setSearchParams(next);
+  }
+
+  function exportForensicJson() {
+    const payload = {
+      event: { id: event.id, name: event.name, slug: event.slug },
+      flag: activeFlag,
+      submission_a: subA,
+      submission_b: subB,
+      auditor_verdict: verdict,
+      auditor_notes: notes,
+      exported_at: new Date().toISOString(),
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${event.slug}-similarity-dossier.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success('Forensic similarity dossier exported (JSON).');
+  }
+
+  function submitVerdict(e: FormEvent) {
+    e.preventDefault();
+    setDecisionSaved(verdict);
+    toast.success('Forensic determination recorded for this comparison session.');
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* 1. Dark Technical Enclave Header */}
+      <CommandConsoleHeader
+        breadcrumbs={
+          <>
+            <Link to={`/org/events/${event.id}`} className="font-semibold text-[#93B4FF] hover:underline">
+              ← {event.name.toUpperCase()}
+            </Link>
+            <span>//</span>
+            <span>FORENSIC SIMILARITY AUDIT</span>
+            {activeFlag && (
+              <>
+                <span>//</span>
+                <span className="inline-flex items-center gap-1.5 rounded-[3px] border border-bad/40 bg-bad/20 px-2 py-0.5 font-semibold text-[#FCA5A5]">
+                  <LiveDot tone="bad" />
+                  <span>{SIMILARITY_SIGNAL_LABEL[activeFlag.signal].toUpperCase()}</span>
+                </span>
+              </>
+            )}
+          </>
+        }
+        statusChips={
+          <>
+            <span className="rounded-[3px] border border-white/10 bg-white/5 px-2.5 py-0.5 text-white/80">
+              FLAGGED PAIRS: {flags.length}
+            </span>
+            <span className="rounded-[3px] border border-good/30 bg-good/20 px-2.5 py-0.5 text-[#79d9ae]">
+              COMMIT-LOCKED DIFF
+            </span>
+          </>
+        }
+        title="Syntactic & Control Flow Overlap Analysis"
+        subtitle="Side-by-side repository comparison, commit chronology provenance, and oral defense divergence across flagged cohort submissions."
+        actions={
+          <>
+            <button
+              type="button"
+              onClick={() => {
+                setVerdict('independent_invention');
+                setDecisionSaved('independent_invention');
+                toast.success('Marked as independent invention / false positive.');
+              }}
+              className="btn-tactile font-mono-code inline-flex cursor-pointer items-center gap-1.5 rounded-[4px] border border-white/15 bg-white/10 px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-white/20"
+            >
+              <span className="material-symbols-outlined text-[15px] text-[#79d9ae]">verified_user</span>
+              <span>Dismiss False Positive</span>
+            </button>
+            <button
+              type="button"
+              onClick={exportForensicJson}
+              className="btn-tactile font-mono-code inline-flex cursor-pointer items-center gap-1.5 rounded-[4px] border border-white/15 bg-white/10 px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-white/20"
+            >
+              <span className="material-symbols-outlined text-[15px]">download</span>
+              <span>Export Dossier (JSON)</span>
+            </button>
+            <Link to={`/org/events/${event.id}/gradebook`} className={linkButtonSecondary}>
+              Course Gradebook
+            </Link>
+          </>
+        }
+        footerSlot={
+          submissions.length >= 2 ? (
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="font-mono-code text-[11px] text-white/70 uppercase">Compare Pair:</span>
+              <Select
+                aria-label="Submission A"
+                value={idA ?? ''}
+                onChange={(e) => selectPair(e.target.value, idB ?? '')}
+                className="font-mono-code h-8 w-56 border-white/20 bg-white/10 text-[12px] text-white"
+              >
+                {submissions.map((s) => (
+                  <option key={s.id} value={s.id} className="text-ink">
+                    A: {s.team_name}
+                  </option>
+                ))}
+              </Select>
+              <span className="font-mono-code text-white/50">vs</span>
+              <Select
+                aria-label="Submission B"
+                value={idB ?? ''}
+                onChange={(e) => selectPair(idA ?? '', e.target.value)}
+                className="font-mono-code h-8 w-56 border-white/20 bg-white/10 text-[12px] text-white"
+              >
+                {submissions.map((s) => (
+                  <option key={s.id} value={s.id} className="text-ink">
+                    B: {s.team_name}
+                  </option>
+                ))}
+              </Select>
+            </div>
+          ) : undefined
+        }
+      />
+
+      {/* 2. Flagged Pair Cluster Pills */}
+      {flags.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 rounded-[6px] border border-line bg-white p-3.5">
+          <span className="font-mono-code mr-1 text-[11px] font-semibold text-muted uppercase">
+            Detected Similarity Signals:
+          </span>
+          {flags.map((f, idx) => {
+            const nameA = submissions.find((s) => s.id === f.submission_a)?.team_name ?? 'Team A';
+            const nameB = submissions.find((s) => s.id === f.submission_b)?.team_name ?? 'Team B';
+            const isCurrent = activeFlag?.id === f.id;
+            return (
+              <button
+                key={f.id}
+                type="button"
+                onClick={() => selectPair(f.submission_a, f.submission_b, f.id)}
+                className={`font-mono-code cursor-pointer rounded-[3px] border px-2.5 py-1 text-[11px] font-semibold transition-colors ${
+                  isCurrent
+                    ? 'border-bad bg-bad-soft text-bad'
+                    : 'border-line bg-paper text-muted hover:border-muted hover:text-ink'
+                }`}
+              >
+                0{idx + 1}: {nameA} ↔ {nameB} ({SIMILARITY_SIGNAL_LABEL[f.signal]})
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* 3. Severity Warning Banner */}
+      {activeFlag ? (
+        <SeverityAlertBanner
+          tone="bad"
+          badge="SIMILARITY SIGNAL DETECTED"
+          meta={`// ${SIMILARITY_SIGNAL_LABEL[activeFlag.signal].toUpperCase()}`}
+          description={
+            <>
+              Overlap signal between <strong>{subA?.team_name ?? 'Submission A'}</strong> and{' '}
+              <strong>{subB?.team_name ?? 'Submission B'}</strong>:{' '}
+              {activeFlag.explanation || 'Automated repository and structural similarity check triggered.'}
+            </>
+          }
+          metrics={[
+            { label: 'Shared Stack', value: `${sharedStack.length} tags` },
+            { label: 'Signal Type', value: SIMILARITY_SIGNAL_LABEL[activeFlag.signal] },
+          ]}
+        />
+      ) : (
+        <Notice tone="info">
+          No automated similarity flag exists between these two submissions. You are inspecting a manual side-by-side
+          comparison.
+        </Notice>
+      )}
+
+      {/* 4. 4 Forensic Telemetry KPI Cards */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <TopAccentKpiCard
+          accent="amber"
+          eyebrow="Similarity Signal"
+          icon="account_tree"
+          value={activeFlag ? SIMILARITY_SIGNAL_LABEL[activeFlag.signal] : 'Manual Diff'}
+          description={activeFlag?.explanation || 'Direct side-by-side repository comparison.'}
+        />
+        <TopAccentKpiCard
+          accent="cobalt"
+          eyebrow="Files & Stack Overlap"
+          icon="data_array"
+          value={`${sharedStack.length} Shared`}
+          description={`Sub A: ${analysisA?.file_count ?? '–'} files · Sub B: ${analysisB?.file_count ?? '–'} files.`}
+          progress={sharedStack.length > 0 ? Math.min(100, sharedStack.length * 25) : 0}
+        />
+        <TopAccentKpiCard
+          accent="emerald"
+          eyebrow="Commit Chronology"
+          icon="schedule"
+          value={`${commitsA?.total_commits ?? '–'} vs ${commitsB?.total_commits ?? '–'}`}
+          description={`Authors: ${commitsA?.authors.length ?? '–'} (A) vs ${commitsB?.authors.length ?? '–'} (B).`}
+        />
+        <TopAccentKpiCard
+          accent="indigo"
+          eyebrow="Oral Defense Match"
+          icon="record_voice_over"
+          value={`${subA?.ownership?.score ?? '–'}% vs ${subB?.ownership?.score ?? '–'}%`}
+          description="Live 3-minute voice cross-examination authorship score."
+        />
+      </div>
+
+      {/* 5. View Switcher */}
+      <TabStrip
+        tabs={[
+          { key: 'side_by_side', label: 'Side-by-Side Comparison', icon: 'compare' },
+          { key: 'repo_overlap', label: 'Commit & Stack Provenance', icon: 'account_tree' },
+          { key: 'oral', label: 'Oral Defense Divergence', icon: 'record_voice_over' },
+        ]}
+        active={viewMode}
+        onChange={setViewMode}
+      />
+
+      {/* 6. Side-by-Side Dual Inspector */}
+      {subA && subB ? (
+        <div className="grid grid-cols-1 items-stretch gap-6 lg:grid-cols-2">
+          <SubmissionComparisonPane side="A" summary={subA} detail={detailA.data} rubric={event.rubric_json} />
+          <SubmissionComparisonPane side="B" summary={subB} detail={detailB.data} rubric={event.rubric_json} />
+        </div>
+      ) : (
+        <Notice tone="warn">At least two submissions are needed in this event to compare side-by-side.</Notice>
+      )}
+
+      {/* 7. Visual Forensic Summary Cards */}
+      {subA && subB && (
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+          <div className="flex flex-col justify-between rounded-[6px] border border-line bg-white p-5">
+            <div className="space-y-1">
+              <span className="font-mono-code text-[10px] font-semibold tracking-wider text-muted uppercase">
+                Repository Lineage
+              </span>
+              <h3 className="font-serif-heading text-[18px] font-medium text-ink">Fork &amp; Repo Provenance</h3>
+              <p className="text-[12px] leading-relaxed text-muted">
+                {activeFlag
+                  ? `Flagged under "${SIMILARITY_SIGNAL_LABEL[activeFlag.signal]}".`
+                  : 'Comparing repository origins and frozen commit snapshots.'}
+              </p>
+            </div>
+            <div className="font-mono-code mt-4 space-y-1.5 border-t border-line pt-3 text-[11px]">
+              <div className="flex justify-between">
+                <span className="text-muted">Sub A Fork:</span>
+                <span className="font-semibold text-ink">
+                  {subA.current_version?.repos.is_fork
+                    ? subA.current_version.repos.fork_parent || 'Yes'
+                    : 'Original Repo'}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted">Sub B Fork:</span>
+                <span className="font-semibold text-ink">
+                  {subB.current_version?.repos.is_fork
+                    ? subB.current_version.repos.fork_parent || 'Yes'
+                    : 'Original Repo'}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col justify-between rounded-[6px] border border-line bg-white p-5">
+            <div className="space-y-1">
+              <span className="font-mono-code text-[10px] font-semibold tracking-wider text-muted uppercase">
+                Candidate Artifacts Provenance
+              </span>
+              <h3 className="font-serif-heading text-[18px] font-medium text-ink">Git Commit Chronology</h3>
+              <p className="text-[12px] leading-relaxed text-muted">
+                Compare incremental development history vs. single-commit bulk pushes.
+              </p>
+            </div>
+            <div className="font-mono-code mt-4 space-y-3 text-[11px]">
+              <div>
+                <div className="flex justify-between pb-1">
+                  <span className="font-semibold text-ink">{subA.team_name}</span>
+                  <span className="font-bold text-good">{commitsA?.total_commits ?? 0} commits</span>
+                </div>
+                <ScoreBar value={Math.min(100, (commitsA?.total_commits ?? 0) * 4)} max={100} tone="good" heightClass="h-2" />
+              </div>
+              <div>
+                <div className="flex justify-between pb-1">
+                  <span className="font-semibold text-ink">{subB.team_name}</span>
+                  <span className="font-bold text-bad">{commitsB?.total_commits ?? 0} commits</span>
+                </div>
+                <ScoreBar value={Math.min(100, (commitsB?.total_commits ?? 0) * 4)} max={100} tone="bad" heightClass="h-2" />
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col justify-between rounded-[6px] border border-line bg-white p-5">
+            <div className="space-y-1">
+              <span className="font-mono-code text-[10px] font-semibold tracking-wider text-muted uppercase">
+                Score &amp; Ownership Parity
+              </span>
+              <h3 className="font-serif-heading text-[18px] font-medium text-ink">Composite Benchmark</h3>
+              <p className="text-[12px] leading-relaxed text-muted">
+                Side-by-side comparison of weighted rubric totals and oral defense confidence.
+              </p>
+            </div>
+            <div className="font-mono-code mt-4 space-y-2 border-t border-line pt-3 text-[11px]">
+              <div className="flex justify-between">
+                <span className="text-muted">Rubric Total (A vs B):</span>
+                <span className="font-bold text-ink">
+                  {subA.total?.toFixed(1) ?? '–'} vs {subB.total?.toFixed(1) ?? '–'}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted">Voice Ownership (A vs B):</span>
+                <span className="font-bold text-accent">
+                  {subA.ownership?.score ?? '–'} vs {subB.ownership?.score ?? '–'}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 8. Auditor Decision & Sanction Protocol */}
+      <NumberedSectionCard
+        number="AD"
+        icon="gavel"
+        title="Auditor Decision & Sanction Protocol"
+        subtitle="Record your evidentiary determination after inspecting both repositories and oral defense transcripts."
+        sectionTag={decisionSaved ? `RECORDED: ${decisionSaved.toUpperCase()}` : 'FORMAL ADJUDICATION'}
+        theme="amber"
+      >
+        <form onSubmit={submitVerdict} className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+          <div className="space-y-2.5 lg:col-span-5">
+            <span className="font-mono-code block text-[11px] font-bold tracking-wider text-muted uppercase">
+              Select Adjudication Determination:
+            </span>
+            {(
+              [
+                {
+                  key: 'direct_plagiarism',
+                  title: 'Direct Unauthorized Plagiarism',
+                  desc: 'Submission B systematically copied or renamed code from Submission A.',
+                },
+                {
+                  key: 'collusion',
+                  title: 'Coordinated Unauthorized Collaboration',
+                  desc: 'Both parties jointly developed core logic in violation of assessment rules.',
+                },
+                {
+                  key: 'starter_template',
+                  title: 'Shared Canonical Boilerplate / Starter Code',
+                  desc: 'Overlap originates from a public framework or permitted starter kit.',
+                },
+                {
+                  key: 'independent_invention',
+                  title: 'Independent Invention (Dismiss Flag)',
+                  desc: 'Algorithmic constraints explain the similarity. No penalty applied.',
+                },
+              ] as const
+            ).map((opt) => (
+              <label
+                key={opt.key}
+                className={`flex cursor-pointer items-start gap-3 rounded-[4px] border p-3 transition-colors ${
+                  verdict === opt.key ? 'border-accent bg-accent-soft/45' : 'border-line bg-paper/45 hover:bg-paper'
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="adjudication_verdict"
+                  checked={verdict === opt.key}
+                  onChange={() => setVerdict(opt.key)}
+                  className="mt-1 accent-accent"
+                />
+                <div>
+                  <span className="block text-[13px] font-semibold text-ink">{opt.title}</span>
+                  <span className="block text-[11px] leading-snug text-muted">{opt.desc}</span>
+                </div>
+              </label>
+            ))}
+          </div>
+
+          <div className="flex flex-col justify-between space-y-4 lg:col-span-7">
+            <div className="space-y-1.5">
+              <label
+                htmlFor="auditor_notes"
+                className="font-mono-code block text-[11px] font-bold tracking-wider text-muted uppercase"
+              >
+                Auditor Findings &amp; Evidentiary Justification
+              </label>
+              <Textarea
+                id="auditor_notes"
+                rows={6}
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Document specific file overlaps, commit history observations, and oral defense comparison notes..."
+              />
+            </div>
+
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-3">
+              <div className="font-mono-code text-[11px] text-muted">
+                SIGNER: <strong className="text-ink">{me?.profile.display_name || 'Lead Auditor'}</strong>
+              </div>
+              <div className="flex flex-wrap gap-2.5">
+                <Button type="button" variant="secondary" onClick={exportForensicJson}>
+                  Export Forensic JSON
+                </Button>
+                <Button type="submit" variant={verdict === 'independent_invention' ? 'primary' : 'danger'}>
+                  <span className="material-symbols-outlined text-[16px]">lock</span>
+                  <span>Confirm Forensic Determination</span>
+                </Button>
+              </div>
+            </div>
+          </div>
+        </form>
+      </NumberedSectionCard>
+    </div>
+  );
+}

@@ -12,10 +12,12 @@ import { ExploreEvents } from './pages/ExploreEvents';
 import { InterviewHome } from './pages/InterviewHome';
 import { InterviewPage } from './pages/InterviewPage';
 import { Landing } from './pages/Landing';
+import { CourseMode } from './pages/org/CourseMode';
 import { CreateEvent } from './pages/org/CreateEvent';
 import { EventConsole } from './pages/org/EventConsole';
 import { OrgEvents } from './pages/org/OrgEvents';
 import { OrgSettings } from './pages/org/OrgSettings';
+import { SimilarityCompare } from './pages/org/SimilarityCompare';
 import { SubmissionDetail } from './pages/org/SubmissionDetail';
 import { PublicProfile } from './pages/PublicProfile';
 
@@ -47,9 +49,12 @@ function App() {
         <Route path="/interview/new" element={<Private><InterviewHome /></Private>} />
         <Route path="/interview/:id" element={<Private><InterviewPage /></Private>} />
         <Route path="/org/events" element={<Private organizer><OrgEvents /></Private>} />
+        <Route path="/org/courses" element={<Private organizer><CourseMode /></Private>} />
         <Route path="/org/settings" element={<Private organizer><OrgSettings /></Private>} />
         <Route path="/org/events/new" element={<Private organizer><CreateEvent /></Private>} />
         <Route path="/org/events/:id" element={<Private organizer><EventConsole /></Private>} />
+        <Route path="/org/events/:id/compare" element={<Private organizer><SimilarityCompare /></Private>} />
+        <Route path="/org/events/:id/gradebook" element={<Private organizer><CourseMode /></Private>} />
         <Route path="/org/events/:id/s/:sid" element={<Private organizer><SubmissionDetail /></Private>} />
         <Route path="*" element={<Notice tone="error">Page not found.</Notice>} />
       </Routes>
