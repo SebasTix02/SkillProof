@@ -160,16 +160,49 @@ Jobs run inside the API process by default. Set `TASKS_QUEUE` to run them on Clo
 Scheduler job at `POST /internal/tick` every minute with the `x-internal-secret` header so deadlines are
 picked up while no one has the site open.
 
+### How the AI reads a repository
+
+Reading a whole repository is the most expensive step, so it is kept small:
+
+- **Read in full:** only the most important files (README, manifests, entry points, `src/`), up to
+  `REPO_TOKEN_BUDGET` tokens (45 000) and `REPO_MAX_FULL_FILES` files (30). Blank lines are left out and a long
+  file keeps its start and end, with real line numbers so citations stay exact.
+- **Outlined without AI:** every other file gets a local outline: its size, its first comment and its
+  declarations (functions, classes, routes, tables). This costs no model call.
+- **Summarised:** the `REPO_MAX_SUMMARISED_FILES` (40) most relevant outlined files also get a one-line summary from
+  the cheap model, in one or two large calls with minimal thinking. Summaries are cached by the git blob sha of the
+  file (`file_summaries`), so an unchanged file is never summarised twice, in any commit or repository.
+- **Reused:** the repository map is cached per commit (`repo_analyses`), for judging and interviews alike.
+- **Scoring** gets the map without the interview snippets and a short commit summary.
+
+For a 110-file repository this went from about 230 000 input tokens to about 82 000 per analysis
+(summaries + map + score), and to about 50 000 when the summaries are already cached. The activity log says how
+many files were read, outlined and summarised.
+
 ### When Gemini is busy
 
-Every Gemini call that returns JSON goes through one helper. An overloaded model (503) is asked again once after
-a few seconds, and then the next model in `MODEL_FALLBACKS` (`packages/shared/src/models.ts`) is tried. A rate limit
-(429) moves straight to the next model. If every model fails, the job stores a plain sentence for the user, and the
-technical detail goes to the activity log.
+- **One gate per server:** every Gemini call goes through a limiter: `GEMINI_CONCURRENCY` calls at a time (2) and
+  `GEMINI_MIN_GAP_MS` between starts (400 ms). A call that hangs longer than `GEMINI_TIMEOUT_MS` counts as busy.
+- **Backoff:** an overloaded (503) or rate-limited (429) model is retried after about 2, 5 and 12 seconds, with jitter,
+  or after the wait the API asks for when it gives one.
+- **Circuit breaker:** a model that stays busy is skipped for 3 minutes and its backup from `MODEL_FALLBACKS`
+  (`packages/shared/src/models.ts`) is used straight away. The state is stored in `ai_model_health`, so every
+  Vercel instance skips it too.
+- **A queue, not an avalanche:** when an event closes, only `JUDGE_CONCURRENCY` submissions (2) are judged at a time,
+  counted across all instances. Each one that finishes starts the next; the scheduler tick also checks.
+- **Automatic retries:** if judging fails only because Gemini was busy, the submission goes back to the queue and
+  is tried again automatically after about 2 and then 6 minutes, up to 3 attempts. The history shows
+  "Will try again automatically at HH:MM". After the last attempt it stops with "Judge again".
+- **Thinking:** summaries ask for minimal thinking, the map and the scores for a medium amount.
 
 Each job keeps an activity log (`activity_json`) and the models that answered (`models_used`). The submission page
-shows the steps live, the models used, and for judging the model's own summary of its reasoning. Interview jobs
-never record that reasoning, since it would reveal the points the candidate is expected to mention.
+shows the whole history in a scrolling panel that follows the newest step while the job runs, with the models used
+and, for judging, the model's own summary of its reasoning. The event console shows the latest step of each
+submission and can unfold its history. Interview jobs never record that reasoning, since it would reveal the
+points the candidate is expected to mention.
+
+Not done yet: explicit context caching of the repository between the map and the score calls. The score call
+already receives only the compact map, so the shared part is small.
 
 ### Interview
 

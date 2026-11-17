@@ -1,8 +1,9 @@
-import { GoogleGenAI, type GenerateContentResponse, type Part } from '@google/genai';
+import { GoogleGenAI, ThinkingLevel, type GenerateContentResponse, type Part } from '@google/genai';
 import { MAX_THOUGHT_CHARS, estimateCostUsd, modelChain } from '@skillproof/shared';
 import { z } from 'zod';
 import { env } from '../env.js';
 import { currentActivity } from './activity.js';
+import { CircuitBreaker, Limiter, backoffMs, retryHintMs } from './aiLimiter.js';
 import { db } from './supabase.js';
 
 let textClient: GoogleGenAI | undefined;
@@ -12,6 +13,8 @@ let liveClient: GoogleGenAI | undefined;
 export function textAi(): GoogleGenAI {
   if (!textClient) {
     const e = env();
+    // A call that hangs is treated like a busy model: retried, then moved to the backup.
+    const httpOptions = { timeout: e.GEMINI_TIMEOUT_MS };
     textClient = e.USE_VERTEX
       ? new GoogleGenAI({
           vertexai: true,
@@ -19,8 +22,9 @@ export function textAi(): GoogleGenAI {
           location: e.GOOGLE_CLOUD_LOCATION,
           // On Vercel there is no gcloud login, so a service account key is passed in an environment variable.
           ...(e.GOOGLE_SERVICE_ACCOUNT_JSON ? { googleAuthOptions: { credentials: e.GOOGLE_SERVICE_ACCOUNT_JSON } } : {}),
+          httpOptions,
         })
-      : new GoogleGenAI({ apiKey: e.GEMINI_API_KEY });
+      : new GoogleGenAI({ apiKey: e.GEMINI_API_KEY, httpOptions });
   }
   return textClient;
 }
@@ -68,6 +72,9 @@ async function logUsage(ctx: UsageContext, model: string, usage: TokenUsage): Pr
   if (error) console.warn('usage_log insert failed:', error.message);
 }
 
+/** How hard the model thinks. Lower is faster, cheaper and less likely to hit capacity limits. */
+export type Effort = 'minimal' | 'low' | 'medium';
+
 export interface GenerateJsonArgs<S extends z.ZodType> {
   /** The preferred model. Its backups from MODEL_FALLBACKS are tried when it is overloaded. */
   model: string;
@@ -79,6 +86,8 @@ export interface GenerateJsonArgs<S extends z.ZodType> {
   maxOutputTokens?: number;
   /** Ask the model for a summary of its reasoning and add it to the job's activity log. Default true. */
   thoughts?: boolean;
+  /** Thinking depth. Default "low": enough for a structured answer from evidence that is given. */
+  effort?: Effort;
   /** A short name for this call in the activity log, like "Mapping the repository". */
   label?: string;
 }
@@ -100,7 +109,7 @@ export class AiUnavailableError extends Error {
   }
 }
 
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 function errorText(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
@@ -114,17 +123,44 @@ export function aiErrorStatus(err: unknown): number | null {
   return m ? Number(m[1]) : null;
 }
 
-/** Overloaded, rate limited or a dropped connection: worth retrying or switching model. */
+/** Overloaded, rate limited, timed out or a dropped connection: worth retrying or switching model. */
 export function isTransientAiError(err: unknown): boolean {
   const status = aiErrorStatus(err);
   if (status && [408, 429, 500, 502, 503, 504].includes(status)) return true;
-  return /UNAVAILABLE|RESOURCE_EXHAUSTED|DEADLINE_EXCEEDED|overloaded|high demand|fetch failed|ECONNRESET|ETIMEDOUT|socket hang up/i.test(
+  return /UNAVAILABLE|RESOURCE_EXHAUSTED|DEADLINE_EXCEEDED|overloaded|high demand|fetch failed|ECONNRESET|ETIMEDOUT|socket hang up|timed out|aborted/i.test(
     errorText(err),
   );
 }
 
-// Models that rejected thought summaries together with a JSON schema. Asked without them from then on.
-const noThoughts = new Set<string>();
+// ---- guards shared by every call in this process ----
+
+const limiter = new Limiter(
+  () => env().GEMINI_CONCURRENCY,
+  () => env().GEMINI_MIN_GAP_MS,
+);
+
+/** Skips models that stayed overloaded. Shared between instances through the ai_model_health table. */
+export const breaker = new CircuitBreaker({
+  async load() {
+    const { data, error } = await db()
+      .from('ai_model_health')
+      .select('model, unavailable_until')
+      .gt('unavailable_until', new Date().toISOString());
+    if (error) throw new Error(error.message);
+    return (data as { model: string; unavailable_until: string }[]).map((r) => ({ model: r.model, until: Date.parse(r.unavailable_until) }));
+  },
+  async save(model, until, reason) {
+    const { error } = await db()
+      .from('ai_model_health')
+      .upsert({ model, unavailable_until: new Date(until).toISOString(), reason, updated_at: new Date().toISOString() });
+    if (error) throw new Error(error.message);
+  },
+});
+
+// Models that rejected a thinking setting. Asked without it from then on.
+const noThinkingConfig = new Set<string>();
+
+const LEVEL: Record<Effort, ThinkingLevel> = { minimal: ThinkingLevel.MINIMAL, low: ThinkingLevel.LOW, medium: ThinkingLevel.MEDIUM };
 
 function collectThoughts(res: GenerateContentResponse): string {
   const parts = res.candidates?.[0]?.content?.parts ?? [];
@@ -134,63 +170,96 @@ function collectThoughts(res: GenerateContentResponse): string {
     .join('\n\n');
 }
 
+/** The answer without the reasoning parts. */
+function answerText(res: GenerateContentResponse): string {
+  const parts = res.candidates?.[0]?.content?.parts ?? [];
+  const text = parts
+    .filter((p) => !p.thought && p.text)
+    .map((p) => p.text)
+    .join('');
+  return text || res.text || '';
+}
+
+export const clockUtc = (ms: number) =>
+  `${new Date(ms).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })} UTC`;
+
 /**
  * Calls Gemini with a JSON schema and validates the answer with the same zod schema.
+ *
+ * Every call goes through one limiter per process: GEMINI_CONCURRENCY calls at a time, GEMINI_MIN_GAP_MS apart.
  * - A malformed answer is asked again once on the same model.
- * - An overloaded model (503) is retried once after a short wait, then the next backup model is tried.
- *   A rate limit (429) moves straight to the next model, since each model has its own quota.
- * - When a job activity log is active, retries, model switches and the model's reasoning summary are written to it.
+ * - An overloaded or rate-limited model is retried after about 2, 5 and 12 seconds (with jitter, or the wait the
+ *   API asks for). If it is still busy it is skipped for a few minutes, by every instance, and the backup is used.
+ * - When a job activity log is active, waits, retries, model switches and the model's reasoning summary go to it.
  */
 export async function generateJson<S extends z.ZodType>(args: GenerateJsonArgs<S>): Promise<GenerateJsonResult<z.infer<S>>> {
   const activity = currentActivity();
-  const chain = modelChain(args.model);
+  const { models: chain, skipped } = await breaker.order(modelChain(args.model));
+  if (skipped.length)
+    await activity?.add('fallback', `${skipped.join(' and ')} was overloaded a few minutes ago, so this goes straight to ${chain[0]}.`, chain[0]);
+  if (limiter.running >= env().GEMINI_CONCURRENCY)
+    await activity?.add('step', `Waiting for a free AI slot: ${limiter.queued + 1} call${limiter.queued ? 's' : ''} ahead on this server.`);
   let lastError: unknown;
 
   for (const [index, model] of chain.entries()) {
-    if (index > 0) await activity?.add('fallback', `${chain[index - 1]} is busy. Switching to the backup model ${model}.`, model);
+    if (index > 0) await activity?.add('fallback', `Switching to the backup model ${model}.`, model);
     const total: TokenUsage = { inputTokens: 0, outputTokens: 0 };
     let malformed = 0;
-    let busyRetries = 0;
+    let busy = 0;
 
     while (true) {
-      const wantThoughts = (args.thoughts ?? true) && !!activity?.allowThoughts && !noThoughts.has(model);
+      const wantThoughts = (args.thoughts ?? true) && !!activity?.allowThoughts;
+      const thinking = noThinkingConfig.has(model)
+        ? undefined
+        : { thinkingLevel: LEVEL[args.effort ?? 'low'], ...(wantThoughts ? { includeThoughts: true } : {}) };
       let res: GenerateContentResponse;
       try {
-        res = await textAi().models.generateContent({
-          model,
-          contents: [{ role: 'user', parts: args.parts }],
-          config: {
-            systemInstruction: args.system,
-            temperature: args.temperature ?? 0.2,
-            maxOutputTokens: args.maxOutputTokens ?? 16_000,
-            responseMimeType: 'application/json',
-            responseJsonSchema: z.toJSONSchema(args.schema),
-            ...(wantThoughts ? { thinkingConfig: { includeThoughts: true } } : {}),
-          },
-        });
+        res = await limiter.run(() =>
+          textAi().models.generateContent({
+            model,
+            contents: [{ role: 'user', parts: args.parts }],
+            config: {
+              systemInstruction: args.system,
+              temperature: args.temperature ?? 0.2,
+              maxOutputTokens: args.maxOutputTokens ?? 8_000,
+              responseMimeType: 'application/json',
+              responseJsonSchema: z.toJSONSchema(args.schema),
+              ...(thinking ? { thinkingConfig: thinking } : {}),
+            },
+          }),
+        );
       } catch (err) {
         lastError = err;
-        if (wantThoughts && aiErrorStatus(err) === 400 && /thought|thinking/i.test(errorText(err))) {
-          noThoughts.add(model);
+        if (thinking && aiErrorStatus(err) === 400 && /thought|thinking/i.test(errorText(err))) {
+          noThinkingConfig.add(model);
           continue;
         }
         if (!isTransientAiError(err)) throw err;
         const status = aiErrorStatus(err);
-        if (status !== 429 && busyRetries < 1) {
-          busyRetries++;
-          await activity?.add('retry', `${model} is busy right now${status ? ` (${status})` : ''}. Trying again in a few seconds.`, model);
-          await sleep(4000);
+        const wait = backoffMs(busy, retryHintMs(err));
+        if (wait != null) {
+          busy++;
+          await activity?.add(
+            'retry',
+            `${model} is busy right now${status ? ` (${status})` : ''}. Waiting ${Math.round(wait / 1000)} s before try ${busy + 1}.`,
+            model,
+          );
+          await sleep(wait);
           continue;
         }
+        await breaker.trip(model, `${status ?? 'error'}: ${errorText(err).slice(0, 200)}`);
+        const until = breaker.openUntilTime(model);
+        await activity?.add('retry', `${model} stayed busy after ${busy + 1} tries, so it is skipped${until ? ` until ${clockUtc(until)}` : ''}.`, model);
         break; // next model
       }
 
       total.inputTokens += res.usageMetadata?.promptTokenCount ?? 0;
       total.outputTokens += (res.usageMetadata?.candidatesTokenCount ?? 0) + (res.usageMetadata?.thoughtsTokenCount ?? 0);
       try {
-        const parsed = args.schema.safeParse(JSON.parse(res.text ?? ''));
+        const parsed = args.schema.safeParse(JSON.parse(answerText(res)));
         if (parsed.success) {
           await logUsage(args.usage, model, total);
+          await breaker.reset(model);
           const thought = wantThoughts ? collectThoughts(res) : '';
           if (thought) await activity?.add('thought', thought.slice(0, MAX_THOUGHT_CHARS), model);
           await activity?.usedModel(model);

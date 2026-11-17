@@ -14,4 +14,4 @@ export interface ActivityEntry {
 /** Longest thought summary kept per call, so the log stays small. */
 export const MAX_THOUGHT_CHARS = 1500;
 /** Most entries kept per job. */
-export const MAX_ACTIVITY_ENTRIES = 80;
+export const MAX_ACTIVITY_ENTRIES = 150;
