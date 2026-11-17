@@ -1,8 +1,10 @@
-import { weightedTotal, type CommitProfile, type RepoMap, type Rubric } from '@skillproof/shared';
+import { weightedTotal, type ActivityEntry, type CommitProfile, type RepoMap, type Rubric } from '@skillproof/shared';
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { AiActivity, ModelsUsed } from '../../components/AiActivity';
 import { one } from '../../components/Report';
-import { Badge, Card, Notice, PageState, Select, formatDate, scoreTone } from '../../components/ui';
+import { useToast } from '../../components/toast';
+import { Badge, Button, Card, Notice, PageState, Select, Spinner, formatDate, scoreTone } from '../../components/ui';
 import { api, errorMessage } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
 import type { Feedback, ScoreView, VersionView } from '../../lib/types';
@@ -10,6 +12,7 @@ import { useLoad } from '../../lib/useLoad';
 
 interface Analysis {
   commit_sha: string;
+  model: string | null;
   map_json: RepoMap;
   commit_profile_json: CommitProfile | null;
   file_count: number;
@@ -21,6 +24,8 @@ interface DetailResponse {
     team_name: string;
     status: string;
     error: string | null;
+    activity_json: ActivityEntry[] | null;
+    models_used: string[] | null;
     locked_commit_sha: string | null;
     locked_at: string | null;
     events: { id: string; name: string; rubric_json: Rubric; status: string };
@@ -41,17 +46,17 @@ function ScoreRow({ score, criterion, repoUrl, sha, canOverride, onSaved }: {
   onSaved: () => void;
 }) {
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const toast = useToast();
   const effective = score.override_score ?? score.ai_score;
 
   async function save(value: string) {
     setBusy(true);
-    setError(null);
     try {
       await api(`/api/scores/${score.id}`, { method: 'PATCH', body: { override_score: value === '' ? null : Number(value) } });
+      toast.success(value === '' ? 'Back to the AI score.' : `Score changed to ${value}. The total is updated.`);
       onSaved();
     } catch (err) {
-      setError(errorMessage(err));
+      toast.error(`The score was not saved. ${errorMessage(err)}`);
     } finally {
       setBusy(false);
     }
@@ -90,7 +95,6 @@ function ScoreRow({ score, criterion, repoUrl, sha, canOverride, onSaved }: {
           </Select>
         </label>
       )}
-      {error && <div className="mt-2"><Notice tone="error">{error}</Notice></div>}
     </li>
   );
 }
@@ -98,9 +102,27 @@ function ScoreRow({ score, criterion, repoUrl, sha, canOverride, onSaved }: {
 export function SubmissionDetail() {
   const { id, sid } = useParams();
   const { org } = useAuth();
-  const { data, error, loading, reload } = useLoad<DetailResponse>(`/api/submissions/${sid}`);
+  const toast = useToast();
+  const [rejudging, setRejudging] = useState(false);
+  const { data, error, loading, reload } = useLoad<DetailResponse>(
+    `/api/submissions/${sid}`,
+    (d) => d.submission.status === 'queued' || d.submission.status === 'analyzing',
+  );
   if (!data) return <PageState loading={loading} error={error} />;
   const { submission: sub, scores, feedback } = data;
+
+  async function rejudge() {
+    setRejudging(true);
+    try {
+      await api(`/api/submissions/${sub.id}/rejudge`, { method: 'POST' });
+      toast.success('Judging again. The steps appear below as the AI works.');
+      await reload();
+    } catch (err) {
+      toast.error(errorMessage(err));
+    } finally {
+      setRejudging(false);
+    }
+  }
   const rubric = sub.events.rubric_json;
   const analysis = one(sub.repo_analyses);
   const versions = [...sub.submission_versions].sort((a, b) => b.version_no - a.version_no);
@@ -112,6 +134,9 @@ export function SubmissionDetail() {
   const ordered = rubric.flatMap((c) => scores.filter((s) => s.criterion_key === c.key));
   const map = analysis?.map_json;
   const commits = analysis?.commit_profile_json;
+  const activity = sub.activity_json ?? [];
+  const working = sub.status === 'queued' || sub.status === 'analyzing';
+  const models = sub.models_used?.length ? sub.models_used : analysis?.model ? [analysis.model] : [];
 
   return (
     <div className="space-y-6">
@@ -128,13 +153,52 @@ export function SubmissionDetail() {
         </p>
       </header>
 
-      {sub.status === 'error' && <Notice tone="error">{sub.error || 'This submission could not be judged.'}</Notice>}
+      {sub.status === 'error' && (
+        <Notice tone="error">
+          <span className="flex flex-wrap items-center gap-3">
+            <span className="flex-1">{sub.error || 'This submission could not be judged.'}</span>
+            {sha && (
+              <Button variant="secondary" disabled={rejudging} onClick={() => void rejudge()}>
+                {rejudging ? 'Queuing…' : 'Judge again'}
+              </Button>
+            )}
+          </span>
+        </Notice>
+      )}
       {!sha && <Notice>This submission is judged when the event closes. Until then the participant can still send new versions.</Notice>}
       {data.interview && (
         <Notice>
           This participant {data.interview.status === 'completed' ? 'completed' : 'started'} a voice interview about this code.{' '}
           <Link to={`/interview/${data.interview.id}`} className="font-medium underline">Open the interview</Link>
         </Notice>
+      )}
+
+      {(activity.length > 0 || working || models.length > 0) && (
+        <Card className="space-y-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <h2 className="text-lg font-semibold">How the AI judged it</h2>
+            {working && <Spinner label={sub.status === 'queued' ? 'Waiting to start' : 'Working'} />}
+          </div>
+          {models.length > 0 && (
+            <p className="flex flex-wrap items-center gap-2 text-sm">
+              <span className="text-muted">Models used:</span>
+              <ModelsUsed models={models} />
+            </p>
+          )}
+          {activity.length > 0 ? (
+            <details open={working || sub.status === 'error'}>
+              <summary className="cursor-pointer text-sm font-medium">
+                {activity.filter((a) => a.kind !== 'thought').length} steps
+                {activity.some((a) => a.kind === 'thought') && ', with the AI\'s reasoning'}
+              </summary>
+              <div className="mt-3">
+                <AiActivity entries={activity} live={working} />
+              </div>
+            </details>
+          ) : (
+            working && <p className="text-sm text-muted">The steps appear here as the AI works. This page updates on its own.</p>
+          )}
+        </Card>
       )}
 
       {ordered.length > 0 && (

@@ -160,6 +160,17 @@ Jobs run inside the API process by default. Set `TASKS_QUEUE` to run them on Clo
 Scheduler job at `POST /internal/tick` every minute with the `x-internal-secret` header so deadlines are
 picked up while no one has the site open.
 
+### When Gemini is busy
+
+Every Gemini call that returns JSON goes through one helper. An overloaded model (503) is asked again once after
+a few seconds, and then the next model in `MODEL_FALLBACKS` (`packages/shared/src/models.ts`) is tried. A rate limit
+(429) moves straight to the next model. If every model fails, the job stores a plain sentence for the user, and the
+technical detail goes to the activity log.
+
+Each job keeps an activity log (`activity_json`) and the models that answered (`models_used`). The submission page
+shows the steps live, the models used, and for judging the model's own summary of its reasoning. Interview jobs
+never record that reasoning, since it would reveal the points the candidate is expected to mention.
+
 ### Interview
 
 The API writes a question plan from the repository, with the points a real author would mention. Those

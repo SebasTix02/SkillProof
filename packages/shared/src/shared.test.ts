@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import {
   CreateEventSchema, DEFAULT_RUBRIC, RepoMapSchema, RubricSchema, SubmitSchema, parseGithubUrl,
-  pruneUnknownPaths, submissionsLeft, weightedTotal, type RepoMap,
+  MODELS, modelChain, pruneUnknownPaths, submissionsLeft, weightedTotal, type RepoMap,
 } from './index.js';
 
 describe('rubric', () => {
@@ -75,5 +75,15 @@ describe('repo map', () => {
     const js = z.toJSONSchema(RepoMapSchema) as { type: string; required: string[] };
     expect(js.type).toBe('object');
     expect(js.required).toContain('interview_hooks');
+  });
+});
+
+describe('model fallbacks', () => {
+  it('tries the main model first, then its backups, never twice', () => {
+    const chain = modelChain(MODELS.analysis);
+    expect(chain[0]).toBe(MODELS.analysis);
+    expect(chain.length).toBeGreaterThan(1);
+    expect(new Set(chain).size).toBe(chain.length);
+    expect(modelChain('unknown-model')).toEqual(['unknown-model']);
   });
 });

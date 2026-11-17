@@ -127,7 +127,10 @@ export async function interviewRoutes(app: FastifyInstance): Promise<void> {
         summary: analysis?.map_json.summary ?? null,
         stack: analysis?.map_json.stack ?? null,
         is_owner: owner,
+        models_used: row.models_used ?? [],
       },
+      // Steps only: interview jobs never record the model's reasoning, which would reveal the answer key.
+      activity: (row.activity_json ?? []).filter((a) => a.kind !== 'thought'),
       seconds: INTERVIEW_SECONDS,
       // The answer key never leaves the server.
       questions: plan ? publicQuestions(plan, hooks) : [],

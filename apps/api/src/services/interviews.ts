@@ -1,10 +1,13 @@
 import { Modality, Type, type FunctionDeclaration } from '@google/genai';
 import {
   INTERVIEW_SECONDS, InterviewReportSchema, MODELS, QuestionPlanSchema,
-  type PlannedQuestion, type PublicQuestion, type QuestionPlan, type TranscriptEntry,
+  type ActivityEntry, type PlannedQuestion, type PublicQuestion, type QuestionPlan, type TranscriptEntry,
 } from '@skillproof/shared';
 import { analyzeRepo, type AnalysisRow, type HookSnippet, type RepoRow } from '../engine/analyze.js';
-import { UNTRUSTED_NOTICE, generateJson, liveAi } from '../lib/gemini.js';
+import { Activity, withActivity } from '../lib/activity.js';
+import { badRequest } from '../lib/errors.js';
+import { UNTRUSTED_NOTICE, generateJson, isTransientAiError, liveAi, AiUnavailableError } from '../lib/gemini.js';
+import { friendlyJobError, technicalDetail } from '../lib/jobErrors.js';
 import { db, must } from '../lib/supabase.js';
 
 export interface InterviewRow {
@@ -18,6 +21,8 @@ export interface InterviewRow {
   status: 'preparing' | 'ready' | 'in_progress' | 'evaluating' | 'completed' | 'error';
   error: string | null;
   started_at: string | null;
+  activity_json?: ActivityEntry[];
+  models_used?: string[];
   duration_s: number | null;
   created_at: string;
 }
@@ -50,8 +55,6 @@ Rules:
 
 ${UNTRUSTED_NOTICE}`;
 
-const short = (err: unknown) => (err instanceof Error ? err.message : String(err)).slice(0, 500);
-
 /** Builds the question plan for an interview. Runs as a background job right after the interview is created. */
 export async function prepareInterview(interviewId: string): Promise<void> {
   const row = must(
@@ -59,30 +62,37 @@ export async function prepareInterview(interviewId: string): Promise<void> {
   ) as (InterviewRow & { repos: RepoRow; submissions: { locked_commit_sha: string | null; analysis_id: string | null } | null }) | null;
   if (!row || row.status !== 'preparing') return;
   const usage = { kind: 'interview', organizationId: row.organization_id, userId: row.user_id };
+  // The candidate reads this log, so it never includes the model's reasoning: that would reveal the answer key.
+  const activity = new Activity('interviews', row.id, false);
   try {
-    // An event interview is about the exact commit that was judged.
-    const { analysis } = await analyzeRepo(row.repos.owner, row.repos.name, {
-      sha: row.submissions?.locked_commit_sha ?? undefined,
-      usage,
-    });
-    if (analysis.hooks_json.length < 3) throw new Error('There is not enough code in this repository to ask about.');
+    await withActivity(activity, async () => {
+      // An event interview is about the exact commit that was judged.
+      const { analysis } = await analyzeRepo(row.repos.owner, row.repos.name, {
+        sha: row.submissions?.locked_commit_sha ?? undefined,
+        usage,
+      });
+      if (analysis.hooks_json.length < 3) throw badRequest('repo_too_small', 'There is not enough code in this repository to ask about.');
 
-    const { data } = await generateJson({
-      model: MODELS.analysis,
-      schema: QuestionPlanSchema,
-      system: PLAN_SYSTEM,
-      parts: [{ text: planPrompt(analysis) }],
-      usage: { ...usage, kind: 'interview_plan' },
-      temperature: 0.6,
-    });
-    const plan = alignPlan(data, analysis.hooks_json);
-    if (plan.questions.length < 3) throw new Error('Could not build enough questions from this repository.');
+      await activity.step('Choosing the parts of your code worth asking about and writing the questions.', MODELS.analysis);
+      const { data } = await generateJson({
+        model: MODELS.analysis,
+        schema: QuestionPlanSchema,
+        system: PLAN_SYSTEM,
+        parts: [{ text: planPrompt(analysis) }],
+        usage: { ...usage, kind: 'interview_plan' },
+        temperature: 0.6,
+      });
+      const plan = alignPlan(data, analysis.hooks_json);
+      if (plan.questions.length < 3) throw badRequest('repo_too_small', 'Could not build enough questions from this repository.');
 
-    must(await db().from('interview_plans').upsert({ interview_id: row.id, plan_json: plan }));
-    must(await db().from('interviews').update({ status: 'ready', analysis_id: analysis.id, error: null }).eq('id', row.id));
+      must(await db().from('interview_plans').upsert({ interview_id: row.id, plan_json: plan }));
+      must(await db().from('interviews').update({ status: 'ready', analysis_id: analysis.id, error: null }).eq('id', row.id));
+      await activity.add('done', `Ready: ${plan.questions.length} questions about your code.`);
+    });
   } catch (err) {
     console.error(`Preparing interview ${interviewId} failed:`, err);
-    must(await db().from('interviews').update({ status: 'error', error: short(err) }).eq('id', interviewId));
+    await activity.add('error', err instanceof AiUnavailableError ? 'Gemini was overloaded.' : 'Preparation failed.');
+    must(await db().from('interviews').update({ status: 'error', error: friendlyJobError(err, 'prepare') }).eq('id', interviewId));
   }
 }
 
@@ -191,31 +201,48 @@ export async function createLiveToken(plan: QuestionPlan, repoName: string): Pro
 export async function evaluateInterview(interviewId: string): Promise<void> {
   const row = must(await db().from('interviews').select('*').eq('id', interviewId).maybeSingle()) as InterviewRow | null;
   if (!row || row.status !== 'evaluating') return;
+  const activity = new Activity('interviews', row.id, false);
   try {
-    const planRow = must(await db().from('interview_plans').select('plan_json').eq('interview_id', row.id).single()) as { plan_json: QuestionPlan };
-    const transcript = (row.transcript_json ?? [])
-      .map((t) => `${t.role === 'interviewer' ? 'INTERVIEWER' : 'CANDIDATE'}: ${t.text}`)
-      .join('\n');
-    const key = planRow.plan_json.questions
-      .map((q) => `${q.id} (${q.skill}): ${q.question}\n  Expected: ${q.expected_points.join('; ')}`)
-      .join('\n');
-    const { data } = await generateJson({
-      model: MODELS.analysis,
-      schema: InterviewReportSchema,
-      system: REPORT_SYSTEM,
-      parts: [{ text: `Questions and answer key:\n${key}\n\nInterview length: ${row.duration_s ?? 0} seconds.\n\n<transcript>\n${transcript || '(the candidate said nothing)'}\n</transcript>` }],
-      usage: { kind: 'interview_report', organizationId: row.organization_id, userId: row.user_id },
-      temperature: 0.1,
+    await withActivity(activity, async () => {
+      await activity.step('Comparing your answers with what the author of this code would know.', MODELS.analysis);
+      const planRow = must(await db().from('interview_plans').select('plan_json').eq('interview_id', row.id).single()) as { plan_json: QuestionPlan };
+      const transcript = (row.transcript_json ?? [])
+        .map((t) => `${t.role === 'interviewer' ? 'INTERVIEWER' : 'CANDIDATE'}: ${t.text}`)
+        .join('\n');
+      const key = planRow.plan_json.questions
+        .map((q) => `${q.id} (${q.skill}): ${q.question}\n  Expected: ${q.expected_points.join('; ')}`)
+        .join('\n');
+      const { data } = await generateJson({
+        model: MODELS.analysis,
+        schema: InterviewReportSchema,
+        system: REPORT_SYSTEM,
+        parts: [{ text: `Questions and answer key:\n${key}\n\nInterview length: ${row.duration_s ?? 0} seconds.\n\n<transcript>\n${transcript || '(the candidate said nothing)'}\n</transcript>` }],
+        usage: { kind: 'interview_report', organizationId: row.organization_id, userId: row.user_id },
+        temperature: 0.1,
+      });
+      must(
+        await db().from('interview_reports').upsert(
+          { interview_id: row.id, skills_json: data.skills, ownership_score: data.ownership_score, confidence: data.confidence, summary: data.summary },
+          { onConflict: 'interview_id' },
+        ),
+      );
+      must(await db().from('interviews').update({ status: 'completed', error: null }).eq('id', row.id));
+      await activity.add('done', `Report ready: ${data.skills.length} skills assessed.`);
     });
-    must(
-      await db().from('interview_reports').upsert(
-        { interview_id: row.id, skills_json: data.skills, ownership_score: data.ownership_score, confidence: data.confidence, summary: data.summary },
-        { onConflict: 'interview_id' },
-      ),
-    );
-    must(await db().from('interviews').update({ status: 'completed', error: null }).eq('id', row.id));
   } catch (err) {
     console.error(`Evaluating interview ${interviewId} failed:`, err);
-    must(await db().from('interviews').update({ status: 'error', error: short(err) }).eq('id', interviewId));
+    if (isTransientAiError(err) || err instanceof AiUnavailableError) {
+      // The transcript is saved. Leaving the interview in "evaluating" lets the scheduler write the report later.
+      await activity.add('retry', 'Gemini is overloaded. The report will be written automatically in a few minutes.');
+      must(
+        await db()
+          .from('interviews')
+          .update({ error: `${friendlyJobError(err, 'evaluate')} The report will be written automatically in a few minutes.` })
+          .eq('id', interviewId),
+      );
+      return;
+    }
+    await activity.add('error', technicalDetail(err));
+    must(await db().from('interviews').update({ status: 'error', error: friendlyJobError(err, 'evaluate') }).eq('id', interviewId));
   }
 }

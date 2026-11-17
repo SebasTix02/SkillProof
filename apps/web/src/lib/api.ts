@@ -34,4 +34,16 @@ export async function api<T = unknown>(path: string, options: { method?: string;
   return json as T;
 }
 
-export const errorMessage = (err: unknown): string => (err instanceof Error ? err.message : 'Something went wrong.');
+/** A sentence a person can act on, never a raw status code or JSON. */
+export function errorMessage(err: unknown): string {
+  if (err instanceof ApiError) {
+    if (err.status === 401) return 'Your session has ended. Log in again to continue.';
+    if (err.status === 403 && err.code === 'forbidden') return err.message || 'You do not have permission to do that.';
+    if (err.status === 429) return 'Too many requests at once. Wait a moment and try again.';
+    if (err.status >= 500 && err.code === 'internal') return 'Something went wrong on our side. Try again in a moment.';
+    if (err.status === 502 || err.status === 503 || err.status === 504) return 'The server is busy right now. Try again in a moment.';
+    return err.message;
+  }
+  if (err instanceof Error && err.message && !err.message.trim().startsWith('{')) return err.message;
+  return 'Something went wrong. Try again in a moment.';
+}

@@ -1,7 +1,8 @@
 import { GoogleGenAI, Modality, type LiveServerMessage, type Session } from '@google/genai';
-import type { PublicQuestion, TranscriptEntry } from '@skillproof/shared';
+import type { ActivityEntry, PublicQuestion, TranscriptEntry } from '@skillproof/shared';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { AiActivity, ModelsUsed } from '../components/AiActivity';
 import { Report, type ReportView } from '../components/Report';
 import { Badge, Button, Card, Notice, PageState, Spinner, linkButtonSecondary } from '../components/ui';
 import { api, errorMessage } from '../lib/api';
@@ -19,7 +20,9 @@ interface InterviewResponse {
     commit_sha: string | null;
     summary: string | null;
     is_owner: boolean;
+    models_used?: string[];
   };
+  activity?: ActivityEntry[];
   seconds: number;
   questions: PublicQuestion[];
   transcript: TranscriptEntry[] | null;
@@ -267,6 +270,7 @@ export function InterviewPage() {
   );
   if (!data) return <PageState loading={loading} error={error} />;
   const { interview } = data;
+  const activity = data.activity ?? [];
   const profile = me?.public_profile;
 
   return (
@@ -280,9 +284,12 @@ export function InterviewPage() {
       </header>
 
       {interview.status === 'preparing' && (
-        <Card className="text-center">
-          <Spinner label="Reading the repository and preparing your questions" />
-          <p className="mt-2 text-sm text-muted">This takes about a minute. You can leave this page open.</p>
+        <Card className="space-y-4">
+          <div className="text-center">
+            <Spinner label="Reading the repository and preparing your questions" />
+            <p className="mt-2 text-sm text-muted">This takes about a minute. You can leave this page open.</p>
+          </div>
+          {activity.length > 0 && <AiActivity entries={activity} live />}
         </Card>
       )}
 
@@ -297,9 +304,13 @@ export function InterviewPage() {
         (interview.is_owner ? <Room data={data} onChanged={reload} /> : <Notice>The candidate has not finished this interview yet.</Notice>)}
 
       {interview.status === 'evaluating' && (
-        <Card className="text-center">
-          <Spinner label="Writing the report" />
-          <p className="mt-2 text-sm text-muted">Usually under a minute.</p>
+        <Card className="space-y-4">
+          <div className="text-center">
+            <Spinner label="Writing the report" />
+            <p className="mt-2 text-sm text-muted">Usually under a minute.</p>
+          </div>
+          {interview.error && <Notice tone="warn">{interview.error}</Notice>}
+          {activity.length > 0 && <AiActivity entries={activity} live />}
         </Card>
       )}
 
@@ -308,6 +319,11 @@ export function InterviewPage() {
           <Card>
             <h2 className="mb-4 text-lg font-semibold">Skills report</h2>
             <Report report={data.report} />
+            {interview.models_used && interview.models_used.length > 0 && (
+              <p className="mt-4 flex flex-wrap items-center gap-2 border-t border-line pt-3 text-xs text-muted">
+                Written with <ModelsUsed models={interview.models_used} />
+              </p>
+            )}
           </Card>
           {interview.is_owner && profile && (
             <Notice tone={profile.is_public ? 'good' : 'info'}>

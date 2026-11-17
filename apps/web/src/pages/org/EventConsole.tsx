@@ -1,5 +1,8 @@
 import { useState, type ChangeEvent } from 'react';
+import type { ActivityEntry } from '@skillproof/shared';
 import { Link, useParams } from 'react-router-dom';
+import { modelName } from '../../components/AiActivity';
+import { useToast } from '../../components/toast';
 import { Badge, Button, Card, Notice, PageState, Spinner, Textarea, formatDate, scoreTone } from '../../components/ui';
 import { api, errorMessage } from '../../lib/api';
 import { STATUS_LABEL, VISIBILITY_LABEL, type EventView, type RepoRef, type ScoreView } from '../../lib/types';
@@ -11,6 +14,8 @@ interface ConsoleSubmission {
   submitted_by_name: string;
   status: 'submitted' | 'queued' | 'analyzing' | 'scored' | 'error';
   error: string | null;
+  last_activity: ActivityEntry | null;
+  models_used: string[] | null;
   versions_used: number;
   locked_commit_sha: string | null;
   current_version: { repos: RepoRef } | null;
@@ -117,23 +122,23 @@ function Allowlist({ eventId }: { eventId: string }) {
 
 export function EventConsole() {
   const { id } = useParams();
-  const { data, error, loading, reload } = useLoad<ConsoleResponse>(`/api/events/${id}/console`, (d) => d.event.status === 'judging' || d.event.status === 'open', 5000);
+  const { data, error, loading, reload } = useLoad<ConsoleResponse>(`/api/events/${id}/console`, (d) => d.event.status === 'judging' || d.event.status === 'open' || d.submissions.some((s) => s.status === 'queued' || s.status === 'analyzing'), 5000);
   const [busy, setBusy] = useState<string | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
+  const toast = useToast();
   const [confirmClose, setConfirmClose] = useState(false);
   const [copied, setCopied] = useState(false);
   if (!data) return <PageState loading={loading} error={error} />;
   const { event, submissions } = data;
 
-  async function act(key: string, path: string) {
+  async function act(key: string, path: string, success: string) {
     setBusy(key);
-    setActionError(null);
     try {
       await api(path, { method: 'POST' });
       setConfirmClose(false);
+      toast.success(success);
       await reload();
     } catch (err) {
-      setActionError(errorMessage(err));
+      toast.error(errorMessage(err));
     } finally {
       setBusy(null);
     }
@@ -174,7 +179,7 @@ export function EventConsole() {
         {event.status === 'draft' && (
           <>
             <p className="text-sm">This event is a draft. Participants cannot see it yet.</p>
-            <Button disabled={!!busy} onClick={() => void act('open', `/api/events/${event.id}/open`)}>Open the event</Button>
+            <Button disabled={!!busy} onClick={() => void act('open', `/api/events/${event.id}/open`, 'The event is open. Share the link with participants.')}>Open the event</Button>
           </>
         )}
         {event.status === 'open' && (
@@ -188,7 +193,7 @@ export function EventConsole() {
             ) : (
               <div className="flex flex-wrap items-center gap-3">
                 <span className="text-sm">Close submissions now? This cannot be undone.</span>
-                <Button variant="danger" disabled={!!busy} onClick={() => void act('close', `/api/events/${event.id}/close`)}>
+                <Button variant="danger" disabled={!!busy} onClick={() => void act('close', `/api/events/${event.id}/close`, 'Submissions are closed. Judging has started.')}>
                   {busy === 'close' ? 'Closing…' : 'Yes, close and judge'}
                 </Button>
                 <Button variant="secondary" disabled={!!busy} onClick={() => setConfirmClose(false)}>Cancel</Button>
@@ -208,13 +213,12 @@ export function EventConsole() {
               Judging is finished{failed > 0 && `, and ${failed} submission${failed === 1 ? '' : 's'} failed`}. Review the scores, change any you disagree with, then publish.
               Participants see nothing until you do.
             </p>
-            <Button disabled={!!busy} onClick={() => void act('publish', `/api/events/${event.id}/publish`)}>
+            <Button disabled={!!busy} onClick={() => void act('publish', `/api/events/${event.id}/publish`, 'Results are published. Participants can see them now.')}>
               {busy === 'publish' ? 'Publishing…' : 'Publish results'}
             </Button>
           </>
         )}
         {event.status === 'published' && <p className="text-sm">Results were published {event.published_at && formatDate(event.published_at)}.</p>}
-        {actionError && <Notice tone="error">{actionError}</Notice>}
       </Card>
 
       {event.visibility === 'invite' && <Allowlist eventId={event.id} />}
@@ -273,6 +277,12 @@ export function EventConsole() {
                       <td className="px-4 py-3">
                         <Badge tone={s.status === 'scored' ? 'good' : s.status === 'error' ? 'bad' : 'neutral'}>{SUB_LABEL[s.status]}</Badge>
                         {s.status === 'error' && s.error && <div className="mt-1 max-w-xs text-xs text-bad">{s.error}</div>}
+                        {(s.status === 'queued' || s.status === 'analyzing') && s.last_activity && (
+                          <div className="mt-1 max-w-xs text-xs text-muted">{s.last_activity.text}</div>
+                        )}
+                        {s.status === 'scored' && s.models_used && s.models_used.length > 0 && (
+                          <div className="mt-1 text-xs text-muted">{s.models_used.map(modelName).join(', ')}</div>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-right">
                         {s.total != null ? <Badge tone={scoreTone(s.total, 100)}>{s.total.toFixed(1)}</Badge> : <span className="text-muted">–</span>}
@@ -284,7 +294,7 @@ export function EventConsole() {
                       )}
                       <td className="px-4 py-3 text-right">
                         {s.status === 'error' && s.locked_commit_sha && (
-                          <Button variant="secondary" disabled={!!busy} onClick={() => void act(`re-${s.id}`, `/api/submissions/${s.id}/rejudge`)}>
+                          <Button variant="secondary" disabled={!!busy} onClick={() => void act(`re-${s.id}`, `/api/submissions/${s.id}/rejudge`, `Judging ${s.team_name} again.`)}>
                             {busy === `re-${s.id}` ? 'Queuing…' : 'Judge again'}
                           </Button>
                         )}

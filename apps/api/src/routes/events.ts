@@ -1,6 +1,6 @@
 import {
   AllowlistSchema, CreateEventSchema, JoinEventSchema, OverrideScoreSchema, RubricSchema, SubmitSchema,
-  parseGithubUrl, submissionsLeft, weightedTotal, type Rubric,
+  parseGithubUrl, submissionsLeft, weightedTotal, type ActivityEntry, type Rubric,
 } from '@skillproof/shared';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
@@ -76,13 +76,14 @@ async function leaderboard(event: EventRow) {
     await db()
       .from('submissions')
       .select(
-        'id, team_name, submitted_by, status, error, versions_used, locked_commit_sha, locked_at, ' +
+        'id, team_name, submitted_by, status, error, versions_used, locked_commit_sha, locked_at, activity_json, models_used, ' +
           'current_version:submission_versions!submissions_current_version_fk(description, video_url, slides_url, repos(owner, name, url, is_fork, fork_parent))',
       )
       .eq('event_id', event.id),
   ) as unknown as {
     id: string; team_name: string; submitted_by: string; status: string; error: string | null; versions_used: number;
     locked_commit_sha: string | null; locked_at: string | null;
+    activity_json: ActivityEntry[]; models_used: string[];
     current_version: { description: string; video_url: string | null; slides_url: string | null; repos: Record<string, unknown> } | null;
   }[];
   const ids = subs.map((s) => s.id);
@@ -217,7 +218,12 @@ export async function eventRoutes(app: FastifyInstance): Promise<void> {
       event: publicEvent(event),
       rubric: board.rubric,
       participant_count: count ?? 0,
-      submissions: board.rows.map((r) => ({ ...r, submitted_by_name: profiles.find((p) => p.id === r.submitted_by)?.display_name ?? '' })),
+      submissions: board.rows.map(({ activity_json, ...r }) => ({
+        ...r,
+        // The full log, with the model's reasoning, is on the submission page. The table only needs the latest step.
+        last_activity: [...activity_json].reverse().find((a) => a.kind !== 'thought') ?? null,
+        submitted_by_name: profiles.find((p) => p.id === r.submitted_by)?.display_name ?? '',
+      })),
       similarity_flags: flags,
     };
   });
@@ -228,7 +234,7 @@ export async function eventRoutes(app: FastifyInstance): Promise<void> {
     const sub = must(
       await db()
         .from('submissions')
-        .select('*, events(id, name, slug, rubric_json, status), repo_analyses(commit_sha, map_json, commit_profile_json, file_count), submission_versions!submission_versions_submission_id_fkey(id, version_no, description, video_url, slides_url, created_at, repos(owner, name, url))')
+        .select('*, events(id, name, slug, rubric_json, status), repo_analyses(commit_sha, model, map_json, commit_profile_json, file_count), submission_versions!submission_versions_submission_id_fkey(id, version_no, description, video_url, slides_url, created_at, repos(owner, name, url))')
         .eq('id', id)
         .maybeSingle(),
     ) as (Record<string, unknown> & { organization_id: string }) | null;

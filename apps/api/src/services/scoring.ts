@@ -1,6 +1,7 @@
 import { MODELS, ScoreResultSchema, type Rubric, type ScoreResult } from '@skillproof/shared';
 import type { Part } from '@google/genai';
 import type { AnalysisRow } from '../engine/analyze.js';
+import { currentActivity } from '../lib/activity.js';
 import { UNTRUSTED_NOTICE, generateJson, type UsageContext } from '../lib/gemini.js';
 import { db, must } from '../lib/supabase.js';
 
@@ -58,6 +59,10 @@ Video: ${withVideo ? 'attached. It contains the demo and the pitch.' : 'none ava
 }
 
 async function runScoring(input: ScoreInput, withVideo: boolean): Promise<ScoreResult> {
+  await currentActivity()?.step(
+    `Scoring ${input.rubric.length} criteria against the rubric${withVideo ? ', watching the demo video for demo and pitch' : ''}.`,
+    MODELS.analysis,
+  );
   const { data } = await generateJson({
     model: MODELS.analysis,
     schema: ScoreResultSchema,
@@ -83,6 +88,7 @@ export async function scoreSubmission(input: ScoreInput): Promise<{ note: string
       // Private, removed or too long videos fail the whole call. The code is still worth scoring.
       console.warn(`Scoring with video failed for ${input.submissionId}:`, err);
       note = 'The video could not be read (it must be a public YouTube video), so demo and pitch were not scored.';
+      await currentActivity()?.step('The video could not be read, so the project is scored again from the code alone.');
       result = await runScoring(input, false);
     }
   } else {
