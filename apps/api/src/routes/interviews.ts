@@ -1,4 +1,4 @@
-import { CreateInterviewSchema, FinishInterviewSchema, INTERVIEW_SECONDS, parseGithubUrl, type QuestionPlan } from '@skillproof/shared';
+import { CreateInterviewSchema, FinishInterviewSchema, describeFocusEvents, INTERVIEW_SECONDS, parseGithubUrl, type QuestionPlan } from '@skillproof/shared';
 import type { FastifyInstance } from 'fastify';
 import { env } from '../env.js';
 import { resolveRepo, type HookSnippet } from '../engine/analyze.js';
@@ -6,7 +6,7 @@ import { memberOf, requirePermission, requireUser } from '../lib/auth.js';
 import { badRequest, conflict, forbidden, notFound, tooMany } from '../lib/errors.js';
 import { IdParams, parse } from '../lib/http.js';
 import { db, must } from '../lib/supabase.js';
-import { createLiveToken, publicQuestions, type InterviewRow } from '../services/interviews.js';
+import { answerKey, createLiveToken, publicQuestions, type InterviewRow } from '../services/interviews.js';
 import { primaryModels } from '../lib/models.js';
 import { enqueue } from '../services/queue.js';
 
@@ -109,7 +109,7 @@ export async function interviewRoutes(app: FastifyInstance): Promise<void> {
     const { plan, hooks } = ready ? await planAndHooks(row) : { plan: null, hooks: [] };
     const report =
       row.status === 'completed'
-        ? must(await db().from('interview_reports').select('skills_json, ownership_score, confidence, summary, created_at').eq('interview_id', row.id).maybeSingle())
+        ? must(await db().from('interview_reports').select('skills_json, ownership_score, confidence, summary, created_at, answers_json').eq('interview_id', row.id).maybeSingle())
         : null;
     const analysis = row.analysis_id
       ? (must(await db().from('repo_analyses').select('commit_sha, map_json').eq('id', row.analysis_id).single()) as { commit_sha: string; map_json: { summary: string; stack: unknown } })
@@ -138,6 +138,10 @@ export async function interviewRoutes(app: FastifyInstance): Promise<void> {
       questions: plan ? publicQuestions(plan, hooks) : [],
       transcript: row.status === 'completed' ? row.transcript_json : null,
       report,
+      // What a strong answer covered: only after the interview is completed, for the candidate and the organizers.
+      answer_key: answerKey(row.status, plan),
+      focus_events: row.status === 'completed' ? (row.focus_events_json ?? []) : [],
+      focus_summary: row.status === 'completed' ? describeFocusEvents(row.focus_events_json ?? []) : null,
     };
   });
 
@@ -170,7 +174,7 @@ export async function interviewRoutes(app: FastifyInstance): Promise<void> {
     const claimed = must(
       await db()
         .from('interviews')
-        .update({ status: 'evaluating', transcript_json: input.transcript, duration_s: Math.min(input.duration_s, elapsed) })
+        .update({ status: 'evaluating', transcript_json: input.transcript, duration_s: Math.min(input.duration_s, elapsed), focus_events_json: input.focus_events })
         .eq('id', row.id)
         .eq('status', 'in_progress')
         .select('id'),

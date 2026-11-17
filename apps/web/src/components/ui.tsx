@@ -142,7 +142,7 @@ export function Layout({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen bg-paper text-ink">
-      <header className="sticky top-0 z-50 h-14 border-b border-line bg-white">
+      <header className="no-print sticky top-0 z-50 h-14 border-b border-line bg-white">
         <div className="mx-auto flex h-full max-w-[1240px] items-center justify-between gap-4 px-4 sm:px-6">
           <div className="flex items-center gap-3 sm:gap-4">
             <Link to="/" className="group flex items-center gap-2.5">

@@ -89,8 +89,12 @@ select pg_temp.check_eq('student sees his own enrolment', (select count(*) from 
 select pg_temp.check_eq('student does not see integrity decisions', (select count(*) from public.integrity_decisions), 0);
 select pg_temp.check_eq('student does not see judge reviews', (select count(*) from public.judge_reviews), 0);
 
+select pg_temp.check_raises('answer coverage is not selectable', 'select answers_json from public.interview_reports', 'permission denied');
+select pg_temp.check_raises('focus events are not exposed through reports', 'select focus_events_json from public.interview_reports', 'does not exist');
+
 set role anon;
 select pg_temp.act_as(null);
+select pg_temp.check_eq('anon still reads public report scores', (select count(*) from (select ownership_score from public.interview_reports) r), 1);
 select pg_temp.check_raises('anon cannot read courses', 'select count(*) from public.courses', 'permission denied');
 reset role;
 \echo ALL SCREEN CHECKS PASSED

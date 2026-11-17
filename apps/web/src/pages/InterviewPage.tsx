@@ -1,8 +1,10 @@
 import { GoogleGenAI, Modality, type LiveServerMessage, type Session } from '@google/genai';
-import type { ActivityEntry, PublicQuestion, TranscriptEntry } from '@skillproof/shared';
+import type { ActivityEntry, FocusEvent as ExamFocusEvent, PublicQuestion, TranscriptEntry } from '@skillproof/shared';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { AiActivity, ModelsUsed } from '../components/AiActivity';
+import { AnswerKey, type AnswerCoverage, type AnswerKeyQuestion } from '../components/AnswerKey';
+import { PrintMasthead } from '../components/PrintMasthead';
 import { Report, type ReportView } from '../components/Report';
 import {
   Button,
@@ -47,7 +49,10 @@ interface InterviewResponse {
   seconds: number;
   questions: PublicQuestion[];
   transcript: TranscriptEntry[] | null;
-  report: ReportView | null;
+  report: (ReportView & { answers_json?: AnswerCoverage[] }) | null;
+  /** Only once completed. */
+  answer_key?: AnswerKeyQuestion[] | null;
+  focus_summary?: string | null;
 }
 
 interface LiveToken {
@@ -168,6 +173,12 @@ function Room({
 
   const transcript = useRef<TranscriptEntry[]>([]);
   const questionId = useRef<string | null>(null);
+  const sessionRef = useRef<Session | null>(null);
+  // Exam mode: times the candidate left full screen, the tab or the window. A signal for reviewers, not a verdict.
+  const focusEvents = useRef<ExamFocusEvent[]>([]);
+  const awaySince = useRef<{ type: ExamFocusEvent['type']; at: number } | null>(null);
+  const [away, setAway] = useState<ExamFocusEvent['type'] | null>(null);
+  const [skipLocked, setSkipLocked] = useState(false);
   const startedAt = useRef(0);
   const finished = useRef(false);
   const cleanup = useRef<(() => void) | null>(null);
@@ -193,10 +204,24 @@ function Room({
   }, []);
   useEffect(() => teardown, [teardown]);
 
+  const endAway = useCallback(() => {
+    const open = awaySince.current;
+    if (!open) return;
+    awaySince.current = null;
+    focusEvents.current.push({
+      type: open.type,
+      at_ms: Math.max(0, open.at - startedAt.current),
+      duration_ms: Math.max(0, Date.now() - open.at),
+    });
+    setAway(null);
+  }, []);
+
   const finish = useCallback(async () => {
     if (finished.current) return;
     finished.current = true;
+    endAway();
     teardown();
+    if (document.fullscreenElement) void document.exitFullscreen().catch(() => undefined);
     setPhase('sending');
     const entries = transcript.current
       .map((t) => ({ ...t, text: t.text.trim().slice(0, 8000) }))
@@ -204,17 +229,95 @@ function Room({
       .slice(0, 400);
     const duration = startedAt.current ? Math.round((Date.now() - startedAt.current) / 1000) : 0;
     try {
-      await api(`/api/interviews/${interview.id}/finish`, { body: { transcript: entries, duration_s: duration } });
+      await api(`/api/interviews/${interview.id}/finish`, {
+        body: { transcript: entries, duration_s: duration, focus_events: focusEvents.current.slice(0, 200) },
+      });
       onChanged();
     } catch (err) {
       finished.current = false;
       setError(errorMessage(err));
       setPhase('idle');
     }
-  }, [interview.id, onChanged, teardown]);
+  }, [interview.id, onChanged, teardown, endAway]);
+
+  // Exam mode watchers: leaving full screen, hiding the tab, or moving to another window.
+  useEffect(() => {
+    if (phase !== 'live') return;
+    const leave = (type: ExamFocusEvent['type']) => {
+      if (awaySince.current) return;
+      awaySince.current = { type, at: Date.now() };
+      setAway(type);
+    };
+    const onFullscreen = () => {
+      if (!document.fullscreenElement) leave('fullscreen_exit');
+      else if (awaySince.current?.type === 'fullscreen_exit') endAway();
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') leave('tab_hidden');
+      else if (awaySince.current?.type === 'tab_hidden' && (document.fullscreenElement || !document.fullscreenEnabled)) endAway();
+    };
+    const onBlur = () => leave('window_blur');
+    const onFocus = () => {
+      if (awaySince.current?.type === 'window_blur') endAway();
+    };
+    document.addEventListener('fullscreenchange', onFullscreen);
+    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('blur', onBlur);
+    window.addEventListener('focus', onFocus);
+    return () => {
+      document.removeEventListener('fullscreenchange', onFullscreen);
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('blur', onBlur);
+      window.removeEventListener('focus', onFocus);
+    };
+  }, [phase, endAway]);
+
+  async function returnToFullscreen() {
+    try {
+      if (document.fullscreenEnabled && !document.fullscreenElement) await document.documentElement.requestFullscreen();
+    } catch {
+      // the browser refused; the overlay stays until the window is back
+    }
+    if (document.visibilityState === 'visible' && document.hasFocus()) endAway();
+  }
+
+  /** "Next question": tells the interviewer to move on, and marks the skip in the transcript for the evaluation. */
+  function nextQuestion() {
+    if (skipLocked) return;
+    const current = questionId.current ?? questions[0]?.id ?? null;
+    const idx = questions.findIndex((q) => q.id === current);
+    const isLast = idx >= questions.length - 1;
+    transcript.current.push({
+      role: 'system',
+      text: `The candidate asked to move on from question ${current ?? 'unknown'}.`,
+      at_ms: Date.now() - startedAt.current,
+      question_id: current,
+    });
+    if (isLast) {
+      void finish();
+      return;
+    }
+    setSkipLocked(true);
+    setTimeout(() => setSkipLocked(false), 5000);
+    try {
+      sessionRef.current?.sendRealtimeInput({
+        text: 'The candidate asked to move on. Briefly acknowledge and call show_question with the next question, then ask it.',
+      });
+    } catch {
+      // socket is closing
+    }
+  }
 
   async function start() {
     setError(null);
+    // Must happen inside the click, before anything is awaited, or the browser refuses it.
+    if (document.fullscreenEnabled && !document.fullscreenElement) {
+      void document.documentElement.requestFullscreen().catch(() => {
+        focusEvents.current.push({ type: 'fullscreen_unsupported', at_ms: 0, duration_ms: 0 });
+      });
+    } else if (!document.fullscreenEnabled && !focusEvents.current.some((e) => e.type === 'fullscreen_unsupported')) {
+      focusEvents.current.push({ type: 'fullscreen_unsupported', at_ms: 0, duration_ms: 0 });
+    }
     setPhase('connecting');
     let stream: MediaStream | null = null;
     let session: Session | null = null;
@@ -301,6 +404,7 @@ function Room({
         },
       });
       const open = session;
+      sessionRef.current = session;
       stopMic = await startMic(stream, (audioData) => {
         try {
           open.sendRealtimeInput({ audio: { data: audioData, mimeType: MIC_MIME } });
@@ -359,8 +463,26 @@ function Room({
   return (
     <section
       id="live-examination-cockpit"
-      className="overflow-hidden rounded-[6px] border border-line bg-white"
+      className="relative overflow-hidden rounded-[6px] border border-line bg-white"
+      onCopy={(e) => phase === 'live' && e.preventDefault()}
+      onCut={(e) => phase === 'live' && e.preventDefault()}
+      onContextMenu={(e) => phase === 'live' && e.preventDefault()}
     >
+      {phase === 'live' && away && (
+        <div className="absolute inset-0 z-30 flex items-center justify-center bg-[rgba(20,22,26,0.88)] p-6" role="alertdialog" aria-label="You left the interview">
+          <div className="max-w-md space-y-3 rounded-[6px] border border-line bg-white p-6 text-center">
+            <h3 className="font-serif-heading text-[20px] font-medium text-ink">You left the interview window</h3>
+            <p className="text-[13px] text-muted">
+              The question is hidden until you come back. Leaving full screen, switching tabs or windows is recorded with
+              its time and shown to the reviewers as a signal. The interview keeps running.
+            </p>
+            <Button onClick={() => void returnToFullscreen()} className="w-full">
+              <span className="material-symbols-outlined text-[17px]">fullscreen</span>
+              <span>Return to full screen</span>
+            </Button>
+          </div>
+        </div>
+      )}
       {/* Cobalt & Cyan Live Cockpit Header */}
       <header className="flex flex-wrap items-center justify-between gap-3 border-b border-line bg-[#F0F6FF] px-5 py-3">
         <div className="flex min-w-0 flex-wrap items-center gap-2.5">
@@ -505,7 +627,7 @@ function Room({
           </div>
 
           {/* Scrollable Code Box */}
-          <div className="font-mono-code max-h-[380px] flex-1 overflow-x-auto overflow-y-auto bg-[#FAFAFC] p-4 text-[12px] leading-[20px] text-ink select-text">
+          <div className="font-mono-code max-h-[45vh] flex-1 overflow-x-auto overflow-y-auto bg-[#FAFAFC] p-4 text-[12px] leading-[20px] text-ink select-none lg:max-h-[60vh]">
             {activeQuestion ? (
               <table className="w-full border-collapse">
                 <tbody>
@@ -587,9 +709,16 @@ function Room({
                       Raw audio is not stored. The written transcript is recorded and evaluated against your repository.
                     </span>
                   </li>
+                  <li className="flex items-start gap-2">
+                    <span className="font-mono-code mt-0.5 text-[11px] font-bold text-accent">04</span>
+                    <span>
+                      The interview opens in <strong>full screen</strong>. Leaving it, switching tabs or windows is not
+                      blocked, but each time is recorded and shown to reviewers. Use &ldquo;Next question&rdquo; to move on.
+                    </span>
+                  </li>
                   {interview.submission_id && (
                     <li className="flex items-start gap-2">
-                      <span className="font-mono-code mt-0.5 text-[11px] font-bold text-accent">04</span>
+                      <span className="font-mono-code mt-0.5 text-[11px] font-bold text-accent">05</span>
                       <span>The event organizer can inspect the transcript and ownership report.</span>
                     </li>
                   )}
@@ -640,7 +769,7 @@ function Room({
                     Gemini Live Audio
                   </span>
                 </div>
-                <h2 className="font-serif-heading text-[18px] leading-[25px] font-medium text-ink">
+                <h2 className={`font-serif-heading text-[18px] leading-[25px] font-medium break-words whitespace-pre-wrap text-ink ${away ? 'blur-sm select-none' : ''}`}>
                   {activeQuestion
                     ? `“${activeQuestion.question}”`
                     : 'The interviewer is about to ask the first question. The code it refers to will appear on the left.'}
@@ -658,7 +787,7 @@ function Room({
                 </div>
 
                 <div
-                  className="max-h-[210px] space-y-2.5 overflow-y-auto rounded-[4px] border border-line bg-[#FAFAFC] p-3.5"
+                  className="max-h-[35vh] space-y-2.5 overflow-y-auto rounded-[4px] border border-line bg-[#FAFAFC] p-3.5"
                   aria-live="polite"
                 >
                   {caption ? (
@@ -666,7 +795,7 @@ function Room({
                       <span className="font-mono-code block text-[10px] font-bold text-[#4338CA] uppercase">
                         Interviewer Prompt
                       </span>
-                      <span className="mt-0.5 block">{caption.slice(-280)}</span>
+                      <span className="mt-0.5 block whitespace-pre-wrap">{caption}</span>
                     </div>
                   ) : (
                     <p className="font-mono-code text-[11px] text-muted">
@@ -680,7 +809,7 @@ function Room({
                         Candidate Defense (Live)
                       </span>
                       <blockquote className="mt-0.5 italic">
-                        &ldquo;{candidatePreview.slice(-280)}&rdquo;
+                        &ldquo;{candidatePreview}&rdquo;
                       </blockquote>
                     </div>
                   )}
@@ -696,9 +825,14 @@ function Room({
               <span>{phase === 'live' ? `Remaining: ${formatClock(left)}` : 'Clock starts on microphone grant'}</span>
             </div>
             {phase === 'live' && (
-              <Button variant="secondary" onClick={() => void finish()} className="py-1.5 text-[12px]">
-                End interview
-              </Button>
+              <div className="flex flex-wrap gap-2">
+                <Button variant="secondary" onClick={nextQuestion} disabled={skipLocked} className="py-1.5 text-[12px]">
+                  {activeIdx >= questions.length - 1 ? 'Finish' : skipLocked ? 'Moving on…' : 'Next question →'}
+                </Button>
+                <Button variant="secondary" onClick={() => void finish()} className="py-1.5 text-[12px]">
+                  End interview
+                </Button>
+              </div>
             )}
           </div>
         </div>
@@ -726,7 +860,19 @@ export function InterviewPage() {
   return (
     <div className="space-y-8">
       {/* Top Stage Controller */}
-      <StageController status={interview.status} liveActive={liveActive} />
+      {interview.status === 'completed' && (
+        <PrintMasthead
+          kind="Voice interview report"
+          name={interview.is_owner && me?.profile.display_name ? me.profile.display_name : `${interview.repo.owner}/${interview.repo.name}`}
+          repo={`${interview.repo.owner}/${interview.repo.name}`}
+          commit={interview.commit_sha}
+          date={interview.created_at}
+          url={publicUrl}
+        />
+      )}
+      <div className="no-print">
+        <StageController status={interview.status} liveActive={liveActive} />
+      </div>
 
       {/* Page Masthead */}
       <DossierPageHeader
@@ -850,7 +996,19 @@ export function InterviewPage() {
             </header>
 
             <div className="p-6 sm:p-8">
+              {data.focus_summary && (
+                <div className="print-avoid-break mb-5">
+                  <Notice tone="warn">
+                    {data.focus_summary} This is recorded as a signal for reviewers; it is not a finding of misconduct.
+                  </Notice>
+                </div>
+              )}
               <Report report={data.report} />
+              {data.answer_key && (
+                <div className="mt-6">
+                  <AnswerKey questions={data.answer_key} answers={data.report.answers_json ?? []} />
+                </div>
+              )}
 
               {interview.models_used && interview.models_used.length > 0 && (
                 <div className="font-mono-code mt-6 flex flex-wrap items-center gap-2 border-t border-line pt-4 text-[11px] text-muted">
@@ -916,12 +1074,12 @@ export function InterviewPage() {
                     <li
                       key={i}
                       className={`rounded-[4px] border border-line p-3 ${
-                        t.role === 'interviewer' ? 'bg-paper/60' : 'bg-white'
+                        t.role === 'interviewer' ? 'bg-paper/60' : t.role === 'system' ? 'bg-warn-soft/40' : 'bg-white'
                       }`}
                     >
                       <div className="font-mono-code mb-1 flex items-center justify-between text-[10px] text-muted uppercase">
-                        <span className={t.role === 'interviewer' ? 'font-bold text-accent' : 'font-bold text-good'}>
-                          {t.role === 'interviewer' ? 'AI Technical Examiner' : 'Candidate'}
+                        <span className={t.role === 'interviewer' ? 'font-bold text-accent' : t.role === 'system' ? 'font-bold text-warn' : 'font-bold text-good'}>
+                          {t.role === 'interviewer' ? 'AI Technical Examiner' : t.role === 'system' ? 'SkillProof' : 'Candidate'}
                         </span>
                         {typeof t.at_ms === 'number' && <span>+{Math.round(t.at_ms / 1000)}s</span>}
                       </div>

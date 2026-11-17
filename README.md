@@ -238,6 +238,14 @@ points never reach the browser. The browser receives a single-use token that is 
 instructions, opens a live audio session with Gemini, and sends the transcript back when the interview ends.
 A second model call compares the transcript with the plan and writes the report. Audio is not stored.
 
+
+During the interview the room asks for full screen. Browsers do not let a page stop someone from leaving full
+screen, switching tabs or windows, so SkillProof does not block it: it detects each time, hides the question until
+the candidate comes back, and records when and for how long. The report shows it as a signal ("Left the interview
+window 2 times, total 14 s"), never as a finding of cheating. "Next question" tells the interviewer to move on and
+marks the skip in the transcript. Once the interview is completed, the candidate and the event's organizers see
+the answer key ("What a strong answer covered") with the points the candidate made and missed; it is never sent
+before, and public profiles do not show it.
 ## Known limits
 
 - **Not yet tested against live services.** The unit tests, database checks, typecheck and build pass. No run

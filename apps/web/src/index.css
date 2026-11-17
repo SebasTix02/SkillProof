@@ -192,3 +192,119 @@ a:hover .arrow-nudge {
     scroll-behavior: auto !important;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Print: the dossier as a document, not a screenshot.
+   A4 pages, light backgrounds, no navigation or buttons, links written out,
+   sections kept whole, page numbers in the margin.
+   --------------------------------------------------------------------------- */
+.print-only {
+  display: none;
+}
+
+@page {
+  size: A4;
+  margin: 16mm 14mm 18mm;
+  @bottom-left {
+    content: 'SkillProof dossier';
+    font: 500 8pt 'JetBrains Mono', ui-monospace, monospace;
+    color: #5d6470;
+  }
+  @bottom-right {
+    content: 'Page ' counter(page) ' of ' counter(pages);
+    font: 500 8pt 'JetBrains Mono', ui-monospace, monospace;
+    color: #5d6470;
+  }
+}
+
+@media print {
+  html,
+  body {
+    background: #fff !important;
+    color: #14161a !important;
+    font-size: 10.5pt;
+  }
+  * {
+    box-shadow: none !important;
+    text-shadow: none !important;
+    backdrop-filter: none !important;
+    animation: none !important;
+    transition: none !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  .print-only {
+    display: block !important;
+  }
+  .no-print,
+  button,
+  .btn-tactile,
+  [role='alertdialog'],
+  nav {
+    display: none !important;
+  }
+  .min-h-screen,
+  .bg-paper {
+    background: #fff !important;
+  }
+  main {
+    max-width: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  /* Dark editorial blocks print as light panels with a hairline. */
+  [class*='bg-[#0D0F12]'],
+  [class*='bg-[#14161A]'],
+  [class*='bg-[#15181E]'],
+  [class*='bg-[#101216]'],
+  [class*='bg-ink'] {
+    background: #fff !important;
+    border: 1px solid #e3e5e9 !important;
+  }
+  [class*='text-white'],
+  [class*='text-[#EDEDEC]'],
+  [class*='text-[#8E95A3]'] {
+    color: #14161a !important;
+  }
+  [class*='text-[#93B4FF]'],
+  [class*='text-[#79d9ae]'],
+  [class*='text-[#FBBF24]'],
+  [class*='text-[#FDE68A]'] {
+    color: #1f5eff !important;
+  }
+  img {
+    max-height: 60mm;
+    object-fit: contain;
+  }
+  /* Keep each card, question and table row on one page. */
+  li,
+  tr,
+  blockquote,
+  pre,
+  .print-avoid-break {
+    break-inside: avoid;
+  }
+  h1,
+  h2,
+  h3 {
+    break-after: avoid;
+  }
+  .print-break-before {
+    break-before: page;
+  }
+  .audit-table-row {
+    content-visibility: visible;
+  }
+  /* Links are written out, since paper cannot be clicked. */
+  a[href^='http']::after {
+    content: ' (' attr(href) ')';
+    font-size: 8pt;
+    color: #5d6470;
+    word-break: break-all;
+  }
+  [class*='max-h-'],
+  [class*='overflow-'] {
+    max-height: none !important;
+    overflow: visible !important;
+  }
+}
