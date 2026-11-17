@@ -42,6 +42,7 @@ function App() {
         <Route path="/me" element={<Private><MyAccount /></Private>} />
         <Route path="/events" element={<Private><ExploreEvents /></Private>} />
         <Route path="/e/:slug" element={<Private><EventPage /></Private>} />
+        <Route path="/interviews" element={<Private><InterviewHome /></Private>} />
         <Route path="/interview/new" element={<Private><InterviewHome /></Private>} />
         <Route path="/interview/:id" element={<Private><InterviewPage /></Private>} />
         <Route path="/org/events" element={<Private organizer><OrgEvents /></Private>} />
