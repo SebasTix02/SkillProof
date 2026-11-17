@@ -55,3 +55,34 @@ describe('finishing an interview', () => {
     expect(interviewerInstruction(plan, 'a/b')).toContain('The candidate asked to move on');
   });
 });
+
+describe('one interview per commit', async () => {
+  const { oneInterviewPerCommit } = await import('./services/interviews.js');
+  const row = (status: 'preparing' | 'ready' | 'in_progress' | 'evaluating' | 'completed' | 'error', started = false) => ({
+    id: `${status}-${started}`,
+    status,
+    started_at: started ? '2026-11-17T10:00:00Z' : null,
+  });
+
+  it('allows the first interview on a commit', () => {
+    expect(oneInterviewPerCommit([])).toEqual({ reuse: null, blocked: null });
+  });
+
+  it('returns the same interview when it has not started yet', () => {
+    expect(oneInterviewPerCommit([row('preparing')]).reuse?.id).toBe('preparing-false');
+    expect(oneInterviewPerCommit([row('ready')]).reuse?.id).toBe('ready-false');
+  });
+
+  it('blocks a second one once the first started or finished', () => {
+    for (const r of [row('in_progress', true), row('evaluating', true), row('completed', true)])
+      expect(oneInterviewPerCommit([r]).blocked?.id).toBe(r.id);
+  });
+
+  it('lets a candidate retry after a failure before the interview started', () => {
+    expect(oneInterviewPerCommit([row('error')])).toEqual({ reuse: null, blocked: null });
+  });
+
+  it('still blocks when the report failed after the interview was taken', () => {
+    expect(oneInterviewPerCommit([row('error', true)]).blocked?.id).toBe('error-true');
+  });
+});

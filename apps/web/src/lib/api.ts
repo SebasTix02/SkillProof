@@ -8,6 +8,8 @@ export class ApiError extends Error {
     public readonly status: number,
     public readonly code: string,
     message: string,
+    /** Extra fields the API sent with the error, like the id of an existing record. */
+    public readonly details: Record<string, unknown> = {},
   ) {
     super(message);
   }
@@ -29,12 +31,21 @@ export async function api<T = unknown>(path: string, options: { method?: string;
   } catch {
     throw new ApiError(0, 'network', 'Could not reach the server. Check your connection and try again.');
   }
-  const json = (await res.json().catch(() => null)) as { error?: { code: string; message: string } } | null;
-  if (!res.ok) throw new ApiError(res.status, json?.error?.code ?? 'error', json?.error?.message ?? `Request failed (${res.status})`);
+  const json = (await res.json().catch(() => null)) as { error?: { code: string; message: string; details?: Record<string, unknown> } } | null;
+  if (!res.ok) throw new ApiError(res.status, json?.error?.code ?? 'error', json?.error?.message ?? `Request failed (${res.status})`, json?.error?.details ?? {});
   return json as T;
 }
 
 /** A sentence a person can act on, never a raw status code or JSON. */
+/** The id of the interview that already covers this commit, when the API refused a second one. */
+export function existingInterviewId(err: unknown): string | null {
+  if (err instanceof ApiError && err.code === 'interview_exists_for_commit') {
+    const id = err.details.interview_id;
+    return typeof id === 'string' ? id : null;
+  }
+  return null;
+}
+
 export function errorMessage(err: unknown): string {
   if (err instanceof ApiError) {
     if (err.status === 401) return 'Your session has ended. Log in again to continue.';

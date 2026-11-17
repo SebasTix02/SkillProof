@@ -246,6 +246,12 @@ window 2 times, total 14 s"), never as a finding of cheating. "Next question" te
 marks the skip in the transcript. Once the interview is completed, the candidate and the event's organizers see
 the answer key ("What a strong answer covered") with the points the candidate made and missed; it is never sent
 before, and public profiles do not show it.
+
+Each candidate gets one interview per repository and commit (enforced by the API and by a unique index). Asking
+again while the first one has not started returns that same interview; once it has started or finished, the API
+answers 409 `interview_exists_for_commit` with its id, and taking another interview needs new commits. An interview
+that failed before it started does not count and can be retried. Event interviews use the commit frozen at the
+deadline, so a personal interview on that commit also counts.
 ## Known limits
 
 - **Not yet tested against live services.** The unit tests, database checks, typecheck and build pass. No run

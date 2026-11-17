@@ -15,7 +15,7 @@ import {
   formatDate,
   scoreTone,
 } from '../components/shared';
-import { api, errorMessage } from '../lib/api';
+import { api, errorMessage, existingInterviewId } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { useLoad } from '../lib/useLoad';
 
@@ -63,6 +63,7 @@ export function InterviewHome() {
   const [repoUrl, setRepoUrl] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [existingId, setExistingId] = useState<string | null>(null);
 
   const [tab, setTab] = useState<'all' | 'event' | 'personal'>('all');
   const [query, setQuery] = useState('');
@@ -72,6 +73,7 @@ export function InterviewHome() {
     e.preventDefault();
     setBusy(true);
     setError(null);
+    setExistingId(null);
     try {
       const res = await api<{ interview: { id: string } }>('/api/interviews', {
         body: { repo_url: repoUrl.trim() },
@@ -79,6 +81,7 @@ export function InterviewHome() {
       navigate(`/interview/${res.interview.id}`);
     } catch (err) {
       setError(errorMessage(err));
+      setExistingId(existingInterviewId(err));
       setBusy(false);
     }
   }
@@ -244,7 +247,19 @@ export function InterviewHome() {
                   </div>
                 </div>
 
-                {error && <Notice tone="error">{error}</Notice>}
+                {error && (
+                  <Notice tone="error">
+                    {error}{' '}
+                    {existingId && (
+                      <Link to={`/interview/${existingId}`} className="font-semibold underline">
+                        Open your interview
+                      </Link>
+                    )}
+                  </Notice>
+                )}
+                <p className="text-[11px] text-muted">
+                  One interview per commit: once you take it, interviewing again needs new commits in the repository.
+                </p>
               </form>
             </div>
 
