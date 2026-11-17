@@ -2,24 +2,27 @@ import { MODEL_FALLBACKS, type ActivityEntry } from '@skillproof/shared';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Badge } from './ui';
 
-const BACKUPS = new Set(Object.values(MODEL_FALLBACKS).flat());
+const DEFAULT_PRIMARY = Object.keys(MODEL_FALLBACKS);
 
-/** "gemini-3.8-flash" -> "Gemini 3.8 Flash". */
-export function modelName(id: string): string {
-  return id
+/** "gemini-3.8-flash" -> "Gemini 3.8 Flash", and "vertex:gemini-3.8-flash" -> "Gemini 3.8 Flash (Vertex AI)". */
+export function modelName(key: string): string {
+  const [provider, id] = key.includes(':') ? key.split(':') : ['', key];
+  const name = id!
     .split('-')
     .map((w) => (/^\d/.test(w) ? w : w.charAt(0).toUpperCase() + w.slice(1)))
     .join(' ');
+  return provider === 'vertex' ? `${name} (Vertex AI)` : provider === 'studio' ? `${name} (Gemini API)` : name;
 }
 
-/** The models that did the work, marking the ones used as a backup. */
-export function ModelsUsed({ models }: { models: string[] | null | undefined }) {
+/** The models that did the work, marking the ones used as a backup. `primary` are the server's main models. */
+export function ModelsUsed({ models, primary = DEFAULT_PRIMARY }: { models: string[] | null | undefined; primary?: string[] }) {
   if (!models || models.length === 0) return null;
-  const backup = models.some((m) => BACKUPS.has(m));
+  const isBackup = (m: string) => m.includes(':') || !primary.includes(m);
+  const backup = models.some(isBackup);
   return (
     <span className="inline-flex flex-wrap items-center gap-1.5">
       {models.map((m) => (
-        <Badge key={m} tone={BACKUPS.has(m) ? 'warn' : 'accent'}>{modelName(m)}{BACKUPS.has(m) && ' (backup)'}</Badge>
+        <Badge key={m} tone={isBackup(m) ? 'warn' : 'accent'}>{modelName(m)}{isBackup(m) && ' (backup)'}</Badge>
       ))}
       {backup && <span className="text-xs text-muted">The main model was busy, so a backup model answered.</span>}
     </span>
@@ -146,6 +149,12 @@ export function AiActivity({ entries, live = false, maxHeight = '28rem' }: { ent
                         {since && <> · {since}</>}
                         {e.model && <> · {modelName(e.model)}</>}
                       </span>
+                      {e.detail && (
+                        <details className="w-full">
+                          <summary className="cursor-pointer text-xs text-muted hover:text-ink">Details</summary>
+                          <pre className="mt-1 whitespace-pre-wrap rounded-lg bg-white p-2 font-mono text-[11px] leading-relaxed text-muted">{e.detail}</pre>
+                        </details>
+                      )}
                     </div>
                   )}
                 </li>

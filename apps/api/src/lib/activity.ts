@@ -33,6 +33,23 @@ export class Activity {
     return this.save();
   }
 
+  /**
+   * Adds one entry that can be rewritten later, so a run of retries and model switches shows as a single line
+   * that changes as things happen, instead of one line per attempt.
+   */
+  live(kind: ActivityKind, text: string, model?: string | null, detail?: string | null): { update: (kind: ActivityKind, text: string, model?: string | null, detail?: string | null) => Promise<void> } {
+    const entry: ActivityEntry = { at: new Date().toISOString(), kind, text, model: model ?? null, detail: detail ?? null };
+    this.entries.push(entry);
+    if (this.entries.length > MAX_ACTIVITY_ENTRIES) this.entries.splice(1, this.entries.length - MAX_ACTIVITY_ENTRIES);
+    void this.save();
+    return {
+      update: (k, t, m, d) => {
+        Object.assign(entry, { kind: k, text: t, model: m ?? entry.model, detail: d ?? entry.detail });
+        return this.save();
+      },
+    };
+  }
+
   step(text: string, model?: string): Promise<void> {
     return this.add('step', text, model);
   }
@@ -45,7 +62,7 @@ export class Activity {
   }
 
   private save(): Promise<void> {
-    const entries = [...this.entries];
+    const entries = this.entries.map((e) => ({ ...e }));
     const models = [...this.models];
     // Writes are chained so an older snapshot never overwrites a newer one.
     this.writing = this.writing.then(async () => {

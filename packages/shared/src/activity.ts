@@ -9,6 +9,8 @@ export interface ActivityEntry {
   text: string;
   /** The Gemini model involved, when there is one. */
   model?: string | null;
+  /** Technical detail shown folded under the entry, like each retry and its error. */
+  detail?: string | null;
 }
 
 /** Longest thought summary kept per call, so the log stays small. */

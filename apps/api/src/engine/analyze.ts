@@ -1,12 +1,13 @@
-import { MODELS, RepoMapSchema, pruneUnknownPaths, type CommitProfile, type RepoMap } from '@skillproof/shared';
+import { RepoMapSchema, pruneUnknownPaths, type CommitProfile, type RepoMap } from '@skillproof/shared';
 import { z } from 'zod';
 import { env } from '../env.js';
 import { badRequest } from '../lib/errors.js';
 import { currentActivity } from '../lib/activity.js';
 import { UNTRUSTED_NOTICE, generateJson, type UsageContext } from '../lib/gemini.js';
-import { downloadZip, getCommitProfile, getHeadSha, getRepoMeta, type RepoMeta } from '../lib/github.js';
+import { analysisModel, summariesModel } from '../lib/models.js';
+import { downloadRepoFiles, getCommitProfile, getHeadSha, getRepoMeta, type RepoMeta } from '../lib/github.js';
 import { db, must } from '../lib/supabase.js';
-import { batchByTokens, blobSha, extractFiles, outlineFile, renderCompact, sliceLines, splitByBudget, type RepoFile } from './files.js';
+import { batchByTokens, blobSha, describeSkipped, outlineFile, planReading, renderCompact, renderSkeleton, selectFiles, sliceLines, type RepoFile } from './files.js';
 
 export interface HookSnippet {
   path: string;
@@ -94,6 +95,8 @@ const MAX_SUMMARY_BATCHES = 2;
 const SUMMARY_FILE_TOKENS = 1_200;
 /** Files beyond this get no outline line either, only their path in the tree. */
 const MAX_OUTLINED_FILES = 200;
+/** Summaries are only worth a call when at least this many files are left outside the full read. */
+const MIN_OUTLINED_FOR_SUMMARIES = 25;
 
 const SUMMARY_SYSTEM = `For each file, write one factual sentence (at most 25 words) on what it does. Use the exact path given. No preamble.
 
@@ -125,7 +128,7 @@ async function summarise(files: RepoFile[], usage: UsageContext): Promise<{ summ
     try {
       calls++;
       const { data, model } = await generateJson({
-        model: MODELS.summaries,
+        model: summariesModel(),
         schema: SummariesSchema,
         system: SUMMARY_SYSTEM,
         parts: [{ text: `<repository>\n${batch.map((f) => renderCompact(f, SUMMARY_FILE_TOKENS)).join('\n')}\n</repository>` }],
@@ -169,7 +172,7 @@ ${tree}
 </file_tree>
 
 <repository>
-${full.map((f) => renderCompact(f, PER_FILE_TOKENS)).join('\n')}
+${full.map((f) => renderSkeleton(f, PER_FILE_TOKENS)).join('\n')}
 </repository>${outlines}`;
 }
 
@@ -200,26 +203,35 @@ export async function analyzeRepo(owner: string, name: string, opts: AnalyzeOpti
     return { repo, analysis: cached };
   }
 
-  await activity?.step(`Downloading ${meta.owner}/${meta.name} at commit ${sha.slice(0, 7)} from GitHub.`);
-  const files = extractFiles(await downloadZip(meta.owner, meta.name, sha));
+  await activity?.step(`Downloading the code of ${meta.owner}/${meta.name} at commit ${sha.slice(0, 7)} from GitHub.`);
+  const download = await downloadRepoFiles(meta.owner, meta.name, sha);
+  const { files, skipped } = selectFiles(download.entries, download.skipped);
   if (files.length === 0) throw badRequest('repo_empty', 'There is no source code to read in this repository.');
 
   const e = env();
-  const { full, overflow } = splitByBudget(files, e.REPO_TOKEN_BUDGET, { maxFiles: e.REPO_MAX_FULL_FILES, perFileTokens: PER_FILE_TOKENS });
-  const outlined = overflow.slice(0, MAX_OUTLINED_FILES);
-  const listed = overflow.slice(MAX_OUTLINED_FILES);
+  const plan = planReading(files, {
+    budgetTokens: e.REPO_TOKEN_BUDGET,
+    maxFullFiles: e.REPO_MAX_FULL_FILES,
+    perFileTokens: PER_FILE_TOKENS,
+    smallRepoTokens: e.REPO_SMALL_REPO_TOKENS,
+    maxSummarised: e.REPO_MAX_SUMMARISED_FILES,
+    minOutlinedForSummaries: MIN_OUTLINED_FOR_SUMMARIES,
+    maxOutlined: MAX_OUTLINED_FILES,
+  });
+  const { full, outlined, listed, toSummarise } = plan;
+  const kb = Math.max(1, Math.round(download.downloadedBytes / 1024));
   await activity?.step(
-    `Found ${files.length} source files after skipping dependencies, binaries and generated code. ` +
-      (overflow.length
-        ? `Reading the ${full.length} most important in full and outlining ${outlined.length} more` +
-          (listed.length ? `; ${listed.length} minor files are only listed by name.` : '.')
-        : `All ${full.length} are read in full.`),
+    `${files.length} files are worth reading (${kb} KB downloaded${download.method === 'selective' ? ', only the files needed' : ''}). ` +
+      `${describeSkipped(skipped)} `.trimStart() +
+      (plan.small
+        ? `The project is small, so all ${full.length} are read in full in one call.`
+        : `Reading the ${full.length} most important in full and outlining ${outlined.length} more` +
+          (listed.length ? `; ${listed.length} minor files are only listed by name.` : '.')),
   );
 
-  const toSummarise = outlined.slice(0, e.REPO_MAX_SUMMARISED_FILES);
   let summaries = new Map<string, string>();
   if (toSummarise.length) {
-    await activity?.step(`Writing one-line summaries of the ${toSummarise.length} most relevant files that are not read in full.`, MODELS.summaries);
+    await activity?.step(`Writing one-line summaries of the ${toSummarise.length} most relevant files that are not read in full.`, summariesModel());
     const result = await summarise(toSummarise, opts.usage);
     summaries = result.summaries;
     await activity?.step(
@@ -229,9 +241,9 @@ export async function analyzeRepo(owner: string, name: string, opts: AnalyzeOpti
     );
   }
 
-  await activity?.step('Mapping the repository: what it does, its components, key decisions, weak points and code worth asking about.', MODELS.analysis);
+  await activity?.step('Mapping the repository: what it does, its components, key decisions, weak points and code worth asking about.', analysisModel());
   const { data, usage, model } = await generateJson({
-    model: MODELS.analysis,
+    model: analysisModel(),
     schema: RepoMapSchema,
     system: MAP_SYSTEM,
     parts: [{ text: buildPrompt(meta, full, outlined, listed, summaries) }],

@@ -7,6 +7,7 @@ import { badRequest, conflict, forbidden, notFound, tooMany } from '../lib/error
 import { IdParams, parse } from '../lib/http.js';
 import { db, must } from '../lib/supabase.js';
 import { createLiveToken, publicQuestions, type InterviewRow } from '../services/interviews.js';
+import { primaryModels } from '../lib/models.js';
 import { enqueue } from '../services/queue.js';
 
 const PERSONAL_PER_DAY = 5;
@@ -128,6 +129,7 @@ export async function interviewRoutes(app: FastifyInstance): Promise<void> {
         stack: analysis?.map_json.stack ?? null,
         is_owner: owner,
         models_used: row.models_used ?? [],
+        primary_models: primaryModels(),
       },
       // Steps only: interview jobs never record the model's reasoning, which would reveal the answer key.
       activity: (row.activity_json ?? []).filter((a) => a.kind !== 'thought'),

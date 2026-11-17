@@ -1,8 +1,9 @@
-import { MODELS, ScoreResultSchema, type Rubric, type ScoreResult } from '@skillproof/shared';
+import { ScoreResultSchema, type Rubric, type ScoreResult } from '@skillproof/shared';
 import type { Part } from '@google/genai';
 import type { AnalysisRow } from '../engine/analyze.js';
 import { currentActivity } from '../lib/activity.js';
 import { AiUnavailableError, UNTRUSTED_NOTICE, generateJson, isTransientAiError, type UsageContext } from '../lib/gemini.js';
+import { analysisModel, summariesModel } from '../lib/models.js';
 import { db, must } from '../lib/supabase.js';
 
 const SCORE_SYSTEM = `You are a strict, fair hackathon judge. You score one project against a rubric.
@@ -76,10 +77,10 @@ Video: ${withVideo ? 'attached. It contains the demo and the pitch.' : 'none ava
 async function runScoring(input: ScoreInput, withVideo: boolean): Promise<ScoreResult> {
   await currentActivity()?.step(
     `Scoring ${input.rubric.length} criteria against the rubric${withVideo ? ', watching the demo video for demo and pitch' : ''}.`,
-    MODELS.analysis,
+    analysisModel(),
   );
   const { data } = await generateJson({
-    model: MODELS.analysis,
+    model: analysisModel(),
     schema: ScoreResultSchema,
     system: SCORE_SYSTEM,
     parts: buildParts(input, withVideo),

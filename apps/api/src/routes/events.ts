@@ -12,6 +12,7 @@ import { IdParams, parse } from '../lib/http.js';
 import { uniqueSlug } from '../lib/slug.js';
 import { db, must } from '../lib/supabase.js';
 import { closeEvent } from '../services/judge.js';
+import { primaryModels } from '../lib/models.js';
 import { dispatchJudging } from '../services/judgeQueue.js';
 
 interface EventRow {
@@ -218,6 +219,7 @@ export async function eventRoutes(app: FastifyInstance): Promise<void> {
       event: publicEvent(event),
       rubric: board.rubric,
       participant_count: count ?? 0,
+      primary_models: primaryModels(),
       submissions: board.rows.map(({ activity_json, ...r }) => ({
         ...r,
         // The steps without the model's reasoning, which stays on the submission page. Only the latest 40 are sent.
@@ -246,7 +248,7 @@ export async function eventRoutes(app: FastifyInstance): Promise<void> {
     const interview = must(
       await db().from('interviews').select('id, status').eq('submission_id', id).neq('status', 'error').maybeSingle(),
     );
-    return { submission: sub, scores, feedback, interview };
+    return { submission: sub, scores, feedback, interview, primary_models: primaryModels() };
   });
 
   app.patch('/api/scores/:id', async (req) => {

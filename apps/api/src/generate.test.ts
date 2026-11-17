@@ -21,7 +21,7 @@ vi.mock('@google/genai', async (orig) => ({
 // Usage log and model health writes succeed; nothing is read back from the database.
 vi.mock('./lib/supabase.js', () => {
   const chain: Record<string, unknown> = {};
-  for (const m of ['select', 'gt', 'upsert', 'insert']) chain[m] = () => chain;
+  for (const m of ['select', 'gt', 'or', 'upsert', 'insert', 'update', 'eq']) chain[m] = () => chain;
   chain.then = (resolve: (v: unknown) => void) => resolve({ data: [], error: null });
   return { db: () => ({ from: () => chain }) };
 });
@@ -45,13 +45,13 @@ const call = () =>
 describe('generateJson under load', () => {
   it('backs off, then skips a model that stays busy, for this and later calls', async () => {
     vi.useFakeTimers();
-    script.set('gemini-3.8-flash', [overloaded(), overloaded(), overloaded(), overloaded()]);
+    script.set('gemini-3.8-flash', [overloaded(), overloaded()]);
     script.set('gemini-3.6-flash', ['{"ok":true}', '{"ok":true}']);
     const first = call();
     await vi.runAllTimersAsync();
     expect((await first).model).toBe('gemini-3.6-flash');
-    // 1 try + 3 retries on the main model, then the backup.
-    expect(calls.map((c) => c.model)).toEqual(['gemini-3.8-flash', 'gemini-3.8-flash', 'gemini-3.8-flash', 'gemini-3.8-flash', 'gemini-3.6-flash']);
+    // 1 try + 1 short retry on the main model, then the backup.
+    expect(calls.map((c) => c.model)).toEqual(['gemini-3.8-flash', 'gemini-3.8-flash', 'gemini-3.6-flash']);
 
     calls.length = 0;
     expect((await call()).model).toBe('gemini-3.6-flash');
@@ -61,5 +61,16 @@ describe('generateJson under load', () => {
 
   it('asks for less thinking when told to', () => {
     expect(calls[0]?.thinking).toMatchObject({ thinkingLevel: 'MINIMAL' });
+  });
+
+  it('writes retries and the model switch as one line in the activity log', async () => {
+    const { Activity, withActivity } = await import('./lib/activity.js');
+    script.set('gemini-3.6-flash', ['{"ok":true}']);
+    const activity = new Activity('submissions', 'x');
+    await withActivity(activity, () => call());
+    const entries = (activity as unknown as { entries: { kind: string; text: string; detail?: string }[] }).entries;
+    expect(entries).toHaveLength(1);
+    expect(entries[0]!.text).toBe('Gemini 3.8 Flash was busy, so Gemini 3.6 Flash answered instead.');
+    expect(entries[0]!.detail).toContain('gemini-3.8-flash skipped');
   });
 });
