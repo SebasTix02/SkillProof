@@ -286,15 +286,15 @@ export async function eventRoutes(app: FastifyInstance): Promise<void> {
       | null;
     if (!sub) throw notFound('Submission not found');
     requirePermission(user, 'event.manage', sub.organization_id);
-    if (sub.status !== 'error' || !sub.locked_commit_sha) throw conflict('not_retryable', 'Only a failed submission with frozen code can be judged again.');
+    if (!['error', 'canceled'].includes(sub.status) || !sub.locked_commit_sha) throw conflict('not_retryable', 'Only a failed or canceled submission with frozen code can be judged again.');
     must(await db().from('events').update({ status: 'judging' }).eq('id', sub.event_id).eq('status', 'review'));
     // Back to the queue with a fresh count of automatic attempts. It starts now if there is a free slot.
     must(
       await db()
         .from('submissions')
-        .update({ status: 'queued', error: null, judge_attempts: 0, next_attempt_at: null })
+        .update({ status: 'queued', error: null, judge_attempts: 0, next_attempt_at: null, activity_json: [], models_used: [] })
         .eq('id', sub.id)
-        .eq('status', 'error'),
+        .in('status', ['error', 'canceled']),
     );
     await dispatchJudging();
     await audit({ organizationId: sub.organization_id, actorId: user.id, action: 'submission.rejudged', subjectType: 'submission', subjectId: sub.id });

@@ -1,10 +1,11 @@
 import { Modality, Type, type FunctionDeclaration } from '@google/genai';
 import {
-  INTERVIEW_SECONDS, InterviewReportSchema, MODELS, QuestionPlanSchema, describeFocusEvents, type FocusEvent,
+  INTERVIEW_SECONDS, InterviewReportSchema, MAX_INTERVIEW_PAUSE_MS, MODELS, QuestionPlanSchema, describeFocusEvents, type FocusEvent,
   type ActivityEntry, type PlannedQuestion, type PublicQuestion, type QuestionPlan, type TranscriptEntry,
 } from '@skillproof/shared';
 import { analyzeRepo, type AnalysisRow, type HookSnippet, type RepoRow } from '../engine/analyze.js';
 import { Activity, withActivity } from '../lib/activity.js';
+import { JobStopped, interviewCheckpoint } from '../lib/control.js';
 import { badRequest } from '../lib/errors.js';
 import { UNTRUSTED_NOTICE, generateJson, isTransientAiError, liveAi, AiUnavailableError } from '../lib/gemini.js';
 import { analysisModel, summariesModel } from '../lib/models.js';
@@ -19,7 +20,7 @@ export interface InterviewRow {
   submission_id: string | null;
   organization_id: string | null;
   transcript_json: TranscriptEntry[] | null;
-  status: 'preparing' | 'ready' | 'in_progress' | 'evaluating' | 'completed' | 'error';
+  status: 'preparing' | 'ready' | 'in_progress' | 'evaluating' | 'completed' | 'error' | 'canceled' | 'report_paused' | 'report_canceled';
   error: string | null;
   started_at: string | null;
   activity_json?: ActivityEntry[];
@@ -73,6 +74,7 @@ export async function prepareInterview(interviewId: string): Promise<void> {
   const usage = { kind: 'interview', organizationId: row.organization_id, userId: row.user_id };
   // The candidate reads this log, so it never includes the model's reasoning: that would reveal the answer key.
   const activity = new Activity('interviews', row.id, false);
+  activity.checkpoint = interviewCheckpoint(row.id, 'preparing');
   try {
     await withActivity(activity, async () => {
       // An event interview is about the exact commit that was judged.
@@ -95,10 +97,15 @@ export async function prepareInterview(interviewId: string): Promise<void> {
       if (plan.questions.length < 3) throw badRequest('repo_too_small', 'Could not build enough questions from this repository.');
 
       must(await db().from('interview_plans').upsert({ interview_id: row.id, plan_json: plan }));
-      must(await db().from('interviews').update({ status: 'ready', analysis_id: analysis.id, error: null }).eq('id', row.id));
+      // Only if the candidate did not cancel meanwhile.
+      must(await db().from('interviews').update({ status: 'ready', analysis_id: analysis.id, error: null }).eq('id', row.id).eq('status', 'preparing'));
       await activity.add('done', `Ready: ${plan.questions.length} questions about your code.`);
     });
   } catch (err) {
+    if (err instanceof JobStopped) {
+      await activity.add('error', 'Stopped because the preparation was canceled.');
+      return;
+    }
     console.error(`Preparing interview ${interviewId} failed:`, err);
     await activity.add('error', err instanceof AiUnavailableError ? 'Gemini was overloaded.' : 'Preparation failed.');
     must(await db().from('interviews').update({ status: 'error', error: friendlyJobError(err, 'prepare') }).eq('id', interviewId));
@@ -144,7 +151,8 @@ export interface ExistingInterview {
  * - One that failed before starting does not count, so it can be retried.
  */
 export function oneInterviewPerCommit(existing: ExistingInterview[]): { reuse: ExistingInterview | null; blocked: ExistingInterview | null } {
-  const counted = existing.filter((i) => i.status !== 'error' || i.started_at);
+  // A failure or a canceled preparation before the interview started does not count.
+  const counted = existing.filter((i) => !['error', 'canceled'].includes(i.status) || i.started_at);
   const blocked = counted.find((i) => i.started_at || ['in_progress', 'evaluating', 'completed'].includes(i.status)) ?? null;
   if (blocked) return { reuse: null, blocked };
   const reuse = counted.find((i) => i.status === 'preparing' || i.status === 'ready') ?? null;
@@ -215,7 +223,8 @@ ${questions}`;
 /** Mints a single-use token that lets the browser open exactly this interview session, and nothing else. */
 export async function createLiveToken(plan: QuestionPlan, repoName: string): Promise<{ token: string; model: string; expiresAt: string }> {
   const now = Date.now();
-  const expiresAt = new Date(now + (INTERVIEW_SECONDS + 240) * 1000).toISOString();
+  // Room time, plus the most the candidate may pause, plus a margin to reconnect.
+  const expiresAt = new Date(now + (INTERVIEW_SECONDS + MAX_INTERVIEW_PAUSE_MS / 1000 + 240) * 1000).toISOString();
   const token = await liveAi().authTokens.create({
     config: {
       uses: 1,
@@ -241,7 +250,8 @@ export async function createLiveToken(plan: QuestionPlan, repoName: string): Pro
 export async function evaluateInterview(interviewId: string): Promise<void> {
   const row = must(await db().from('interviews').select('*').eq('id', interviewId).maybeSingle()) as InterviewRow | null;
   if (!row || row.status !== 'evaluating') return;
-  const activity = new Activity('interviews', row.id, false);
+  const activity = new Activity('interviews', row.id, false, (row as InterviewRow & { activity_json?: ActivityEntry[] }).activity_json ?? []);
+  activity.checkpoint = interviewCheckpoint(row.id, 'evaluating');
   try {
     await withActivity(activity, async () => {
       await activity.step('Comparing your answers with what the author of this code would know.', analysisModel());
@@ -274,10 +284,15 @@ export async function evaluateInterview(interviewId: string): Promise<void> {
           { onConflict: 'interview_id' },
         ),
       );
-      must(await db().from('interviews').update({ status: 'completed', error: null }).eq('id', row.id));
+      await activity.checkpoint?.();
+      must(await db().from('interviews').update({ status: 'completed', error: null }).eq('id', row.id).eq('status', 'evaluating'));
       await activity.add('done', `Report ready: ${data.skills.length} skills assessed.`);
     });
   } catch (err) {
+    if (err instanceof JobStopped) {
+      await activity.add('retry', err.reason === 'paused' ? 'Report paused. Your answers are saved.' : 'Report canceled. Your answers are saved.');
+      return;
+    }
     console.error(`Evaluating interview ${interviewId} failed:`, err);
     if (isTransientAiError(err) || err instanceof AiUnavailableError) {
       // The transcript is saved. Leaving the interview in "evaluating" lets the scheduler write the report later.

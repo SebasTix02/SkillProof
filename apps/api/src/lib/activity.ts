@@ -13,6 +13,9 @@ export class Activity {
   private models = new Set<string>();
   private writing: Promise<void> = Promise.resolve();
 
+  /** Checked before each step and each Gemini call; throws JobStopped when the job was paused or canceled. */
+  checkpoint?: () => Promise<void>;
+
   constructor(
     private readonly table: Subject,
     private readonly id: string,

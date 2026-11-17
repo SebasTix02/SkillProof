@@ -193,6 +193,35 @@ a:hover .arrow-nudge {
   }
 }
 
+/* Interview room in full screen: only the stage (code, conversation, clock, controls) fills the screen. */
+.interview-stage:fullscreen {
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background: var(--color-surface);
+}
+.interview-stage:fullscreen .interview-stage-body {
+  min-height: 0;
+}
+.interview-stage:fullscreen .interview-code {
+  max-height: none;
+}
+.interview-stage:fullscreen .interview-chat {
+  height: auto;
+  flex: 1 1 0;
+}
+@media (max-width: 1023px) {
+  .interview-stage:fullscreen {
+    overflow-y: auto;
+  }
+  .interview-stage:fullscreen .interview-code {
+    max-height: 40vh;
+  }
+  .interview-stage:fullscreen .interview-chat {
+    height: 45vh;
+  }
+}
+
 /* ---------------------------------------------------------------------------
    Print: the dossier as a document, not a screenshot.
    A4 pages, light backgrounds, no navigation or buttons, links written out,

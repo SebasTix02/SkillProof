@@ -1,8 +1,9 @@
 import { GoogleGenAI, Modality, type LiveServerMessage, type Session } from '@google/genai';
-import type { ActivityEntry, FocusEvent as ExamFocusEvent, PublicQuestion, TranscriptEntry } from '@skillproof/shared';
+import { MAX_INTERVIEW_PAUSES, MAX_INTERVIEW_PAUSE_MS, type ActivityEntry, type FocusEvent as ExamFocusEvent, type PublicQuestion, type TranscriptEntry } from '@skillproof/shared';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { AiActivity, ModelsUsed } from '../components/AiActivity';
+import { LiveChat } from '../components/LiveChat';
 import { AnswerKey, type AnswerCoverage, type AnswerKeyQuestion } from '../components/AnswerKey';
 import { PrintMasthead } from '../components/PrintMasthead';
 import { Report, type ReportView } from '../components/Report';
@@ -21,6 +22,7 @@ import {
   linkButtonSecondary,
 } from '../components/shared';
 import { api, errorMessage } from '../lib/api';
+import { useToast } from '../components/toast';
 import { useAuth } from '../lib/auth';
 import { MIC_MIME, Speaker, startMic } from '../lib/liveAudio';
 import { useLoad } from '../lib/useLoad';
@@ -33,7 +35,7 @@ const BAR_HEIGHTS = [35, 50, 70, 85, 60, 40, 65, 90, 100, 75, 55, 30, 60, 45, 25
 interface InterviewResponse {
   interview: {
     id: string;
-    status: 'preparing' | 'ready' | 'in_progress' | 'evaluating' | 'completed' | 'error';
+    status: 'preparing' | 'ready' | 'in_progress' | 'evaluating' | 'completed' | 'error' | 'canceled' | 'report_paused' | 'report_canceled';
     error: string | null;
     submission_id: string | null;
     created_at?: string;
@@ -167,8 +169,8 @@ function Room({
   const [error, setError] = useState<string | null>(null);
   const [left, setLeft] = useState(data.seconds);
   const [question, setQuestion] = useState<PublicQuestion | null>(questions[0] ?? null);
-  const [caption, setCaption] = useState('');
-  const [candidatePreview, setCandidatePreview] = useState('');
+  // The whole conversation so far, shown as a chat. A copy of `transcript`, updated as it grows.
+  const [messages, setMessages] = useState<TranscriptEntry[]>([]);
   const [bars, setBars] = useState<number[]>(BAR_HEIGHTS);
 
   const transcript = useRef<TranscriptEntry[]>([]);
@@ -179,6 +181,15 @@ function Room({
   const awaySince = useRef<{ type: ExamFocusEvent['type']; at: number } | null>(null);
   const [away, setAway] = useState<ExamFocusEvent['type'] | null>(null);
   const [skipLocked, setSkipLocked] = useState(false);
+  // Pause: microphone and audio stop, the clock stops, the question and code are hidden.
+  const [paused, setPaused] = useState(false);
+  const pausedRef = useRef(false);
+  const pauseStart = useRef(0);
+  const pausedMs = useRef(0);
+  const [pauseCount, setPauseCount] = useState(0);
+  const speakerRef = useRef<Speaker | null>(null);
+  // Only the interview itself goes full screen: the code, the chat, the clock and the controls.
+  const stageRef = useRef<HTMLDivElement | null>(null);
   const startedAt = useRef(0);
   const finished = useRef(false);
   const cleanup = useRef<(() => void) | null>(null);
@@ -221,6 +232,7 @@ function Room({
     finished.current = true;
     endAway();
     teardown();
+    endPause();
     if (document.fullscreenElement) void document.exitFullscreen().catch(() => undefined);
     setPhase('sending');
     const entries = transcript.current
@@ -249,7 +261,7 @@ function Room({
       setAway(type);
     };
     const onFullscreen = () => {
-      if (!document.fullscreenElement) leave('fullscreen_exit');
+      if (document.fullscreenElement !== stageRef.current) leave('fullscreen_exit');
       else if (awaySince.current?.type === 'fullscreen_exit') endAway();
     };
     const onVisibility = () => {
@@ -274,7 +286,7 @@ function Room({
 
   async function returnToFullscreen() {
     try {
-      if (document.fullscreenEnabled && !document.fullscreenElement) await document.documentElement.requestFullscreen();
+      if (document.fullscreenEnabled && stageRef.current && document.fullscreenElement !== stageRef.current) await stageRef.current.requestFullscreen();
     } catch {
       // the browser refused; the overlay stays until the window is back
     }
@@ -293,6 +305,7 @@ function Room({
       at_ms: Date.now() - startedAt.current,
       question_id: current,
     });
+    setMessages([...transcript.current]);
     if (isLast) {
       void finish();
       return;
@@ -308,11 +321,54 @@ function Room({
     }
   }
 
+  /** Time paused so far, including a pause in progress. */
+  const pausedSoFar = () => pausedMs.current + (pausedRef.current ? Date.now() - pauseStart.current : 0);
+
+  function endPause() {
+    if (!pausedRef.current) return;
+    const duration = Date.now() - pauseStart.current;
+    pausedMs.current += duration;
+    pausedRef.current = false;
+    setPaused(false);
+    focusEvents.current.push({ type: 'paused', at_ms: Math.max(0, pauseStart.current - startedAt.current), duration_ms: duration });
+  }
+
+  function pause() {
+    if (pausedRef.current || pauseCount >= MAX_INTERVIEW_PAUSES || pausedMs.current >= MAX_INTERVIEW_PAUSE_MS) return;
+    pausedRef.current = true;
+    pauseStart.current = Date.now();
+    setPaused(true);
+    setPauseCount((n) => n + 1);
+    speakerRef.current?.flush();
+    try {
+      sessionRef.current?.sendRealtimeInput({
+        text: "The candidate paused the interview. Say nothing and wait until you receive 'The candidate is back'.",
+      });
+    } catch {
+      // socket is closing
+    }
+  }
+
+  function resume() {
+    if (!pausedRef.current) return;
+    endPause();
+    try {
+      sessionRef.current?.sendRealtimeInput({ text: 'The candidate is back. Continue the interview where you left off.' });
+    } catch {
+      // socket is closing
+    }
+  }
+
+  function confirmEnd() {
+    if (window.confirm('End the interview now? Your report is written from what you said so far, and you cannot take another interview on this commit.'))
+      void finish();
+  }
+
   async function start() {
     setError(null);
     // Must happen inside the click, before anything is awaited, or the browser refuses it.
-    if (document.fullscreenEnabled && !document.fullscreenElement) {
-      void document.documentElement.requestFullscreen().catch(() => {
+    if (document.fullscreenEnabled && stageRef.current && !document.fullscreenElement) {
+      void stageRef.current.requestFullscreen().catch(() => {
         focusEvents.current.push({ type: 'fullscreen_unsupported', at_ms: 0, duration_ms: 0 });
       });
     } else if (!document.fullscreenEnabled && !focusEvents.current.some((e) => e.type === 'fullscreen_unsupported')) {
@@ -323,6 +379,7 @@ function Room({
     let session: Session | null = null;
     let stopMic: (() => void) | null = null;
     const speaker = new Speaker();
+    speakerRef.current = speaker;
     const timers: ReturnType<typeof setTimeout>[] = [];
     let closedByUs = false;
 
@@ -346,15 +403,14 @@ function Room({
       const last = list[list.length - 1];
       if (last && last.role === role) last.text += text;
       else list.push({ role, text, at_ms: Date.now() - startedAt.current, question_id: questionId.current });
-      if (role === 'interviewer') setCaption(list[list.length - 1]!.text);
-      if (role === 'candidate') setCandidatePreview(list[list.length - 1]!.text);
+      setMessages([...list]);
     };
 
     const onMessage = (msg: LiveServerMessage) => {
       const content = msg.serverContent;
       if (content?.interrupted) speaker.flush();
       for (const part of content?.modelTurn?.parts ?? []) {
-        if (part.inlineData?.data) speaker.play(part.inlineData.data);
+        if (part.inlineData?.data && !pausedRef.current) speaker.play(part.inlineData.data);
       }
       if (content?.inputTranscription?.text) say('candidate', content.inputTranscription.text);
       if (content?.outputTranscription?.text) say('interviewer', content.outputTranscription.text);
@@ -397,7 +453,7 @@ function Room({
             if (Date.now() - startedAt.current > 30_000) void finish();
             else {
               dispose();
-              setError('The connection to the interviewer was lost. You can reconnect within two minutes of starting.');
+              setError('The connection to the interviewer was lost. Reconnect to continue.');
               setPhase('idle');
             }
           },
@@ -406,6 +462,8 @@ function Room({
       const open = session;
       sessionRef.current = session;
       stopMic = await startMic(stream, (audioData) => {
+        // While paused the microphone sends nothing.
+        if (pausedRef.current) return;
         try {
           open.sendRealtimeInput({ audio: { data: audioData, mimeType: MIC_MIME } });
         } catch {
@@ -418,9 +476,10 @@ function Room({
 
       const total = live.seconds;
       const tick = () => {
-        const remaining = total - Math.floor((Date.now() - startedAt.current) / 1000);
+        if (pausedRef.current && pausedSoFar() >= MAX_INTERVIEW_PAUSE_MS) resume();
+        const remaining = total - Math.floor((Date.now() - startedAt.current - pausedSoFar()) / 1000);
         setLeft(Math.max(0, remaining));
-        if (remaining > 0) {
+        if (remaining > 0 || pausedRef.current) {
           timers.push(setTimeout(tick, 500));
           return;
         }
@@ -468,21 +527,6 @@ function Room({
       onCut={(e) => phase === 'live' && e.preventDefault()}
       onContextMenu={(e) => phase === 'live' && e.preventDefault()}
     >
-      {phase === 'live' && away && (
-        <div className="absolute inset-0 z-30 flex items-center justify-center bg-[rgba(20,22,26,0.88)] p-6" role="alertdialog" aria-label="You left the interview">
-          <div className="max-w-md space-y-3 rounded-[6px] border border-line bg-white p-6 text-center">
-            <h3 className="font-serif-heading text-[20px] font-medium text-ink">You left the interview window</h3>
-            <p className="text-[13px] text-muted">
-              The question is hidden until you come back. Leaving full screen, switching tabs or windows is recorded with
-              its time and shown to the reviewers as a signal. The interview keeps running.
-            </p>
-            <Button onClick={() => void returnToFullscreen()} className="w-full">
-              <span className="material-symbols-outlined text-[17px]">fullscreen</span>
-              <span>Return to full screen</span>
-            </Button>
-          </div>
-        </div>
-      )}
       {/* Cobalt & Cyan Live Cockpit Header */}
       <header className="flex flex-wrap items-center justify-between gap-3 border-b border-line bg-[#F0F6FF] px-5 py-3">
         <div className="flex min-w-0 flex-wrap items-center gap-2.5">
@@ -523,7 +567,7 @@ function Room({
           {(phase === 'live' || resuming) && (
             <button
               type="button"
-              onClick={() => void finish()}
+              onClick={() => (phase === 'live' ? confirmEnd() : void finish())}
               className="btn-tactile font-mono-code cursor-pointer rounded-[4px] border border-bad/40 bg-white px-3 py-1.5 text-[11px] font-semibold text-bad hover:bg-bad hover:text-white"
             >
               {phase === 'live' ? 'End Interview & Score' : 'Finish & Score Recorded Audio'}
@@ -585,8 +629,67 @@ function Room({
         </div>
       </div>
 
-      {/* Asymmetric Dual Split Panel: Left Code Inspector (Col 7) / Right Examiner Dialogue & Controls (Col 5) */}
-      <div className="grid min-h-[460px] grid-cols-1 lg:grid-cols-12">
+      {/* The interview stage: the only part that goes full screen (code, conversation, clock and controls). */}
+      <div ref={stageRef} id="interview-stage" className="interview-stage relative flex flex-col bg-white">
+      {(phase === 'live' || phase === 'connecting') && (
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line bg-[#F0F6FF] px-4 py-2">
+          <div className="font-mono-code flex items-center gap-3 text-[12px]">
+            <span className="font-bold text-[#4338CA] uppercase">Question {activeIdx + 1} of {Math.max(1, questions.length)}</span>
+            <span className="font-bold text-ink" aria-label="Time left">{formatClock(left)}</span>
+            {paused && <span className="rounded-[3px] bg-warn px-2 py-0.5 text-[10px] font-bold text-white uppercase">Paused</span>}
+          </div>
+          {phase === 'live' && (
+            <div className="flex flex-wrap gap-2">
+              {paused ? (
+                <Button onClick={resume} className="py-1.5 text-[12px]">Resume</Button>
+              ) : (
+                <Button
+                  variant="secondary"
+                  onClick={pause}
+                  disabled={pauseCount >= MAX_INTERVIEW_PAUSES || pausedMs.current >= MAX_INTERVIEW_PAUSE_MS}
+                  className="py-1.5 text-[12px]"
+                  title={`Up to ${MAX_INTERVIEW_PAUSES} pauses, ${MAX_INTERVIEW_PAUSE_MS / 60_000} minutes in total`}
+                >
+                  Pause ({MAX_INTERVIEW_PAUSES - pauseCount} left)
+                </Button>
+              )}
+              <Button variant="secondary" onClick={nextQuestion} disabled={skipLocked || paused} className="py-1.5 text-[12px]">
+                {activeIdx >= questions.length - 1 ? 'Finish' : skipLocked ? 'Moving on…' : 'Next question →'}
+              </Button>
+              <Button variant="danger" onClick={confirmEnd} className="py-1.5 text-[12px]">End</Button>
+            </div>
+          )}
+        </div>
+      )}
+      {phase === 'live' && (away || paused) && (
+        <div className="absolute inset-0 z-30 flex items-center justify-center bg-[rgba(20,22,26,0.92)] p-6" role="alertdialog" aria-label={paused ? 'Interview paused' : 'You left the interview'}>
+          <div className="max-w-md space-y-3 rounded-[6px] border border-line bg-white p-6 text-center">
+            {paused ? (
+              <>
+                <h3 className="font-serif-heading text-[20px] font-medium text-ink">Interview paused</h3>
+                <p className="text-[13px] text-muted">
+                  The microphone, the interviewer and the clock are stopped, and the question is hidden. The pause is
+                  recorded. It ends on its own when your {MAX_INTERVIEW_PAUSE_MS / 60_000} minutes of pause run out.
+                </p>
+                <Button onClick={resume} className="w-full">Resume the interview</Button>
+              </>
+            ) : (
+              <>
+                <h3 className="font-serif-heading text-[20px] font-medium text-ink">You left the interview</h3>
+                <p className="text-[13px] text-muted">
+                  The question is hidden until you come back. Leaving full screen, switching tabs or windows is recorded with
+                  its time and shown to the reviewers as a signal. The interview keeps running.
+                </p>
+                <Button onClick={() => void returnToFullscreen()} className="w-full">
+                  <span className="material-symbols-outlined text-[17px]">fullscreen</span>
+                  <span>Return to full screen</span>
+                </Button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+      <div className="interview-stage-body grid min-h-[460px] flex-1 grid-cols-1 lg:grid-cols-12">
         {/* Left Pane: Code & AST Inspector (7 cols) */}
         <div className="flex flex-col border-b border-line bg-[#FAFAFC] lg:col-span-7 lg:border-r lg:border-b-0">
           {/* File Navigation Subheader */}
@@ -627,7 +730,7 @@ function Room({
           </div>
 
           {/* Scrollable Code Box */}
-          <div className="font-mono-code max-h-[45vh] flex-1 overflow-x-auto overflow-y-auto bg-[#FAFAFC] p-4 text-[12px] leading-[20px] text-ink select-none lg:max-h-[60vh]">
+          <div className={`interview-code font-mono-code max-h-[45vh] flex-1 overflow-x-auto overflow-y-auto bg-[#FAFAFC] p-4 text-[12px] leading-[20px] text-ink select-none lg:max-h-[60vh] ${phase === 'live' && (away || paused) ? 'invisible' : ''}`}>
             {activeQuestion ? (
               <table className="w-full border-collapse">
                 <tbody>
@@ -666,7 +769,7 @@ function Room({
         </div>
 
         {/* Right Pane: Pre-Flight Briefing OR Live Examiner Dialogue (5 cols) */}
-        <div className="flex flex-col justify-between space-y-5 bg-white p-6 lg:col-span-5">
+        <div className="flex min-h-0 flex-col justify-between space-y-5 bg-white p-6 lg:col-span-5">
           {phase === 'idle' ? (
             <div className="space-y-4">
               <div className="flex items-center justify-between border-b border-line pb-2.5">
@@ -684,7 +787,7 @@ function Room({
 
               {resuming ? (
                 <p className="text-[13px] leading-[21px] text-muted">
-                  If you lost the connection you can reconnect within two minutes of starting. Otherwise end the session
+                  If you lost the connection you can reconnect while the interview time lasts. Otherwise end the session
                   now to generate your ownership report from the transcript recorded so far.
                 </p>
               ) : (
@@ -712,8 +815,9 @@ function Room({
                   <li className="flex items-start gap-2">
                     <span className="font-mono-code mt-0.5 text-[11px] font-bold text-accent">04</span>
                     <span>
-                      The interview opens in <strong>full screen</strong>. Leaving it, switching tabs or windows is not
-                      blocked, but each time is recorded and shown to reviewers. Use &ldquo;Next question&rdquo; to move on.
+                      The interview room (code and conversation) opens in <strong>full screen</strong>. Leaving it, switching
+                      tabs or windows is not blocked, but each time is recorded and shown to reviewers. You can pause up to{' '}
+                      {MAX_INTERVIEW_PAUSES} times ({MAX_INTERVIEW_PAUSE_MS / 60_000} minutes in total) and use &ldquo;Next question&rdquo; to move on.
                     </span>
                   </li>
                   {interview.submission_id && (
@@ -741,7 +845,7 @@ function Room({
               </div>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="flex min-h-0 flex-1 flex-col space-y-4">
               {/* Question Stage Header */}
               <div className="flex items-center justify-between border-b border-line pb-2">
                 <span className="font-mono-code text-[11px] font-bold tracking-wider text-[#4338CA] uppercase">
@@ -769,51 +873,20 @@ function Room({
                     Gemini Live Audio
                   </span>
                 </div>
-                <h2 className={`font-serif-heading text-[18px] leading-[25px] font-medium break-words whitespace-pre-wrap text-ink ${away ? 'blur-sm select-none' : ''}`}>
+                <h2 className={`font-serif-heading text-[18px] leading-[25px] font-medium break-words whitespace-pre-wrap text-ink ${away || paused ? 'blur-sm select-none' : ''}`}>
                   {activeQuestion
                     ? `“${activeQuestion.question}”`
                     : 'The interviewer is about to ask the first question. The code it refers to will appear on the left.'}
                 </h2>
               </div>
 
-              {/* Real-Time Dialogue Transcription Stream */}
-              <div className="space-y-2">
+              {/* The whole conversation */}
+              <div className="flex min-h-0 flex-1 flex-col space-y-2">
                 <div className="font-mono-code flex items-center justify-between text-[11px] text-muted">
-                  <span className="font-semibold text-ink uppercase">Live Speech Transcription Stream</span>
-                  <span className="flex items-center gap-1 font-medium text-good">
-                    <span className="h-1.5 w-1.5 rounded-full bg-good" />
-                    ASR Active
-                  </span>
+                  <span className="font-semibold text-ink uppercase">Conversation</span>
+                  <span>{messages.filter((m) => m.role !== 'system').length} messages</span>
                 </div>
-
-                <div
-                  className="max-h-[35vh] space-y-2.5 overflow-y-auto rounded-[4px] border border-line bg-[#FAFAFC] p-3.5"
-                  aria-live="polite"
-                >
-                  {caption ? (
-                    <div className="rounded-[3px] border border-line border-l-2 border-l-[#4338CA] bg-white p-2.5 text-[12px] text-ink">
-                      <span className="font-mono-code block text-[10px] font-bold text-[#4338CA] uppercase">
-                        Interviewer Prompt
-                      </span>
-                      <span className="mt-0.5 block whitespace-pre-wrap">{caption}</span>
-                    </div>
-                  ) : (
-                    <p className="font-mono-code text-[11px] text-muted">
-                      Listening for examiner and candidate voice stream…
-                    </p>
-                  )}
-
-                  {candidatePreview && (
-                    <div className="rounded-[3px] border border-line bg-white p-2.5 text-[12px] text-ink">
-                      <span className="font-mono-code block text-[10px] font-bold text-good uppercase">
-                        Candidate Defense (Live)
-                      </span>
-                      <blockquote className="mt-0.5 italic">
-                        &ldquo;{candidatePreview}&rdquo;
-                      </blockquote>
-                    </div>
-                  )}
-                </div>
+                <LiveChat messages={messages} questions={questions} className="interview-chat h-[40vh]" />
               </div>
             </div>
           )}
@@ -824,18 +897,9 @@ function Room({
               <span className="material-symbols-outlined text-[15px]">timer</span>
               <span>{phase === 'live' ? `Remaining: ${formatClock(left)}` : 'Clock starts on microphone grant'}</span>
             </div>
-            {phase === 'live' && (
-              <div className="flex flex-wrap gap-2">
-                <Button variant="secondary" onClick={nextQuestion} disabled={skipLocked} className="py-1.5 text-[12px]">
-                  {activeIdx >= questions.length - 1 ? 'Finish' : skipLocked ? 'Moving on…' : 'Next question →'}
-                </Button>
-                <Button variant="secondary" onClick={() => void finish()} className="py-1.5 text-[12px]">
-                  End interview
-                </Button>
-              </div>
-            )}
           </div>
         </div>
+      </div>
       </div>
     </section>
   );
@@ -851,9 +915,35 @@ export function InterviewPage() {
     (d) => d.interview.status === 'preparing' || d.interview.status === 'evaluating',
   );
 
+  const toast = useToast();
+  const [acting, setActing] = useState<string | null>(null);
+
   if (!data) return <PageState loading={loading} error={error} />;
   const { interview } = data;
   const activity = data.activity ?? [];
+
+  /** Cancel a preparation, or pause, resume or cancel the report. */
+  async function control(action: 'cancel' | 'pause-report' | 'resume-report', confirmText?: string) {
+    if (confirmText && !window.confirm(confirmText)) return;
+    setActing(action);
+    try {
+      await api(`/api/interviews/${interview.id}/${action}`, { method: 'POST' });
+      toast.success(
+        action === 'cancel'
+          ? interview.status === 'preparing'
+            ? 'Preparation canceled. It does not count as your interview on this commit.'
+            : 'Report canceled. Your answers are saved.'
+          : action === 'pause-report'
+            ? 'Report paused.'
+            : 'Writing the report.',
+      );
+      await reload();
+    } catch (err) {
+      toast.error(`Could not do that. ${errorMessage(err)}`);
+    } finally {
+      setActing(null);
+    }
+  }
   const profile = me?.public_profile;
   const publicUrl = profile?.slug ? `${window.location.origin}/p/${profile.slug}` : null;
 
@@ -917,7 +1007,48 @@ export function InterviewPage() {
               This takes about a minute. You can leave this page open; it will advance automatically.
             </p>
           </div>
+          {interview.is_owner && (
+            <div className="flex justify-center">
+              <Button
+                variant="secondary"
+                disabled={!!acting}
+                onClick={() => void control('cancel', 'Cancel the preparation? You can start again later; it does not use up your interview on this commit.')}
+              >
+                {acting === 'cancel' ? 'Canceling…' : 'Cancel preparation'}
+              </Button>
+            </div>
+          )}
           {activity.length > 0 && <AiActivity entries={activity} live />}
+        </section>
+      )}
+
+      {interview.status === 'canceled' && (
+        <div className="space-y-4">
+          <Notice>This interview was canceled before it started, so it does not count. You can start a new one.</Notice>
+          <Link to="/interview/new" className={linkButtonSecondary}>Start another interview</Link>
+        </div>
+      )}
+
+      {(interview.status === 'report_paused' || interview.status === 'report_canceled') && (
+        <section className="space-y-4 rounded-[6px] border border-line bg-white p-6">
+          <Notice tone="warn">
+            {interview.status === 'report_paused'
+              ? 'The report is paused. Your answers are saved; resume whenever you want.'
+              : 'The report was canceled. Your answers are saved, and you can have it written at any time.'}
+          </Notice>
+          {interview.is_owner && (
+            <div className="flex flex-wrap gap-2">
+              <Button disabled={!!acting} onClick={() => void control('resume-report')}>
+                {interview.status === 'report_paused' ? 'Resume the report' : 'Write the report'}
+              </Button>
+              {interview.status === 'report_paused' && (
+                <Button variant="secondary" disabled={!!acting} onClick={() => void control('cancel', 'Cancel the report? Your answers stay saved and you can write it later.')}>
+                  Cancel the report
+                </Button>
+              )}
+            </div>
+          )}
+          {activity.length > 0 && <AiActivity entries={activity} />}
         </section>
       )}
 
@@ -947,6 +1078,14 @@ export function InterviewPage() {
             <p className="text-[13px] text-muted">Usually completes in under a minute.</p>
           </div>
           {interview.error && <Notice tone="warn">{interview.error}</Notice>}
+          {interview.is_owner && (
+            <div className="flex justify-center gap-2">
+              <Button variant="secondary" disabled={!!acting} onClick={() => void control('pause-report')}>Pause</Button>
+              <Button variant="secondary" disabled={!!acting} onClick={() => void control('cancel', 'Cancel the report? Your answers stay saved and you can write it later. This still counts as your interview on this commit.')}>
+                Cancel
+              </Button>
+            </div>
+          )}
           {activity.length > 0 && <AiActivity entries={activity} live />}
         </section>
       )}

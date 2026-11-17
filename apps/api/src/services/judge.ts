@@ -3,6 +3,7 @@ import { analyzeRepo, type RepoRow } from '../engine/analyze.js';
 import { Activity, withActivity } from '../lib/activity.js';
 import { AiUnavailableError, clockUtc, isTransientAiError } from '../lib/gemini.js';
 import { getHeadSha, getRepoMeta } from '../lib/github.js';
+import { JobStopped, submissionCheckpoint } from '../lib/control.js';
 import { friendlyJobError, technicalDetail } from '../lib/jobErrors.js';
 import { db, must } from '../lib/supabase.js';
 import { MAX_AUTO_ATTEMPTS, dispatchJudging, freeSlots, nextAttemptAt } from './judgeQueue.js';
@@ -46,7 +47,7 @@ async function lockCommit(sub: SubmissionRow): Promise<boolean> {
     must(
       await db()
         .from('submissions')
-        .update({ locked_commit_sha: sha, locked_at: new Date().toISOString(), status: 'queued', error: null, judge_attempts: 0, next_attempt_at: null })
+        .update({ locked_commit_sha: sha, locked_at: new Date().toISOString(), status: 'queued', error: null, judge_attempts: 0, next_attempt_at: null, activity_json: [], models_used: [] })
         .eq('id', sub.id),
     );
     return true;
@@ -89,9 +90,10 @@ export async function settleEvent(eventId: string): Promise<void> {
     .from('submissions')
     .select('id', { count: 'exact', head: true })
     .eq('event_id', eventId)
-    .in('status', ['queued', 'analyzing']);
+    .in('status', ['queued', 'analyzing', 'paused']);
   if (error) throw new Error(`Database error: ${error.message}`);
-  if ((count ?? 0) === 0) must(await db().from('events').update({ status: 'review' }).eq('id', eventId).eq('status', 'judging'));
+  // Paused submissions keep the event in judging; canceled ones do not.
+  if ((count ?? 0) === 0) must(await db().from('events').update({ status: 'review', judging_paused_at: null }).eq('id', eventId).eq('status', 'judging'));
 }
 
 /**
@@ -153,9 +155,9 @@ export async function judgeSubmission(submissionId: string): Promise<void> {
   // Too many judgings running: stay queued. The next one to finish, or the scheduler, starts this one.
   if (sub.status === 'queued' && (await freeSlots()) === 0) return;
 
-  // A fresh start clears the log. An automatic retry keeps it, so the history shows every attempt.
+  // The log is cleared by whoever starts judging afresh (closing the event, "Judge again"). Automatic retries and
+  // a resumed pause keep it, so the history shows every attempt.
   const attempt = sub.judge_attempts + 1;
-  const keepLog = sub.judge_attempts > 0;
   const claimed = must(
     await db()
       .from('submissions')
@@ -164,7 +166,6 @@ export async function judgeSubmission(submissionId: string): Promise<void> {
         error: null,
         updated_at: new Date().toISOString(),
         next_attempt_at: null,
-        ...(keepLog ? {} : { activity_json: [], models_used: [] }),
       })
       .eq('id', sub.id)
       .in('status', ['queued', 'error'])
@@ -172,7 +173,8 @@ export async function judgeSubmission(submissionId: string): Promise<void> {
   ) as { id: string }[];
   if (claimed.length === 0) return;
 
-  const activity = keepLog ? new Activity('submissions', sub.id, true, sub.activity_json, sub.models_used) : new Activity('submissions', sub.id);
+  const activity = new Activity('submissions', sub.id, true, sub.activity_json ?? [], sub.models_used ?? []);
+  activity.checkpoint = submissionCheckpoint(sub.id);
   try {
     await withActivity(activity, async () => {
       await activity.step(
@@ -201,10 +203,25 @@ export async function judgeSubmission(submissionId: string): Promise<void> {
         videoUrl: version.video_url,
         usage,
       });
-      must(await db().from('submissions').update({ status: 'scored', analysis_id: analysis.id, error: note, judge_attempts: 0 }).eq('id', sub.id));
+      await activity.checkpoint?.();
+      // Only if nobody paused or canceled it meanwhile.
+      must(await db().from('submissions').update({ status: 'scored', analysis_id: analysis.id, error: note, judge_attempts: 0 }).eq('id', sub.id).eq('status', 'analyzing'));
       await activity.add('done', `Done. ${rubric.length} criteria scored, each with its reason and evidence.`);
     });
   } catch (err) {
+    if (err instanceof JobStopped) {
+      // The organizer paused or canceled it. What is done stays cached (the analysis per commit, the summaries).
+      await activity.add(
+        err.reason === 'paused' ? 'retry' : 'error',
+        err.reason === 'paused'
+          ? 'Stopped at a checkpoint because judging is paused. Work done so far is cached and reused on resume.'
+          : 'Stopped at a checkpoint because judging was canceled.',
+      );
+      // An event-wide pause stops a submission that was still marked analyzing: record it as paused.
+      if (err.reason === 'paused')
+        must(await db().from('submissions').update({ status: 'paused' }).eq('id', sub.id).in('status', ['analyzing', 'paused']));
+      return;
+    }
     console.error(`Judging ${sub.id} failed (attempt ${attempt}):`, err);
     await activity.add('error', technicalDetail(err));
     await failOrRetry(sub.id, attempt, err, activity);

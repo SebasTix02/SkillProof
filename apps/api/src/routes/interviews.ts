@@ -1,4 +1,4 @@
-import { CreateInterviewSchema, FinishInterviewSchema, describeFocusEvents, INTERVIEW_SECONDS, parseGithubUrl, type QuestionPlan } from '@skillproof/shared';
+import { CreateInterviewSchema, FinishInterviewSchema, describeFocusEvents, INTERVIEW_SECONDS, MAX_INTERVIEW_PAUSE_MS, parseGithubUrl, type QuestionPlan } from '@skillproof/shared';
 import type { FastifyInstance } from 'fastify';
 import { env } from '../env.js';
 import { resolveRepo, type HookSnippet } from '../engine/analyze.js';
@@ -12,7 +12,8 @@ import { primaryModels } from '../lib/models.js';
 import { enqueue } from '../services/queue.js';
 
 const PERSONAL_PER_DAY = 5;
-const TOKEN_RETRY_WINDOW_MS = 120_000;
+// A dropped connection can be reopened for as long as the interview could still be running, pauses included.
+const TOKEN_RETRY_WINDOW_MS = INTERVIEW_SECONDS * 1000 + MAX_INTERVIEW_PAUSE_MS;
 
 type InterviewWithRepo = InterviewRow & { repos: { owner: string; name: string; url: string } };
 

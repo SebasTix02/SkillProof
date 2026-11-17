@@ -3,6 +3,7 @@ import Fastify, { type FastifyInstance } from 'fastify';
 import { env } from './env.js';
 import { HttpError } from './lib/errors.js';
 import { eventRoutes } from './routes/events.js';
+import { controlRoutes } from './routes/controls.js';
 import { courseRoutes } from './routes/courses.js';
 import { internalRoutes } from './routes/internal.js';
 import { orgRoutes } from './routes/org.js';
@@ -54,5 +55,6 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(orgRoutes);
   await app.register(reviewRoutes);
   await app.register(courseRoutes);
+  await app.register(controlRoutes);
   return app;
 }

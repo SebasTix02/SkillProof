@@ -29,7 +29,7 @@ interface InterviewReportSummary {
 
 interface InterviewRow {
   id: string;
-  status: 'preparing' | 'ready' | 'in_progress' | 'evaluating' | 'completed' | 'error';
+  status: 'preparing' | 'ready' | 'in_progress' | 'evaluating' | 'completed' | 'error' | 'canceled' | 'report_paused' | 'report_canceled';
   error?: string | null;
   submission_id: string | null;
   created_at: string;
@@ -48,6 +48,9 @@ const STATUS_BADGE: Record<
   evaluating: { label: 'EVALUATING', tone: 'warn', dot: true },
   completed: { label: 'SCORED', tone: 'good', dot: true },
   error: { label: 'FAILED', tone: 'bad', dot: true },
+  canceled: { label: 'CANCELED', tone: 'neutral', dot: false },
+  report_paused: { label: 'REPORT PAUSED', tone: 'warn', dot: false },
+  report_canceled: { label: 'REPORT CANCELED', tone: 'neutral', dot: false },
 };
 
 function getReport(row: InterviewRow): InterviewReportSummary | null {

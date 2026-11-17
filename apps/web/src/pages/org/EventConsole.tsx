@@ -28,6 +28,7 @@ import {
   type SubmissionPipelineStatus,
 } from '../../components/shared';
 import { JudgeAssignments } from '../../components/JudgeAssignments';
+import { SubmissionJudgingControls } from '../../components/JudgingControls';
 import { useToast } from '../../components/toast';
 import { api, errorMessage } from '../../lib/api';
 import { STATUS_LABEL, VISIBILITY_LABEL, type EventView, type RepoRef, type ScoreView } from '../../lib/types';
@@ -38,7 +39,7 @@ interface ConsoleSubmission {
   id: string;
   team_name: string;
   submitted_by_name: string;
-  status: 'submitted' | 'queued' | 'analyzing' | 'scored' | 'error';
+  status: 'submitted' | 'queued' | 'analyzing' | 'scored' | 'error' | 'paused' | 'canceled';
   error: string | null;
   activity: ActivityEntry[];
   step_count: number;
@@ -210,7 +211,8 @@ export function EventConsole() {
   if (!data) return <PageState loading={loading} error={error} />;
   const { event, submissions } = data;
 
-  async function act(key: string, path: string, success: string) {
+  async function act(key: string, path: string, success: string, confirmText?: string) {
+    if (confirmText && !window.confirm(confirmText)) return;
     setBusy(key);
     try {
       await api(path, { method: 'POST' });
@@ -472,6 +474,36 @@ export function EventConsole() {
               <span className="font-mono-code text-[12px] font-bold text-accent">{progressPct}% COMPLETE</span>
             </div>
             <ScoreBar value={progressPct} max={100} tone="accent" heightClass="h-2" />
+            {canManage && (
+              <div className="flex flex-wrap items-center gap-2">
+                {event.judging_paused_at ? (
+                  <>
+                    <span className="font-mono-code rounded-[3px] bg-warn px-2 py-0.5 text-[11px] font-bold text-white uppercase">Judging paused</span>
+                    <Button disabled={!!busy} onClick={() => void act('resume-all', `/api/events/${event.id}/judging/resume`, 'Judging resumed.')}>
+                      Resume judging
+                    </Button>
+                  </>
+                ) : (
+                  <Button variant="secondary" disabled={!!busy} onClick={() => void act('pause-all', `/api/events/${event.id}/judging/pause`, 'Judging paused. Running submissions stop at their next checkpoint.')}>
+                    Pause judging
+                  </Button>
+                )}
+                <Button
+                  variant="danger"
+                  disabled={!!busy}
+                  onClick={() =>
+                    void act(
+                      'cancel-all',
+                      `/api/events/${event.id}/judging/cancel`,
+                      'Judging canceled. The event moved to review; canceled submissions can be judged again.',
+                      `Cancel judging for every submission not judged yet (${submissions.length - done})? The event moves to review and you can judge them again later.`,
+                    )
+                  }
+                >
+                  Cancel judging
+                </Button>
+              </div>
+            )}
           </div>
         )}
 
@@ -738,21 +770,16 @@ export function EventConsole() {
                         )}
                         <td className="px-4 py-3.5 text-right">
                           <div className="flex items-center justify-end gap-2">
-                            {s.status === 'error' && s.locked_commit_sha && (
-                              <Button
-                                variant="secondary"
-                                disabled={!!busy}
-                                onClick={() =>
-                                  void act(
-                                    `re-${s.id}`,
-                                    `/api/submissions/${s.id}/rejudge`,
-                                    `Judging ${s.team_name} again.`,
-                                  )
-                                }
-                                className="px-2.5 py-1 text-[11px]"
-                              >
-                                {busy === `re-${s.id}` ? 'Queuing…' : 'Judge again'}
-                              </Button>
+                            {canManage && (
+                              <SubmissionJudgingControls
+                                id={s.id}
+                                name={s.team_name}
+                                status={s.status}
+                                frozen={!!s.locked_commit_sha}
+                                busy={busy}
+                                act={(key, path, success, confirmText) => void act(key, path, success, confirmText)}
+                                compact
+                              />
                             )}
                             <Link
                               to={`/org/events/${event.id}/s/${s.id}`}

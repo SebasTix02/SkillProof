@@ -39,8 +39,9 @@ export async function dispatchJudging(): Promise<number> {
   const ready = must(
     await db()
       .from('submissions')
-      .select('id')
+      .select('id, events!inner(judging_paused_at)')
       .eq('status', 'queued')
+      .is('events.judging_paused_at', null)
       .not('locked_commit_sha', 'is', null)
       .or(`next_attempt_at.is.null,next_attempt_at.lte.${now}`)
       .order('next_attempt_at', { ascending: true, nullsFirst: true })

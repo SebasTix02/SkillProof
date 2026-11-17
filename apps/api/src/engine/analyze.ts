@@ -203,6 +203,7 @@ export async function analyzeRepo(owner: string, name: string, opts: AnalyzeOpti
     return { repo, analysis: cached };
   }
 
+  await activity?.checkpoint?.();
   await activity?.step(`Downloading the code of ${meta.owner}/${meta.name} at commit ${sha.slice(0, 7)} from GitHub.`);
   const download = await downloadRepoFiles(meta.owner, meta.name, sha);
   const { files, skipped } = selectFiles(download.entries, download.skipped);

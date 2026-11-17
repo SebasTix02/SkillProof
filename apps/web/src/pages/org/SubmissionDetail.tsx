@@ -20,6 +20,7 @@ import {
   scoreTone,
 } from '../../components/shared';
 import { JudgeReviewCard, JudgeReviewsList } from '../../components/JudgeReview';
+import { SubmissionJudgingControls } from '../../components/JudgingControls';
 import { useToast } from '../../components/toast';
 import { api, errorMessage } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
@@ -60,7 +61,7 @@ interface QueueSubmission {
   id: string;
   team_name: string;
   submitted_by_name: string;
-  status: 'submitted' | 'queued' | 'analyzing' | 'scored' | 'error';
+  status: 'submitted' | 'queued' | 'analyzing' | 'scored' | 'error' | 'paused' | 'canceled';
   locked_commit_sha: string | null;
   total: number | null;
   ownership: { score: number; confidence: string } | null;
@@ -210,6 +211,7 @@ export function SubmissionDetail() {
   const { org, me } = useAuth();
   const toast = useToast();
   const [rejudging, setRejudging] = useState(false);
+  const [controlKey, setControlKey] = useState<string | null>(null);
   const [queueSearch, setQueueSearch] = useState('');
   const [activeCriterionIdx, setActiveCriterionIdx] = useState(0);
 
@@ -276,16 +278,20 @@ export function SubmissionDetail() {
   if (!data) return <PageState loading={loading} error={error} />;
   const { submission: sub, scores, feedback } = data;
 
-  async function rejudge() {
+  /** Pause, resume, cancel or judge again, from the controls bar. */
+  async function control(key: string, path: string, success: string, confirmText?: string) {
+    if (confirmText && !window.confirm(confirmText)) return;
     setRejudging(true);
+    setControlKey(key);
     try {
-      await api(`/api/submissions/${sub.id}/rejudge`, { method: 'POST' });
-      toast.success('Judging again. The steps appear below as the AI works.');
+      await api(path, { method: 'POST' });
+      toast.success(success);
       await reload();
     } catch (err) {
       toast.error(errorMessage(err));
     } finally {
       setRejudging(false);
+      setControlKey(null);
     }
   }
 
@@ -407,14 +413,27 @@ export function SubmissionDetail() {
       />
 
       {/* Error & Status Notices */}
-      {sub.status === 'error' && (
-        <Notice tone="error">
+      {['queued', 'analyzing', 'paused', 'error', 'canceled'].includes(sub.status) && sha && (
+        <Notice tone={sub.status === 'error' ? 'error' : sub.status === 'paused' || sub.status === 'canceled' ? 'warn' : 'info'}>
           <span className="flex flex-wrap items-center gap-3">
-            <span className="flex-1">{sub.error || 'This submission could not be judged.'}</span>
-            {sha && (
-              <Button variant="secondary" disabled={rejudging} onClick={() => void rejudge()}>
-                {rejudging ? 'Queuing…' : 'Judge again'}
-              </Button>
+            <span className="flex-1">
+              {sub.status === 'paused'
+                ? 'Judging is paused. Work done so far is cached and reused when it resumes.'
+                : sub.status === 'canceled'
+                  ? sub.error || 'Judging was canceled.'
+                  : sub.status === 'error'
+                    ? sub.error || 'This submission could not be judged.'
+                    : 'The AI is judging this submission. You can pause or cancel it.'}
+            </span>
+            {isManager && (
+              <SubmissionJudgingControls
+                id={sub.id}
+                name={sub.team_name}
+                status={sub.status as 'queued'}
+                frozen={!!sha}
+                busy={rejudging ? controlKey : null}
+                act={(key, path, success, confirmText) => void control(key, path, success, confirmText)}
+              />
             )}
           </span>
         </Notice>
