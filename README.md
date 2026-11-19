@@ -282,6 +282,13 @@ deadline, so a personal interview on that commit also counts.
 - Only public GitHub repositories are supported.
 - The Vercel setup has not been deployed yet. Background jobs on Vercel in particular need a first real run.
 - Not built yet: sign in with GitHub, installable PWA.
+- Courses are separate from events (`20261119000001_course_assignments`). A course has a roster (instructors, TAs,
+  students by section) and assignments created under it (`POST /api/courses/:id/assignments`) with no visibility,
+  access code or allowlist: only the students on the roster see an assignment and can submit, and the database keeps
+  that in sync when the roster changes. Assignments reuse the judging engine (they are stored as `events` rows with
+  `kind = 'assignment'`, `visibility = 'course'` and a course, enforced by a check constraint and triggers; read them
+  through the `course_assignments` view). Screens: Courses (overview, roster, assignments, gradebook), Integrity
+  (similarity and verdicts for events and assignments) and, for students, My courses.
 - Organizer suite, judge workspace, similarity forensics and course mode have their data model and API
   (`20261117000004_screens`): members and invitations, usage, audit trail, judge assignments and reviews,
   integrity decisions, courses and rosters. Some of these screens still show sample data until they are wired

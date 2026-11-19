@@ -30,11 +30,15 @@ export async function profileRoutes(app: FastifyInstance): Promise<void> {
     const profile = must(await db().from('profiles').select('id, display_name, github_login, avatar_url, notify_results').eq('id', user.id).single());
     const publicProfile = must(await db().from('public_profiles').select('slug, is_public, headline, show_quotes').eq('user_id', user.id).maybeSingle());
     const orgIds = [...new Set(user.grants.flatMap((g) => (g.organization_id ? [g.organization_id] : [])))];
+    // Courses the user takes as a student: the web shows "My courses" when there is at least one.
+    const enrolled = await db().from('course_members').select('course_id', { count: 'exact', head: true }).eq('user_id', user.id).eq('role', 'student');
+    if (enrolled.error) throw new Error(`Database error: ${enrolled.error.message}`);
     const orgs = orgIds.length ? (must(await db().from('organizations').select('id, name, slug, plan').in('id', orgIds)) as { id: string }[]) : [];
     return {
       profile,
       email: user.email,
       public_profile: publicProfile,
+      enrolled_courses: enrolled.count ?? 0,
       organizations: orgs.map((o) => ({
         ...o,
         roles: user.grants.filter((g) => g.organization_id === o.id).map((g) => g.role_key),

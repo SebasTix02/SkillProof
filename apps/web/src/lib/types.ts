@@ -4,12 +4,14 @@ export interface EventView {
   id: string;
   organization_id: string;
   kind: string;
+  /** Set for course assignments (kind 'assignment'), which are open to the course roster only. */
+  course_id?: string | null;
   name: string;
   slug: string;
   description: string;
   starts_at: string;
   submission_deadline: string;
-  visibility: 'public' | 'code' | 'invite';
+  visibility: 'public' | 'code' | 'invite' | 'course';
   interviews_enabled: boolean;
   max_submissions: number | null;
   rubric_json: Rubric;
@@ -66,4 +68,5 @@ export const VISIBILITY_LABEL: Record<EventView['visibility'], string> = {
   public: 'Public',
   code: 'Access code',
   invite: 'Invite only',
+  course: 'Course roster',
 };

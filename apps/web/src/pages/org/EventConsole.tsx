@@ -271,9 +271,15 @@ export function EventConsole() {
       <CommandConsoleHeader
         breadcrumbs={
           <>
-            <Link to="/org/events" className="text-accent-on-dark hover:underline">
-              ← ALL ORGANIZATION EVENTS
-            </Link>
+            {event.kind === 'assignment' && event.course_id ? (
+              <Link to={`/org/courses/${event.course_id}/assignments`} className="text-accent-on-dark hover:underline">
+                ← COURSE ASSIGNMENTS
+              </Link>
+            ) : (
+              <Link to="/org/events" className="text-accent-on-dark hover:underline">
+                ← ALL ORGANIZATION EVENTS
+              </Link>
+            )}
             <span>//</span>
             <span>SLUG: /e/{event.slug}</span>
             <span>//</span>
@@ -294,14 +300,14 @@ export function EventConsole() {
             </span>
           </>
         }
-        eyebrowBadge={`EVENT CONSOLE // ${event.kind.toUpperCase()}`}
+        eyebrowBadge={event.kind === 'assignment' ? 'COURSE ASSIGNMENT' : `EVENT CONSOLE // ${event.kind.toUpperCase()}`}
         eyebrowMeta={
           event.max_submissions == null
             ? 'UNLIMITED VERSIONS'
             : `MAX ${event.max_submissions} VERSIONS / PARTICIPANT`
         }
         title={event.name}
-        subtitle={`Participant registration link: ${link}`}
+        subtitle={event.kind === 'assignment' ? `Open to the students on the course roster. They find it in My courses (${link}).` : `Participant registration link: ${link}`}
         actions={
           <>
             <CopyLinkButton
@@ -325,12 +331,21 @@ export function EventConsole() {
               </Link>
             )}
             <Link
-              to={`/org/events/${event.id}/gradebook`}
+              to={`/org/integrity/${event.id}`}
               className="btn-tactile font-mono-code inline-flex items-center gap-1.5 rounded-[4px] border border-white/15 bg-white/10 px-3.5 py-1.5 text-[11px] font-semibold text-white hover:bg-white/20"
             >
-              <span className="material-symbols-outlined text-[15px]">school</span>
-              <span>Course Gradebook</span>
+              <span className="material-symbols-outlined text-[15px]">policy</span>
+              <span>Integrity review</span>
             </Link>
+            {event.kind === 'assignment' && event.course_id && (
+              <Link
+                to={`/org/courses/${event.course_id}/gradebook`}
+                className="btn-tactile font-mono-code inline-flex items-center gap-1.5 rounded-[4px] border border-white/15 bg-white/10 px-3.5 py-1.5 text-[11px] font-semibold text-white hover:bg-white/20"
+              >
+                <span className="material-symbols-outlined text-[15px]">table_chart</span>
+                <span>Course gradebook</span>
+              </Link>
+            )}
           </>
         }
       />

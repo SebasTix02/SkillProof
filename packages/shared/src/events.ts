@@ -18,9 +18,6 @@ export const CreateEventSchema = z
   .object({
     name: z.string().min(3).max(120),
     description: z.string().max(4000).default(''),
-    kind: z.enum(['hackathon', 'assignment']).default('hackathon'),
-    /** Course of an assignment, in course mode. */
-    course_id: z.uuid().nullable().default(null),
     starts_at: z.iso.datetime({ offset: true }),
     submission_deadline: z.iso.datetime({ offset: true }),
     visibility: z.enum(EVENT_VISIBILITY),
@@ -39,6 +36,24 @@ export const CreateEventSchema = z
     path: ['access_code'],
   });
 export type CreateEventInput = z.infer<typeof CreateEventSchema>;
+
+/**
+ * A course assignment. Not an event: no visibility, access code or allowlist. Access is fixed to the students on the
+ * course roster (synced by the database), and it is created under its course.
+ */
+export const CreateAssignmentSchema = z
+  .object({
+    title: z.string().min(3).max(120),
+    instructions: z.string().max(4000).default(''),
+    opens_at: z.iso.datetime({ offset: true }),
+    due_at: z.iso.datetime({ offset: true }),
+    max_submissions: z.number().int().min(1).max(100).nullable().default(null),
+    interviews_enabled: z.boolean().default(false),
+    rubric: RubricSchema,
+    publish: z.boolean().default(true).describe('Open it to the roster right away instead of leaving it as a draft'),
+  })
+  .refine((a) => Date.parse(a.due_at) > Date.parse(a.opens_at), { message: 'The due date must be after it opens', path: ['due_at'] });
+export type CreateAssignmentInput = z.infer<typeof CreateAssignmentSchema>;
 
 export const JoinEventSchema = z.object({ access_code: z.string().max(64).optional() });
 

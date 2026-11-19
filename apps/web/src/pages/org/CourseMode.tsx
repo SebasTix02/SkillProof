@@ -24,7 +24,6 @@ import {
   scoreTone,
   type SubmissionPipelineStatus,
 } from '../../components/shared';
-import { CoursePanel } from '../../components/CoursePanel';
 import { useToast } from '../../components/toast';
 import { api, errorMessage } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
@@ -93,16 +92,18 @@ const VERDICT_LABEL: Record<string, string> = {
 type RosterFilter = 'all' | 'flagged' | 'incomplete_defense' | 'scored';
 type SortKey = 'risk' | 'lowest_ownership' | 'highest_grade' | 'name';
 
-export function CourseMode() {
+/**
+ * Integrity review: similarity signals, oral defense and verdicts per submission, for any event or course assignment.
+ * (Courses have their own screens in Courses.tsx.)
+ */
+export function IntegrityReview() {
   const { id: routeEventId } = useParams();
   const { org, me } = useAuth();
   const toast = useToast();
 
-  const orgEvents = useLoad<{ events: OrgEvent[] }>(org ? `/api/orgs/${org.id}/events` : null);
-  const [courseFilter, setCourseFilter] = useState<string | null>(null);
-  const allEvents = orgEvents.data?.events ?? [];
-  // With a course picked, the selector lists only its assignments.
-  const events = courseFilter ? allEvents.filter((e) => (e as OrgEvent & { course_id?: string | null }).course_id === courseFilter) : allEvents;
+  // Events and course assignments: integrity covers both.
+  const orgEvents = useLoad<{ events: (OrgEvent & { course_name?: string | null })[] }>(org ? `/api/orgs/${org.id}/events?include=assignments` : null);
+  const events = orgEvents.data?.events ?? [];
 
   const [selectedEventId, setSelectedEventId] = useState<string | null>(routeEventId ?? null);
   const activeEventId =
@@ -234,10 +235,10 @@ export function CourseMode() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${event.slug}-course-gradebook.csv`;
+    a.download = `${event.slug}-integrity.csv`;
     a.click();
     URL.revokeObjectURL(url);
-    toast.success('Course gradebook exported as CSV.');
+    toast.success('Exported as CSV.');
   }
 
   /** The faculty determination for one student, kept as history in integrity_decisions. */
@@ -276,20 +277,12 @@ export function CourseMode() {
 
   return (
     <div className="space-y-6">
-      <CoursePanel
-        selectedId={courseFilter}
-        onSelect={(cid) => {
-          setCourseFilter(cid);
-          setSelectedEventId(null);
-          setSelectedSubId(null);
-        }}
-      />
       {/* 1. Faculty Portal Department Bar */}
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-[6px] border border-line bg-white px-5 py-2.5">
         <div className="font-mono-code flex flex-wrap items-center gap-2 text-[11px]">
           <span className="inline-flex items-center gap-1.5 rounded-[3px] bg-accent-soft px-2 py-0.5 font-bold text-accent-ink">
-            <span className="material-symbols-outlined text-[14px]">school</span>
-            <span>FACULTY PORTAL</span>
+            <span className="material-symbols-outlined text-[14px]">policy</span>
+            <span>INTEGRITY</span>
           </span>
           <span className="text-line">//</span>
           <span className="font-semibold text-ink">{org?.name?.toUpperCase() ?? 'DEPARTMENT'}</span>
@@ -304,13 +297,9 @@ export function CourseMode() {
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          <span className="font-mono-code inline-flex items-center gap-1.5 rounded-full border border-good/30 bg-good-soft px-2.5 py-0.5 text-[10px] font-semibold text-good-ink">
-            <LiveDot tone="good" />
-            <span>GRADEBOOK SYNC READY</span>
-          </span>
           {events.length > 0 && (
             <Select
-              aria-label="Select Assignment / Event"
+              aria-label="Event or assignment"
               value={activeEventId ?? ''}
               onChange={(e) => {
                 setSelectedEventId(e.target.value);
@@ -320,6 +309,7 @@ export function CourseMode() {
             >
               {events.map((ev) => (
                 <option key={ev.id} value={ev.id}>
+                  {ev.course_name ? `${ev.course_name} · ` : ''}
                   {ev.name} ({STATUS_LABEL[ev.status]})
                 </option>
               ))}
@@ -334,14 +324,14 @@ export function CourseMode() {
           eyebrow={
             <div className="flex flex-wrap items-center gap-2 text-muted">
               <Link to="/org/events" className="text-accent hover:underline">
-                ← ORGANIZER CONSOLE
+                ← EVENT CONSOLE
               </Link>
               <span>/</span>
-              <span>FORENSIC GRADEBOOK &amp; INTEGRITY CONSOLE</span>
+              <span>INTEGRITY REVIEW</span>
             </div>
           }
-          title={event ? event.name : 'Teacher & Course Mode'}
-          subtitle="Comprehensive cohort telemetry, similarity cluster inspection, and oral defense verification across student repository submissions."
+          title={event ? event.name : 'Integrity review'}
+          subtitle="Similarity between submissions, voice-interview ownership and your verdict on each submission, for one event or course assignment at a time."
           borderBottom={false}
           rightSlot={
             <div className="flex flex-wrap items-center gap-2">
@@ -355,12 +345,15 @@ export function CourseMode() {
               </button>
               <button type="button" onClick={exportCanvasCsv} className={linkButtonSecondary}>
                 <span className="material-symbols-outlined text-[16px]">file_download</span>
-                <span>Export Gradebook CSV</span>
+                <span>Export CSV</span>
               </button>
               {event && (
-                <Link to={`/org/events/${event.id}`} className={linkButton}>
+                <Link
+                  to={event.kind === 'assignment' && event.course_id ? `/org/courses/${event.course_id}/assignments/${event.id}` : `/org/events/${event.id}`}
+                  className={linkButton}
+                >
                   <span className="material-symbols-outlined text-[16px]">gavel</span>
-                  <span>Event Console</span>
+                  <span>{event.kind === 'assignment' ? 'Assignment console' : 'Event console'}</span>
                 </Link>
               )}
             </div>
@@ -371,17 +364,17 @@ export function CourseMode() {
         {event && (
           <div className="font-mono-code grid grid-cols-2 gap-4 border-t border-line pt-4 text-[12px] md:grid-cols-5">
             <div>
-              <span className="block text-[10px] text-muted uppercase">Instructor</span>
+              <span className="block text-[10px] text-muted uppercase">Reviewer</span>
               <span className="font-semibold text-ink">{me?.profile.display_name || 'Faculty Lead'}</span>
             </div>
             <div>
-              <span className="block text-[10px] text-muted uppercase">Active Cohort</span>
+              <span className="block text-[10px] text-muted uppercase">Participants</span>
               <span className="font-semibold text-ink">
-                {consoleData.data?.participant_count ?? 0} Registered Students
+                {consoleData.data?.participant_count ?? 0} participants
               </span>
             </div>
             <div>
-              <span className="block text-[10px] text-muted uppercase">Assignment Status</span>
+              <span className="block text-[10px] text-muted uppercase">Status</span>
               <span className="font-semibold text-accent uppercase">{STATUS_LABEL[event.status]}</span>
             </div>
             <div>
@@ -401,7 +394,7 @@ export function CourseMode() {
           tabs={[
             {
               key: 'roster',
-              label: '01. Assignment Roster',
+              label: '01. Submissions',
               count: submissions.length,
               icon: 'group',
             },
@@ -419,7 +412,7 @@ export function CourseMode() {
             },
             {
               key: 'rubric',
-              label: '04. Course Rubric Spec',
+              label: '04. Rubric',
               count: selectedRubric.length,
               icon: 'fact_check',
             },
@@ -431,10 +424,15 @@ export function CourseMode() {
 
       {events.length === 0 ? (
         <Notice tone="info">
-          No events or course assignments exist yet in your organization.{' '}
-          <Link to="/org/events/new" className="font-semibold text-accent underline">
-            Create your first assignment →
+          Nothing to review yet: integrity covers the submissions of events and course assignments.{' '}
+          <Link to="/org/events/new" className="font-semibold text-accent-ink underline">
+            Create an event
+          </Link>{' '}
+          or{' '}
+          <Link to="/org/courses" className="font-semibold text-accent-ink underline">
+            an assignment in a course
           </Link>
+          .
         </Notice>
       ) : (
         <>
@@ -832,7 +830,7 @@ export function CourseMode() {
                 <div className="flex flex-col justify-between space-y-5 bg-white p-6 lg:col-span-5">
                   <div className="space-y-4">
                     <div className="font-mono-code flex items-center justify-between border-b border-line pb-2 text-[11px] text-muted uppercase">
-                      <span>Faculty Grade Override &amp; Determination</span>
+                      <span>Score override &amp; verdict</span>
                       <span>{canOverride ? 'OVERRIDE ACTIVE' : STATUS_LABEL[event?.status ?? 'open']}</span>
                     </div>
 
@@ -931,7 +929,7 @@ export function CourseMode() {
                         rows={3}
                         value={docketNote}
                         onChange={(e) => setDocketNote(e.target.value)}
-                        placeholder="Document TA/faculty review notes prior to publishing grades..."
+                        placeholder="Notes for this verdict (kept in the history)…"
                       />
                     </div>
                   </div>
@@ -976,7 +974,7 @@ export function CourseMode() {
       )}
 
       <LedgerAnchorBanner
-        badge="FACULTY GRADEBOOK"
+        badge="INTEGRITY LOG"
         meta="FROZEN COMMITS // CSV EXPORT"
         title="Every grading change is in the audit log"
         description="Scores are judged on the commit frozen at the deadline. Faculty overrides and integrity determinations are recorded with who made them and when."

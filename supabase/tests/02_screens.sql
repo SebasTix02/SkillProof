@@ -44,7 +44,11 @@ select '40000000-0000-0000-0000-000000000001', id, 'Algorithms', 'CS-201' from p
 insert into public.course_members (course_id, user_id, organization_id, role)
 select '40000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-00000000000c', organization_id, 'student'
 from public.courses where id = '40000000-0000-0000-0000-000000000001';
-update public.events set course_id = '40000000-0000-0000-0000-000000000001', kind = 'assignment' where slug = 'echo-hack';
+-- A course assignment: its own row with the course, visibility 'course', open to the roster only.
+insert into public.events (id, organization_id, kind, course_id, name, slug, starts_at, submission_deadline, visibility, rubric_json, status)
+select '50000000-0000-0000-0000-000000000001', organization_id, 'assignment', id, 'Sorting lab', 'sorting-lab',
+  now() - interval '1 day', now() + interval '7 days', 'course', '[]', 'open'
+from public.courses where id = '40000000-0000-0000-0000-000000000001';
 
 select pg_temp.check_eq('auditor role exists with audit.read', (
   select count(*) from public.role_permissions rp join public.roles r on r.id = rp.role_id join public.permissions p on p.id = rp.permission_id

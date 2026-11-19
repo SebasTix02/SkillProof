@@ -479,8 +479,8 @@ export function SimilarityCompare() {
               <span className="material-symbols-outlined text-[15px]">download</span>
               <span>Export Dossier (JSON)</span>
             </button>
-            <Link to={`/org/events/${event.id}/gradebook`} className={linkButtonSecondary}>
-              Course Gradebook
+            <Link to={`/org/integrity/${event.id}`} className={linkButtonSecondary}>
+              Integrity review
             </Link>
           </>
         }
