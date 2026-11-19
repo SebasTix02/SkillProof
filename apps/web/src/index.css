@@ -337,3 +337,8 @@ a:hover .arrow-nudge {
     overflow: visible !important;
   }
 }
+
+/* Sections reached from the side menu (#section-…) stop below the sticky top bar. */
+[id^='section-'] {
+  scroll-margin-top: 72px;
+}
