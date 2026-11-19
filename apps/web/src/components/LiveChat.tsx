@@ -54,7 +54,7 @@ export function LiveChat({ messages, questions, className = '' }: { messages: Tr
                 </div>
               )}
               {m.role === 'system' ? (
-                <p className="font-mono-code rounded-[3px] border border-warn/30 bg-warn-soft px-2.5 py-1.5 text-[11px] text-warn">
+                <p className="font-mono-code rounded-[3px] border border-warn/30 bg-warn-soft px-2.5 py-1.5 text-[11px] text-warn-ink">
                   Skipped: {m.text}
                 </p>
               ) : (

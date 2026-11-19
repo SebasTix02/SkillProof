@@ -268,7 +268,7 @@ export function EventConsole() {
       <CommandConsoleHeader
         breadcrumbs={
           <>
-            <Link to="/org/events" className="text-[#93B4FF] hover:underline">
+            <Link to="/org/events" className="text-accent-on-dark hover:underline">
               ← ALL ORGANIZATION EVENTS
             </Link>
             <span>//</span>
@@ -279,7 +279,7 @@ export function EventConsole() {
         }
         statusChips={
           <>
-            <span className="inline-flex items-center gap-1.5 rounded-[3px] border border-white/10 bg-white/5 px-2.5 py-0.5 text-[#79d9ae]">
+            <span className="inline-flex items-center gap-1.5 rounded-[3px] border border-white/10 bg-white/5 px-2.5 py-0.5 text-good-on-dark">
               <LiveDot
                 tone={event.status === 'open' || event.status === 'judging' ? 'mint' : 'good'}
                 pulse={event.status === 'open' || event.status === 'judging'}

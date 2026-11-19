@@ -180,7 +180,7 @@ export function InterviewHome() {
             {publicProfileUrl && (
               <Link
                 to={publicProfileUrl}
-                className="rounded-[3px] border border-accent/25 bg-accent-soft px-2 py-0.5 font-semibold text-accent hover:underline"
+                className="rounded-[3px] border border-accent/25 bg-accent-soft px-2 py-0.5 font-semibold text-accent-ink hover:underline"
               >
                 VIEW PUBLIC PROFILE ↗
               </Link>
@@ -225,7 +225,7 @@ export function InterviewHome() {
                       placeholder="https://github.com/you/your-project"
                       value={repoUrl}
                       onChange={(e) => setRepoUrl(e.target.value)}
-                      className="font-mono-code w-full rounded-[4px] border border-line bg-paper py-2.5 pr-3 pl-9 text-[13px] text-ink placeholder:text-muted/70 transition-colors focus:border-accent focus:bg-white focus:outline-none"
+                      className="font-mono-code w-full rounded-[4px] border border-line-strong bg-paper py-2.5 pr-3 pl-9 text-[13px] text-ink placeholder:text-faint transition-colors focus:border-accent focus:bg-white focus:outline-none"
                     />
                   </div>
                 </div>
@@ -284,40 +284,40 @@ export function InterviewHome() {
             </div>
           </div>
 
-          <div className="flex flex-col justify-between space-y-4 bg-[#14161A] p-5 text-white lg:col-span-5">
-            <div className="flex items-center justify-between border-b border-[#262B34] pb-2.5">
+          <div className="flex flex-col justify-between space-y-4 bg-ink p-5 text-white lg:col-span-5">
+            <div className="flex items-center justify-between border-b border-dark-hairline pb-2.5">
               <div className="flex items-center gap-2">
                 <LiveDot tone="mint" />
-                <span className="font-mono-code text-[11px] font-semibold tracking-wider text-[#79d9ae] uppercase">
+                <span className="font-mono-code text-[11px] font-semibold tracking-wider text-good-on-dark uppercase">
                   AI ORAL EXAMINER COCKPIT // READY
                 </span>
               </div>
-              <span className="font-mono-code rounded-[3px] border border-[#262B34] bg-[#0D0F12] px-2 py-0.5 text-[10px] text-[#EDEDEC]">
+              <span className="font-mono-code rounded-[3px] border border-dark-hairline bg-dark-canvas px-2 py-0.5 text-[10px] text-dark-ink">
                 180s Live Audio
               </span>
             </div>
 
-            <div className="relative overflow-hidden rounded-[4px] border border-[#262B34] bg-[#0D0F12]">
+            <div className="relative overflow-hidden rounded-[4px] border border-dark-hairline bg-dark-canvas">
               <img
                 src={COCKPIT_ASSET}
                 alt="SkillProof AI software engineering oral interview cockpit"
                 className="block h-auto w-full object-cover"
               />
-              <div className="font-mono-code flex items-center justify-between border-t border-[#262B34] bg-[#14161A] px-3 py-1.5 text-[11px]">
-                <span className="flex items-center gap-1.5 text-[#79d9ae]">
+              <div className="font-mono-code flex items-center justify-between border-t border-dark-hairline bg-ink px-3 py-1.5 text-[11px]">
+                <span className="flex items-center gap-1.5 text-good-on-dark">
                   <span className="material-symbols-outlined text-[14px]">graphic_eq</span>
                   Acoustic Stream Ready
                 </span>
-                <span className="text-[#8E95A3]">Answer Key Server-Sealed</span>
+                <span className="text-dark-muted">Answer Key Server-Sealed</span>
               </div>
             </div>
 
-            <div className="font-mono-code flex items-center justify-between text-[11px] text-[#8E95A3]">
+            <div className="font-mono-code flex items-center justify-between text-[11px] text-dark-muted">
               <span className="flex items-center gap-1.5">
                 <span className="material-symbols-outlined text-[14px] text-accent">verified_user</span>
                 Commit-Anchored Questions
               </span>
-              <span className="font-semibold text-[#79d9ae]">OWNERSHIP VERIFIED</span>
+              <span className="font-semibold text-good-on-dark">OWNERSHIP VERIFIED</span>
             </div>
           </div>
         </div>
@@ -557,7 +557,7 @@ export function InterviewHome() {
                           to={`/interview/${i.id}`}
                           className={`btn-tactile font-mono-code inline-flex items-center justify-center rounded-[4px] border px-3 py-1.5 text-[11px] font-semibold ${
                             i.status === 'completed'
-                              ? 'border-accent bg-accent-soft text-accent hover:bg-accent hover:text-white'
+                              ? 'border-accent bg-accent-soft text-accent-ink hover:bg-accent hover:text-white'
                               : i.status === 'ready' || i.status === 'in_progress'
                                 ? 'border-ink bg-ink text-white hover:border-accent hover:bg-accent'
                                 : i.status === 'error'

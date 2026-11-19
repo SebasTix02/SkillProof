@@ -126,7 +126,7 @@ export function PublicProfile() {
           <span className="hidden text-white/30 sm:inline">|</span>
           <div className="flex items-center gap-2">
             <LiveDot tone="mint" />
-            <span className="text-[12px] font-medium text-[#EDEDEC] sm:text-[13px]">
+            <span className="text-[12px] font-medium text-dark-ink sm:text-[13px]">
               Public Candidate Verification Dossier • Read-Only Recruiter Access
             </span>
           </div>
@@ -255,7 +255,7 @@ export function PublicProfile() {
                 </span>
                 <span className="font-serif-heading text-[22px] font-normal text-muted">/ 100</span>
               </div>
-              <span className="font-mono-code inline-flex items-center gap-1 rounded-[3px] border border-good/30 bg-good-soft px-2 py-1 text-[11px] font-bold text-good">
+              <span className="font-mono-code inline-flex items-center gap-1 rounded-[3px] border border-good/30 bg-good-soft px-2 py-1 text-[11px] font-bold text-good-ink">
                 <span className="material-symbols-outlined text-[14px]">psychology</span>
                 CODE + VOICE
               </span>
@@ -299,7 +299,7 @@ export function PublicProfile() {
       {/* 3. Chronological Verification Ledger Subheader & Sort Bar */}
       <div className="flex flex-col justify-between gap-3 rounded-[6px] border border-line bg-white px-5 py-4 sm:flex-row sm:items-center">
         <div className="flex flex-wrap items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-[4px] border border-accent/25 bg-accent-soft text-accent">
+          <div className="flex h-8 w-8 items-center justify-center rounded-[4px] border border-accent/25 bg-accent-soft text-accent-ink">
             <span className="material-symbols-outlined text-[18px]">account_tree</span>
           </div>
           <div>
@@ -323,7 +323,7 @@ export function PublicProfile() {
           >
             {sortBy === 'recent' ? 'Sort: Recency (Desc) ↕' : 'Sort: Ownership Score (Desc) ↕'}
           </button>
-          <span className="hidden items-center gap-1 rounded-[3px] border border-good/30 bg-good-soft px-2.5 py-1.5 font-semibold text-good sm:flex">
+          <span className="hidden items-center gap-1 rounded-[3px] border border-good/30 bg-good-soft px-2.5 py-1.5 font-semibold text-good-ink sm:flex">
             <span className="material-symbols-outlined text-[14px]">check_circle</span>
             From transcripts
           </span>
@@ -478,11 +478,11 @@ export function PublicProfile() {
         <div className="grid grid-cols-1 items-center gap-8 lg:grid-cols-12">
           <div className="space-y-4 lg:col-span-7">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="material-symbols-outlined text-[20px] text-[#FBBF24]">verified</span>
-              <span className="font-mono-code text-[11px] font-bold tracking-widest text-[#FBBF24] uppercase">
+              <span className="material-symbols-outlined text-[20px] text-warn-on-dark">verified</span>
+              <span className="font-mono-code text-[11px] font-bold tracking-widest text-warn-on-dark uppercase">
                 How SkillProof checks
               </span>
-              <span className="font-mono-code rounded-[3px] border border-[#FBBF24]/30 bg-[#FBBF24]/15 px-2 py-0.5 text-[10px] text-[#FDE68A]">
+              <span className="font-mono-code rounded-[3px] border border-warn-on-dark/30 bg-warn-on-dark/15 px-2 py-0.5 text-[10px] text-warn-on-dark">
                 COMMIT-LOCKED
               </span>
             </div>
@@ -491,20 +491,20 @@ export function PublicProfile() {
               Code Reading &amp; Voice Interview
             </h3>
 
-            <p className="max-w-2xl text-[13px] leading-relaxed text-[#8E95A3] sm:text-[14px]">
+            <p className="max-w-2xl text-[13px] leading-relaxed text-dark-muted sm:text-[14px]">
               Every report on this dossier is produced by selective Git tree analysis and a live 3-minute Gemini voice
               interview about the candidate&apos;s own repository. The question plan and expected points never leave the
               server, and every skill rating is backed by the candidate&apos;s verbatim spoken words.
             </p>
 
-            <div className="font-mono-code flex flex-wrap items-center gap-3 pt-1 text-[11px] text-[#8E95A3]">
-              <div className="rounded-[4px] border border-[#262B34] bg-[#15181E] px-3 py-1.5">
-                Dossier Slug: <code className="font-semibold text-[#FDE68A]">/p/{profile.slug}</code>
+            <div className="font-mono-code flex flex-wrap items-center gap-3 pt-1 text-[11px] text-dark-muted">
+              <div className="rounded-[4px] border border-dark-hairline bg-dark-surface px-3 py-1.5">
+                Dossier Slug: <code className="font-semibold text-warn-on-dark">/p/{profile.slug}</code>
               </div>
-              <div className="rounded-[4px] border border-[#262B34] bg-[#15181E] px-3 py-1.5">
+              <div className="rounded-[4px] border border-dark-hairline bg-dark-surface px-3 py-1.5">
                 Completed interviews: <code className="font-semibold text-accent-soft">{verified.length}</code>
               </div>
-              <span className="flex items-center gap-1.5 rounded-[4px] border border-good/40 bg-good/20 px-3 py-1.5 font-semibold text-[#79d9ae]">
+              <span className="flex items-center gap-1.5 rounded-[4px] border border-good/40 bg-good/20 px-3 py-1.5 font-semibold text-good-on-dark">
                 <span className="material-symbols-outlined text-[14px]">lock</span>
                 Answer key stays on the server
               </span>

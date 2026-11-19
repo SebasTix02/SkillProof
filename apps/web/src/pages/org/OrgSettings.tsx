@@ -261,16 +261,16 @@ export function OrgSettings() {
       <CommandConsoleHeader
         breadcrumbs={
           <>
-            <span className="inline-flex items-center gap-1.5 font-semibold text-[#79d9ae]">
+            <span className="inline-flex items-center gap-1.5 font-semibold text-good-on-dark">
               <LiveDot tone="mint" />
               <span>REGISTRY://ORGANIZATIONS/{org.slug.toUpperCase()}</span>
             </span>
             <span>•</span>
-            <span className="font-semibold text-[#93B4FF]">PLAN: {(usage.data?.plan ?? orgInfo?.plan ?? org.plan ?? 'free').toUpperCase()}</span>
+            <span className="font-semibold text-accent-on-dark">PLAN: {(usage.data?.plan ?? orgInfo?.plan ?? org.plan ?? 'free').toUpperCase()}</span>
           </>
         }
         statusChips={
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-good/40 bg-good/20 px-2.5 py-0.5 text-[10px] font-semibold text-[#79d9ae]">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-good/40 bg-good/20 px-2.5 py-0.5 text-[10px] font-semibold text-good-on-dark">
             <LiveDot tone="mint" />
             <span>ROW LEVEL SECURITY ON</span>
           </span>
@@ -509,7 +509,7 @@ export function OrgSettings() {
                                 <div className="flex items-center gap-2 font-medium text-ink">
                                   <span>{name}</span>
                                   {isMe && (
-                                    <span className="font-mono-code rounded-[2px] border border-accent/25 bg-accent-soft px-1.5 py-0.2 text-[9px] font-bold text-accent uppercase">YOU</span>
+                                    <span className="font-mono-code rounded-[2px] border border-accent/25 bg-accent-soft px-1.5 py-0.2 text-[9px] font-bold text-accent-ink uppercase">YOU</span>
                                   )}
                                 </div>
                                 <div className="font-mono-code text-[11px] text-muted">{m.email ?? '—'}</div>
@@ -669,7 +669,7 @@ export function OrgSettings() {
       <DarkBanner id="section-enclave" className="space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-4">
           <div className="flex items-center gap-3">
-            <span className="font-mono-code rounded-[3px] border border-accent/40 bg-accent/20 px-2.5 py-0.5 text-[11px] font-bold text-[#93B4FF]">
+            <span className="font-mono-code rounded-[3px] border border-accent/40 bg-accent/20 px-2.5 py-0.5 text-[11px] font-bold text-accent-on-dark">
               SECTION 05 // GOVERNANCE
             </span>
             <h3 className="font-serif-heading text-[22px] font-medium text-white">Audit Trail &amp; Organization Policies</h3>
@@ -729,7 +729,7 @@ export function OrgSettings() {
                 {audit.data!.entries.map((e) => (
                   <li key={e.id} className="flex flex-wrap items-baseline gap-x-3 px-3 py-2 text-white/80">
                     <span className="text-white/50">{formatDate(e.created_at)}</span>
-                    <span className="font-semibold text-[#93B4FF]">{e.action}</span>
+                    <span className="font-semibold text-accent-on-dark">{e.action}</span>
                     <span>{e.profiles?.display_name ?? 'System'}</span>
                     <span className="text-white/50">{e.subject_type}</span>
                   </li>
@@ -737,7 +737,7 @@ export function OrgSettings() {
               </ul>
             )}
             {(audit.data?.entries.length ?? 0) >= auditLimit && (
-              <button type="button" onClick={() => setAuditLimit((n) => n + 100)} className="text-[12px] font-semibold text-[#93B4FF] hover:underline">
+              <button type="button" onClick={() => setAuditLimit((n) => n + 100)} className="text-[12px] font-semibold text-accent-on-dark hover:underline">
                 Load more
               </button>
             )}

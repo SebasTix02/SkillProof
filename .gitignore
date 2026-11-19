@@ -12,3 +12,4 @@ supabase/.temp
 .env*
 CLAUDE.md
 DESIGN.md
+.claude/

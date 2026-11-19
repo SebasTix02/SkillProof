@@ -4,6 +4,7 @@ import { useAuth } from '../lib/auth';
 import { useDelayed } from '../lib/loading';
 import { AppShell, Logo, TopProgress } from './AppShell';
 import { PageSkeleton, type PageSkeletonKind } from './shared/Skeleton';
+import { TONE_CLASS } from './shared/tokens';
 
 const cx = (...parts: (string | false | null | undefined)[]) => parts.filter(Boolean).join(' ');
 
@@ -46,7 +47,7 @@ export const linkButtonSecondary =
   'btn-tactile inline-flex items-center justify-center gap-1.5 rounded-[4px] border border-line bg-white px-4 py-2 text-[13px] font-medium text-ink hover:border-muted hover:bg-paper';
 
 const field =
-  'w-full rounded-[4px] border border-line bg-white px-3 py-2 text-[13px] text-ink placeholder:text-muted/70 transition-colors focus:border-accent focus:outline-none';
+  'w-full rounded-[4px] border border-line-strong bg-white px-3 py-2 text-[13px] text-ink placeholder:text-faint transition-colors focus:border-accent focus:outline-none';
 
 export function Field({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
   return (
@@ -74,8 +75,8 @@ export function Notice({ tone = 'info', children }: { tone?: 'info' | 'error' | 
         'rounded-[4px] border border-line border-l-[3px] bg-white px-3.5 py-2.5 text-[13px] leading-[20px]',
         tone === 'info' && 'border-l-accent bg-accent-soft/40 text-ink',
         tone === 'error' && 'border-bad/40 border-l-bad bg-bad-surface text-bad',
-        tone === 'good' && 'border-good/30 border-l-good bg-good-soft/60 text-good',
-        tone === 'warn' && 'border-warn/30 border-l-warn bg-warn-soft/60 text-warn',
+        tone === 'good' && 'border-good/30 border-l-good bg-good-soft/60 text-good-ink',
+        tone === 'warn' && 'border-warn/30 border-l-warn bg-warn-soft/60 text-warn-ink',
       )}
     >
       {children}
@@ -96,23 +97,12 @@ export function Badge({
     <span
       className={cx(
         'font-mono-code inline-flex items-center gap-1.5 rounded-[3px] border px-2 py-0.5 text-[11px] font-semibold tracking-wide uppercase',
-        tone === 'neutral' && 'border-line bg-paper text-muted',
-        tone === 'good' && 'border-good/30 bg-good-soft text-good',
-        tone === 'warn' && 'border-warn/30 bg-warn-soft text-warn',
-        tone === 'bad' && 'border-bad/30 bg-bad-soft text-bad',
-        tone === 'accent' && 'border-accent/25 bg-accent-soft text-accent',
+        TONE_CLASS[tone].chip,
       )}
     >
       {dot && (
         <span
-          className={cx(
-            'h-1.5 w-1.5 rounded-full',
-            tone === 'neutral' && 'bg-muted',
-            tone === 'good' && 'bg-good',
-            tone === 'warn' && 'bg-warn',
-            tone === 'bad' && 'bg-bad',
-            tone === 'accent' && 'bg-accent',
-          )}
+          className={cx('h-1.5 w-1.5 rounded-full', TONE_CLASS[tone].dot)}
         />
       )}
       {children}

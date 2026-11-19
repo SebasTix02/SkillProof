@@ -104,7 +104,7 @@ export function OrgEvents() {
       <CommandConsoleHeader
         breadcrumbs={
           <>
-            <span className="font-semibold tracking-wider text-[#93B4FF]">TERMINAL DOSSIER</span>
+            <span className="font-semibold tracking-wider text-accent-on-dark">TERMINAL DOSSIER</span>
             <span>//</span>
             <span>REGISTRY://2026.ORG</span>
             <span>//</span>
@@ -113,11 +113,11 @@ export function OrgEvents() {
         }
         statusChips={
           <>
-            <span className="inline-flex items-center gap-1.5 rounded-[3px] border border-white/10 bg-white/5 px-2.5 py-0.5 text-[#93B4FF]">
+            <span className="inline-flex items-center gap-1.5 rounded-[3px] border border-white/10 bg-white/5 px-2.5 py-0.5 text-accent-on-dark">
               <LiveDot tone="accent" />
               <span>ACTIVE PARTICIPANTS: {stats.totalParticipants}</span>
             </span>
-            <span className="inline-flex items-center gap-1.5 rounded-[3px] border border-white/10 bg-white/5 px-2.5 py-0.5 text-[#79d9ae]">
+            <span className="inline-flex items-center gap-1.5 rounded-[3px] border border-white/10 bg-white/5 px-2.5 py-0.5 text-good-on-dark">
               <LiveDot tone="mint" pulse={stats.inAdjudication > 0} />
               <span>ADJUDICATION QUEUE: {stats.inAdjudication} EVENTS</span>
             </span>
@@ -296,7 +296,7 @@ export function OrgEvents() {
                 onClick={() => setStatusFilter(tab.key)}
                 className={`font-mono-code cursor-pointer rounded-[3px] border px-2.5 py-1 text-[11px] font-semibold transition-colors ${
                   statusFilter === tab.key
-                    ? 'border-accent bg-accent-soft text-accent'
+                    ? 'border-accent bg-accent-soft text-accent-ink'
                     : 'border-transparent bg-paper text-muted hover:border-line hover:text-ink'
                 }`}
               >

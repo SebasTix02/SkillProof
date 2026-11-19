@@ -137,18 +137,18 @@ export function ExploreEvents() {
         />
 
         <div className="grid grid-cols-1 items-stretch gap-6 lg:grid-cols-12">
-          <div className="relative flex min-h-[300px] flex-col justify-between overflow-hidden rounded-[6px] border border-line bg-[#14161A] lg:col-span-7">
+          <div className="relative flex min-h-[300px] flex-col justify-between overflow-hidden rounded-[6px] border border-line bg-ink lg:col-span-7">
             <div className="absolute inset-0 z-0">
               <img
                 src={GLOBE_BANNER}
                 alt="Global developer hackathon live evaluation hub"
                 className="h-full w-full object-cover opacity-85"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#14161A] via-[#14161A]/55 to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-ink via-ink/55 to-transparent" />
             </div>
 
             <div className="relative z-10 flex flex-wrap items-center justify-between gap-2 p-5">
-              <span className="font-mono-code inline-flex items-center gap-2 rounded-[3px] border border-white/20 bg-[#14161A]/90 px-2.5 py-1 text-[11px] font-medium tracking-wide text-white">
+              <span className="font-mono-code inline-flex items-center gap-2 rounded-[3px] border border-white/20 bg-ink/90 px-2.5 py-1 text-[11px] font-medium tracking-wide text-white">
                 <LiveDot tone="good" />
                 COMMIT-LOCKED EVALUATION // GEMINI RUBRIC ENGINE
               </span>
@@ -271,7 +271,7 @@ export function ExploreEvents() {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search hackathons, organizations, slugs..."
-                className="h-10 w-full rounded-[4px] border border-line bg-paper pr-3 pl-9 text-[13px] text-ink placeholder:text-muted transition-colors focus:border-accent focus:bg-white focus:outline-none"
+                className="h-10 w-full rounded-[4px] border border-line-strong bg-paper pr-3 pl-9 text-[13px] text-ink placeholder:text-muted transition-colors focus:border-accent focus:bg-white focus:outline-none"
               />
             </div>
 
@@ -313,7 +313,7 @@ export function ExploreEvents() {
                 value={privateInput}
                 onChange={(e) => setPrivateInput(e.target.value)}
                 placeholder="event-slug or URL"
-                className="font-mono-code h-9 w-full rounded-[4px] border border-line bg-paper px-3 text-[12px] text-ink placeholder:text-muted/75 focus:border-accent focus:bg-white focus:outline-none sm:w-40"
+                className="font-mono-code h-9 w-full rounded-[4px] border border-line-strong bg-paper px-3 text-[12px] text-ink placeholder:text-faint focus:border-accent focus:bg-white focus:outline-none sm:w-40"
               />
               <button
                 type="submit"
@@ -399,7 +399,7 @@ export function ExploreEvents() {
                         to={`/e/${e.slug}`}
                         className={`btn-tactile inline-flex h-9 items-center gap-1.5 rounded-[4px] border px-4 text-[13px] font-medium whitespace-nowrap ${
                           e.status === 'published'
-                            ? 'border-accent bg-white text-accent hover:bg-accent-soft'
+                            ? 'border-accent bg-white text-accent-ink hover:bg-accent-soft'
                             : e.status === 'open'
                               ? 'border-ink bg-ink text-white hover:border-accent hover:bg-accent'
                               : 'border-line bg-white text-ink hover:border-ink hover:bg-paper'
@@ -454,7 +454,7 @@ export function ExploreEvents() {
                   className="card-interactive group flex flex-col justify-between overflow-hidden rounded-[6px] border border-line bg-white"
                 >
                   {isFirst && (
-                    <div className="relative h-40 w-full overflow-hidden border-b border-line bg-[#14161A]">
+                    <div className="relative h-40 w-full overflow-hidden border-b border-line bg-ink">
                       <img src={ARENA_THUMB} alt={e.name} className="h-full w-full object-cover" />
                       <div className="absolute top-3 left-3 flex items-center gap-1.5">
                         <Badge tone="good" dot>
@@ -540,7 +540,7 @@ export function ExploreEvents() {
             <h3 className="font-serif-heading text-[22px] font-medium text-white">
               No active event? Prove your skills on any repository you wrote.
             </h3>
-            <p className="max-w-xl text-[13px] text-[#8E95A3]">
+            <p className="max-w-xl text-[13px] text-dark-muted">
               Start an independent 3-minute Gemini Live voice interview on any public GitHub repository to generate a
               verified ownership dossier for recruiters.
             </p>
@@ -548,15 +548,15 @@ export function ExploreEvents() {
 
           <div className="flex flex-wrap items-center gap-6 pt-2 lg:pt-0">
             <div className="border-l border-white/15 pl-4">
-              <div className="font-mono-code text-[10px] tracking-wider text-[#8E95A3] uppercase">
+              <div className="font-mono-code text-[10px] tracking-wider text-dark-muted uppercase">
                 My Joined Events
               </div>
               <div className="font-mono-code text-[20px] font-bold text-white">{myEvents.length}</div>
-              <div className="font-mono-code text-[11px] text-[#79d9ae]">Active Workspaces</div>
+              <div className="font-mono-code text-[11px] text-good-on-dark">Active Workspaces</div>
             </div>
 
             <div className="border-l border-white/15 pl-4">
-              <div className="font-mono-code text-[10px] tracking-wider text-[#8E95A3] uppercase">
+              <div className="font-mono-code text-[10px] tracking-wider text-dark-muted uppercase">
                 Public Open Arenas
               </div>
               <div className="font-mono-code text-[20px] font-bold text-white">{openEvents.length}</div>

@@ -91,7 +91,7 @@ export function CodeEvidenceViewer({
                   ? 'font-semibold text-white'
                   : row.highlighted
                     ? 'font-semibold text-accent'
-                    : 'text-muted/60'
+                    : 'text-faint'
               }`}
             >
               {row.lineNumber}
@@ -139,7 +139,7 @@ export function VerificationProtocolCard({
   return (
     <section className="space-y-5 rounded-[6px] border border-line bg-white p-6">
       <div className="flex items-start gap-3.5">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[4px] border border-accent bg-accent-soft text-accent">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[4px] border border-accent bg-accent-soft text-accent-ink">
           <span className="material-symbols-outlined text-[20px]">security</span>
         </div>
         <div className="space-y-1">

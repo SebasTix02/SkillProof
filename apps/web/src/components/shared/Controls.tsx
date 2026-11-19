@@ -114,7 +114,7 @@ export function TabStrip<K extends string>({
               {typeof item.count === 'number' && (
                 <span
                   className={`font-mono-code rounded-[3px] border px-1.5 py-0.2 text-[11px] font-bold ${
-                    isCurrent ? 'border-accent/25 bg-accent-soft text-accent' : 'border-line bg-paper text-muted'
+                    isCurrent ? 'border-accent/25 bg-accent-soft text-accent-ink' : 'border-line bg-paper text-muted'
                   }`}
                 >
                   {item.count}
@@ -141,7 +141,7 @@ export function DarkBanner({
   return (
     <section
       id={id}
-      className={`rounded-[6px] border border-[#262B34] bg-[#0D0F12] p-6 text-white sm:p-8 ${className}`}
+      className={`rounded-[6px] border border-dark-hairline bg-dark-canvas p-6 text-white sm:p-8 ${className}`}
     >
       {children}
     </section>
@@ -165,7 +165,7 @@ export function LedgerAnchorBanner({
     <section className="flex flex-col justify-between gap-5 rounded-[6px] border border-line bg-white p-6 md:flex-row md:items-center">
       <div className="space-y-1.5">
         <div className="font-mono-code flex flex-wrap items-center gap-2 text-[11px]">
-          <span className="rounded-[3px] border border-good/30 bg-good-soft px-2 py-0.5 font-bold text-good uppercase">
+          <span className="rounded-[3px] border border-good/30 bg-good-soft px-2 py-0.5 font-bold text-good-ink uppercase">
             {badge}
           </span>
           <span className="text-muted">{meta}</span>

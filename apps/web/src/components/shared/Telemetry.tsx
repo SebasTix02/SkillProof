@@ -6,7 +6,7 @@ const TONE_DOT: Record<'good' | 'accent' | 'warn' | 'bad' | 'muted' | 'mint', st
   warn: 'bg-warn text-warn',
   bad: 'bg-bad text-bad',
   muted: 'bg-muted text-muted',
-  mint: 'bg-[#79d9ae] text-[#79d9ae]',
+  mint: 'bg-good-on-dark text-good-on-dark',
 };
 
 export function LiveDot({
@@ -141,21 +141,21 @@ export function TopAccentKpiCard({
       border: 'border-accent/25',
       bar: 'bg-accent',
       label: 'text-accent',
-      iconPill: 'bg-accent-soft text-accent',
+      iconPill: 'bg-accent-soft text-accent-ink',
       scoreTone: 'accent' as const,
     },
     emerald: {
       border: 'border-good/30',
       bar: 'bg-good',
       label: 'text-good',
-      iconPill: 'bg-good-soft text-good',
+      iconPill: 'bg-good-soft text-good-ink',
       scoreTone: 'good' as const,
     },
     amber: {
       border: 'border-warn/30',
       bar: 'bg-warn',
       label: 'text-warn',
-      iconPill: 'bg-warn-soft text-warn',
+      iconPill: 'bg-warn-soft text-warn-ink',
       scoreTone: 'warn' as const,
     },
     indigo: {

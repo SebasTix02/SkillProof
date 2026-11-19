@@ -109,12 +109,12 @@ function StageController({
                 <span
                   className={`inline-flex items-center gap-1.5 rounded-[3px] px-2.5 py-1 transition-colors ${
                     isEmerald
-                      ? 'border border-good/30 bg-good-soft font-semibold text-good'
+                      ? 'border border-good/30 bg-good-soft font-semibold text-good-ink'
                       : isCurrent
-                        ? 'border border-accent/25 bg-accent-soft font-semibold text-accent'
+                        ? 'border border-accent/25 bg-accent-soft font-semibold text-accent-ink'
                         : isDone
-                          ? 'text-good font-medium'
-                          : 'text-muted/75'
+                          ? 'text-good-ink font-medium'
+                          : 'text-faint'
                   }`}
                 >
                   {isCurrent && (
@@ -143,7 +143,7 @@ function StageController({
           </span>
           <span
             className={`inline-flex items-center gap-1.5 rounded-[3px] px-3 py-1 font-semibold ${
-              status === 'completed' ? 'border border-good/30 bg-good-soft text-good' : 'text-muted'
+              status === 'completed' ? 'border border-good/30 bg-good-soft text-good-ink' : 'text-muted'
             }`}
           >
             <span className="material-symbols-outlined text-[14px] text-good">verified</span>
@@ -566,7 +566,7 @@ function Room({
             @{interview.repo.owner}/{interview.repo.name}
           </span>
           {interview.commit_sha && (
-            <span className="font-mono-code rounded-[3px] border border-accent/25 bg-accent-soft px-2 py-0.5 text-[11px] font-medium text-accent">
+            <span className="font-mono-code rounded-[3px] border border-accent/25 bg-accent-soft px-2 py-0.5 text-[11px] font-medium text-accent-ink">
               COMMIT: {interview.commit_sha.slice(0, 7)}
             </span>
           )}
@@ -1141,7 +1141,7 @@ export function InterviewPage() {
                     DOSSIER #SP-{interview.id.slice(0, 6).toUpperCase()}
                   </span>
                 </div>
-                <div className="rounded-[3px] border border-good/30 bg-good-soft px-2.5 py-0.5 font-medium text-good">
+                <div className="rounded-[3px] border border-good/30 bg-good-soft px-2.5 py-0.5 font-medium text-good-ink">
                   {interview.created_at ? `ISSUED ${formatDate(interview.created_at).toUpperCase()} • ` : ''}
                   COMMIT: {interview.commit_sha?.slice(0, 7) ?? 'HEAD'}
                 </div>
@@ -1160,7 +1160,7 @@ export function InterviewPage() {
                   </p>
                 </div>
 
-                <span className="font-mono-code inline-flex items-center gap-1.5 self-start rounded-[3px] border border-good/30 bg-good-soft px-3 py-1.5 text-[11px] font-bold text-good md:self-auto">
+                <span className="font-mono-code inline-flex items-center gap-1.5 self-start rounded-[3px] border border-good/30 bg-good-soft px-3 py-1.5 text-[11px] font-bold text-good-ink md:self-auto">
                   <span className="material-symbols-outlined text-[15px]">verified</span>
                   <span>VERIFICATION COMPLETED</span>
                 </span>

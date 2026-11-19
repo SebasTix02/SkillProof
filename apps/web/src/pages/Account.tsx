@@ -44,7 +44,7 @@ function AuthPortalShell({
         <section className=" flex flex-col justify-between rounded-[6px] border border-line bg-white p-6 sm:p-8 lg:col-span-6">
           <div className="space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="font-mono-code inline-flex items-center gap-2 rounded-[3px] border border-accent/25 bg-accent-soft px-2.5 py-1 text-[11px] font-semibold text-accent">
+              <div className="font-mono-code inline-flex items-center gap-2 rounded-[3px] border border-accent/25 bg-accent-soft px-2.5 py-1 text-[11px] font-semibold text-accent-ink">
                 <span className="status-dot-live bg-accent text-accent" />
                 <span>SECURED BY SUPABASE AUTH</span>
               </div>
@@ -60,14 +60,14 @@ function AuthPortalShell({
                 alt="SkillProof sign-in"
                 className="block h-[240px] w-full object-cover sm:h-[280px]"
               />
-              <div className="flex items-center justify-between border-t border-[#262B34] bg-[#14161A] px-4 py-2.5 text-white">
+              <div className="flex items-center justify-between border-t border-dark-hairline bg-ink px-4 py-2.5 text-white">
                 <div className="flex items-center gap-2">
-                  <span className="material-symbols-outlined text-[16px] text-[#79d9ae]">verified_user</span>
+                  <span className="material-symbols-outlined text-[16px] text-good-on-dark">verified_user</span>
                   <span className="font-mono-code text-[11px] tracking-wide">
                     Verified Repository &amp; Voice Credential Binding
                   </span>
                 </div>
-                <span className="font-mono-code rounded-[3px] border border-[#262B34] bg-[#0D0F12] px-2 py-0.5 text-[10px] text-[#EDEDEC]">
+                <span className="font-mono-code rounded-[3px] border border-dark-hairline bg-dark-canvas px-2 py-0.5 text-[10px] text-dark-ink">
                   EMAIL + PASSWORD
                 </span>
               </div>
@@ -169,7 +169,7 @@ function AuthPortalShell({
                 <span className="h-2 w-2 rounded-full bg-good" />
                 Account Security
               </span>
-              <span className="rounded-[3px] border border-good/30 bg-good-soft px-2 py-0.5 text-[10px] font-bold text-good">
+              <span className="rounded-[3px] border border-good/30 bg-good-soft px-2 py-0.5 text-[10px] font-bold text-good-ink">
                 {badgeLabel}
               </span>
             </div>
@@ -758,12 +758,12 @@ export function MyAccount() {
                 SEC-CFG // IDENTITY_V1.0.4
               </span>
               <span className="text-white/30">/</span>
-              <span className="font-mono-code flex items-center gap-2 rounded-[3px] border border-good/40 bg-good/20 px-2.5 py-1 text-[11px] text-[#79d9ae]">
+              <span className="font-mono-code flex items-center gap-2 rounded-[3px] border border-good/40 bg-good/20 px-2.5 py-1 text-[11px] text-good-on-dark">
                 <LiveDot tone="mint" />
                 <span>RLS SESSION ACTIVE</span>
               </span>
             </div>
-            <div className="font-mono-code flex items-center gap-2 rounded-[3px] border border-white/10 bg-[#15181E] px-3 py-1 text-[11px] text-[#8E95A3]">
+            <div className="font-mono-code flex items-center gap-2 rounded-[3px] border border-white/10 bg-dark-surface px-3 py-1 text-[11px] text-dark-muted">
               <span>USER_ID:</span>
               <span className="font-medium tracking-wide text-accent-soft">
                 {me.profile.id.slice(0, 8).toUpperCase()}
@@ -776,7 +776,7 @@ export function MyAccount() {
               <h1 className="font-serif-heading text-[30px] leading-[1.15] font-normal tracking-tight text-white sm:text-[36px]">
                 Account &amp; Verification Identity
               </h1>
-              <p className="text-[14px] leading-[22px] text-[#8E95A3] sm:text-[15px]">
+              <p className="text-[14px] leading-[22px] text-dark-muted sm:text-[15px]">
                 Manage your public recruiter dossier, professional headline, connected verification signals, and access
                 controls.
               </p>
@@ -808,15 +808,15 @@ export function MyAccount() {
             <button
               type="button"
               onClick={() => scrollToSection('section-visibility')}
-              className="flex shrink-0 cursor-pointer items-center gap-2 rounded-[4px] px-3.5 py-2 text-[#8E95A3] transition-colors hover:bg-white/10 hover:text-white"
+              className="flex shrink-0 cursor-pointer items-center gap-2 rounded-[4px] px-3.5 py-2 text-dark-muted transition-colors hover:bg-white/10 hover:text-white"
             >
-              <span className="material-symbols-outlined text-[17px] text-[#79d9ae]">verified_user</span>
+              <span className="material-symbols-outlined text-[17px] text-good-on-dark">verified_user</span>
               <span>Public Dossier</span>
               <span
                 className={`font-mono-code rounded-[2px] border px-1.5 py-0.2 text-[10px] ${
                   isPublic
-                    ? 'border-good/40 bg-good/20 text-[#79d9ae]'
-                    : 'border-white/15 bg-white/10 text-[#8E95A3]'
+                    ? 'border-good/40 bg-good/20 text-good-on-dark'
+                    : 'border-white/15 bg-white/10 text-dark-muted'
                 }`}
               >
                 {isPublic ? 'LIVE' : 'PRIVATE'}
@@ -825,7 +825,7 @@ export function MyAccount() {
             <button
               type="button"
               onClick={() => scrollToSection('section-integrations')}
-              className="flex shrink-0 cursor-pointer items-center gap-2 rounded-[4px] px-3.5 py-2 text-[#8E95A3] transition-colors hover:bg-white/10 hover:text-white"
+              className="flex shrink-0 cursor-pointer items-center gap-2 rounded-[4px] px-3.5 py-2 text-dark-muted transition-colors hover:bg-white/10 hover:text-white"
             >
               <span className="material-symbols-outlined text-[17px] text-[#C4B5FD]">terminal</span>
               <span>Verification Signals</span>
@@ -836,17 +836,17 @@ export function MyAccount() {
             <button
               type="button"
               onClick={() => scrollToSection('section-privacy')}
-              className="flex shrink-0 cursor-pointer items-center gap-2 rounded-[4px] px-3.5 py-2 text-[#8E95A3] transition-colors hover:bg-white/10 hover:text-white"
+              className="flex shrink-0 cursor-pointer items-center gap-2 rounded-[4px] px-3.5 py-2 text-dark-muted transition-colors hover:bg-white/10 hover:text-white"
             >
-              <span className="material-symbols-outlined text-[17px] text-[#FBBF24]">tune</span>
+              <span className="material-symbols-outlined text-[17px] text-warn-on-dark">tune</span>
               <span>Privacy Controls</span>
             </button>
             <button
               type="button"
               onClick={() => scrollToSection('section-danger')}
-              className="flex shrink-0 cursor-pointer items-center gap-2 rounded-[4px] px-3.5 py-2 text-[#8E95A3] transition-colors hover:bg-white/10 hover:text-white"
+              className="flex shrink-0 cursor-pointer items-center gap-2 rounded-[4px] px-3.5 py-2 text-dark-muted transition-colors hover:bg-white/10 hover:text-white"
             >
-              <span className="material-symbols-outlined text-[17px] text-[#F87171]">key</span>
+              <span className="material-symbols-outlined text-[17px] text-bad-on-dark">key</span>
               <span>Security &amp; Access</span>
             </button>
           </nav>
@@ -862,7 +862,7 @@ export function MyAccount() {
               <span className="font-mono-code text-[11px] font-semibold tracking-wider text-muted uppercase">
                 Section Index
               </span>
-              <span className="font-mono-code rounded-[3px] border border-accent/25 bg-accent-soft px-1.5 py-0.5 text-[10px] font-semibold text-accent">
+              <span className="font-mono-code rounded-[3px] border border-accent/25 bg-accent-soft px-1.5 py-0.5 text-[10px] font-semibold text-accent-ink">
                 5 MODULES
               </span>
             </div>
@@ -871,7 +871,7 @@ export function MyAccount() {
               <li>
                 <a
                   href="#section-profile"
-                  className="flex items-center justify-between rounded-[4px] border border-accent/25 bg-accent-soft/60 px-2.5 py-2 font-medium text-accent transition-colors"
+                  className="flex items-center justify-between rounded-[4px] border border-accent/25 bg-accent-soft/60 px-2.5 py-2 font-medium text-accent-ink transition-colors"
                 >
                   <div className="flex items-center gap-2.5">
                     <span className="h-2 w-2 rounded-full bg-accent" />
@@ -894,7 +894,7 @@ export function MyAccount() {
                   <span
                     className={`font-mono-code rounded-[2px] border px-1.5 py-0.5 text-[10px] font-semibold ${
                       isPublic
-                        ? 'border-good/30 bg-good-soft text-good'
+                        ? 'border-good/30 bg-good-soft text-good-ink'
                         : 'border-line bg-paper text-muted'
                     }`}
                   >
@@ -925,7 +925,7 @@ export function MyAccount() {
                     <span className="h-2 w-2 rounded-full bg-warn" />
                     <span>04. Privacy Telemetry</span>
                   </div>
-                  <span className="font-mono-code rounded-[2px] border border-warn/30 bg-warn-soft px-1.5 py-0.5 text-[10px] text-warn">
+                  <span className="font-mono-code rounded-[2px] border border-warn/30 bg-warn-soft px-1.5 py-0.5 text-[10px] text-warn-ink">
                     OPT
                   </span>
                 </a>
@@ -951,7 +951,7 @@ export function MyAccount() {
           <div className="space-y-3 rounded-[6px] border border-good/30 bg-good-soft/35 p-4 text-[12px]">
             <div className="font-mono-code flex items-center justify-between text-[11px]">
               <span className="font-semibold text-ink">PROFILE STATUS</span>
-              <span className="inline-flex items-center gap-1.5 rounded-[3px] border border-good/30 bg-good-soft px-2 py-0.5 font-semibold text-good">
+              <span className="inline-flex items-center gap-1.5 rounded-[3px] border border-good/30 bg-good-soft px-2 py-0.5 font-semibold text-good-ink">
                 <span className="h-1.5 w-1.5 rounded-full bg-good" />
                 SAVED
               </span>
@@ -1007,7 +1007,7 @@ export function MyAccount() {
                       <span className="text-[15px] font-semibold text-ink">
                         {name || me.profile.display_name}
                       </span>
-                      <span className="font-mono-code rounded-[3px] border border-accent/25 bg-accent-soft px-2 py-0.5 text-[11px] font-medium text-accent">
+                      <span className="font-mono-code rounded-[3px] border border-accent/25 bg-accent-soft px-2 py-0.5 text-[11px] font-medium text-accent-ink">
                         /p/{slug}
                       </span>
                     </div>
@@ -1047,7 +1047,7 @@ export function MyAccount() {
                   >
                     Professional Headline &amp; Technical Focus
                   </label>
-                  <span className="font-mono-code rounded-[3px] border border-accent/25 bg-accent-soft px-2 py-0.5 text-[10px] font-semibold text-accent">
+                  <span className="font-mono-code rounded-[3px] border border-accent/25 bg-accent-soft px-2 py-0.5 text-[10px] font-semibold text-accent-ink">
                     {headline.length} / 160
                   </span>
                 </div>
@@ -1083,7 +1083,7 @@ export function MyAccount() {
                     <span
                       className={`font-mono-code inline-flex items-center gap-1.5 rounded-[3px] border px-2 py-0.5 text-[10px] font-bold ${
                         isPublic
-                          ? 'border-good/30 bg-good-soft text-good'
+                          ? 'border-good/30 bg-good-soft text-good-ink'
                           : 'border-line bg-white text-muted'
                       }`}
                     >
@@ -1162,7 +1162,7 @@ export function MyAccount() {
                   <div className="space-y-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="text-[14px] font-semibold text-ink">GitHub Repository Analyzer</span>
-                      <span className="font-mono-code rounded-[2px] border border-good/30 bg-good-soft px-1.5 py-0.5 text-[10px] font-semibold text-good">
+                      <span className="font-mono-code rounded-[2px] border border-good/30 bg-good-soft px-1.5 py-0.5 text-[10px] font-semibold text-good-ink">
                         READ-ONLY PUBLIC REPOS
                       </span>
                     </div>
@@ -1182,7 +1182,7 @@ export function MyAccount() {
               {/* Organizations & Roles Card */}
               <div className="flex flex-col justify-between gap-4 rounded-[4px] border border-line bg-white p-4 md:flex-row md:items-center">
                 <div className="flex items-start gap-3.5">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[4px] border border-accent/25 bg-accent-soft text-accent">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[4px] border border-accent/25 bg-accent-soft text-accent-ink">
                     <span className="material-symbols-outlined text-[20px]">corporate_fare</span>
                   </div>
                   <div className="space-y-1">
@@ -1210,7 +1210,7 @@ export function MyAccount() {
               {/* Audio Verification Hardware Card */}
               <div className="flex flex-col justify-between gap-4 rounded-[4px] border border-line bg-white p-4 md:flex-row md:items-center">
                 <div className="flex items-start gap-3.5">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[4px] border border-good/30 bg-good-soft text-good">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[4px] border border-good/30 bg-good-soft text-good-ink">
                     <span className="material-symbols-outlined text-[20px]">mic</span>
                   </div>
                   <div className="space-y-1">
@@ -1219,7 +1219,7 @@ export function MyAccount() {
                       <span
                         className={`font-mono-code rounded-[2px] border px-1.5 py-0.5 text-[10px] font-bold uppercase ${
                           micStatus === 'ok'
-                            ? 'border-good/30 bg-good-soft text-good'
+                            ? 'border-good/30 bg-good-soft text-good-ink'
                             : micStatus === 'denied'
                               ? 'border-bad/30 bg-bad-soft text-bad'
                               : 'border-line bg-paper text-muted'
@@ -1299,7 +1299,7 @@ export function MyAccount() {
                     <span className="text-[13px] font-semibold text-ink">
                       Hide failed or incomplete interview attempts from public profile
                     </span>
-                    <span className="font-mono-code rounded-[2px] border border-warn/30 bg-warn-soft px-1.5 py-0.5 text-[10px] font-bold text-warn">
+                    <span className="font-mono-code rounded-[2px] border border-warn/30 bg-warn-soft px-1.5 py-0.5 text-[10px] font-bold text-warn-ink">
                       ENFORCED BY PROTOCOL
                     </span>
                   </div>

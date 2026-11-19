@@ -91,7 +91,7 @@ export function CreateEvent() {
       <CommandConsoleHeader
         breadcrumbs={
           <>
-            <Link to="/org/events" className="text-[#93B4FF] hover:underline">
+            <Link to="/org/events" className="text-accent-on-dark hover:underline">
               ← ORGANIZER CONSOLE
             </Link>
             <span>//</span>

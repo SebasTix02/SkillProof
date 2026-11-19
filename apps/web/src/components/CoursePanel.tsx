@@ -133,7 +133,7 @@ export function CoursePanel({ selectedId, onSelect }: { selectedId: string | nul
             <button
               type="button"
               onClick={() => onSelect(null)}
-              className={`font-mono-code rounded-[3px] border px-2.5 py-1 text-[11px] font-medium ${selectedId === null ? 'border-accent bg-accent-soft text-accent' : 'border-line text-muted hover:text-ink'}`}
+              className={`font-mono-code rounded-[3px] border px-2.5 py-1 text-[11px] font-medium ${selectedId === null ? 'border-accent bg-accent-soft text-accent-ink' : 'border-line text-muted hover:text-ink'}`}
             >
               All events
             </button>
@@ -142,7 +142,7 @@ export function CoursePanel({ selectedId, onSelect }: { selectedId: string | nul
                 key={c.id}
                 type="button"
                 onClick={() => onSelect(c.id)}
-                className={`font-mono-code rounded-[3px] border px-2.5 py-1 text-[11px] font-medium ${selectedId === c.id ? 'border-accent bg-accent-soft text-accent' : 'border-line text-muted hover:text-ink'}`}
+                className={`font-mono-code rounded-[3px] border px-2.5 py-1 text-[11px] font-medium ${selectedId === c.id ? 'border-accent bg-accent-soft text-accent-ink' : 'border-line text-muted hover:text-ink'}`}
               >
                 {c.code ? `${c.code} · ` : ''}
                 {c.name} <span className="text-muted">({c.member_count})</span>
