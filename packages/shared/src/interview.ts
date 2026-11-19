@@ -1,21 +1,19 @@
 import { z } from 'zod';
 
+export const PlannedQuestionSchema = z.object({
+  id: z.string(),
+  kind: z.enum(['why', 'explain', 'extend', 'failure']),
+  question: z.string().describe('The question, as the interviewer would say it aloud'),
+  path: z.string(),
+  start_line: z.number().int().min(1),
+  end_line: z.number().int().min(1),
+  expected_points: z.array(z.string()).describe('Key points a real author would mention. Never shown to the candidate.'),
+  skill: z.string().describe('The skill this question verifies, e.g. "React state management"'),
+});
+
+/** A stored plan: 1 question (a short group interview) up to 6. */
 export const QuestionPlanSchema = z.object({
-  questions: z
-    .array(
-      z.object({
-        id: z.string(),
-        kind: z.enum(['why', 'explain', 'extend', 'failure']),
-        question: z.string().describe('The question, as the interviewer would say it aloud'),
-        path: z.string(),
-        start_line: z.number().int().min(1),
-        end_line: z.number().int().min(1),
-        expected_points: z.array(z.string()).describe('Key points a real author would mention. Never shown to the candidate.'),
-        skill: z.string().describe('The skill this question verifies, e.g. "React state management"'),
-      }),
-    )
-    .min(3)
-    .max(6),
+  questions: z.array(PlannedQuestionSchema).min(1).max(6),
 });
 export type QuestionPlan = z.infer<typeof QuestionPlanSchema>;
 
@@ -24,8 +22,15 @@ export const MIN_QUESTIONS = 4;
 export const MAX_QUESTIONS = 5;
 
 /** What the planning model must return: 4 to 5 questions, a few more tolerated and trimmed to the best 5. */
-export const QuestionPlanDraftSchema = QuestionPlanSchema.extend({
-  questions: QuestionPlanSchema.shape.questions.min(MIN_QUESTIONS).max(8),
+export const QuestionPlanDraftSchema = z.object({
+  questions: z.array(PlannedQuestionSchema).min(MIN_QUESTIONS).max(8),
+});
+
+/** Group assignments: one short interview per member, about the code they wrote, with at most 2 questions. */
+export const GROUP_MAX_QUESTIONS = 2;
+export const GROUP_INTERVIEW_SECONDS = 90;
+export const GroupQuestionPlanDraftSchema = z.object({
+  questions: z.array(PlannedQuestionSchema).min(1).max(4),
 });
 export type PlannedQuestion = QuestionPlan['questions'][number];
 

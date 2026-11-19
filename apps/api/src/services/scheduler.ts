@@ -1,5 +1,6 @@
 import { db, must } from '../lib/supabase.js';
-import { closeDueEvents, failOrRetry, settleEvent } from './judge.js';
+import { STORES } from './contest.js';
+import { closeDueContests, failOrRetryIn, settleContest } from './judge.js';
 import { ACTIVE_WINDOW_MIN, dispatchJudging } from './judgeQueue.js';
 import { background, enqueue } from './queue.js';
 
@@ -12,16 +13,18 @@ async function recoverStuckJobs(): Promise<{ requeued: number; timedOut: number 
 
   // Started judging long ago and never finished (the function was stopped). It counts as a busy attempt,
   // so it goes back to the queue for an automatic retry, or stops after the last one.
-  const stuck = must(
-    await db()
-      .from('submissions')
-      .select('id, event_id, judge_attempts')
-      .eq('status', 'analyzing')
-      .lt('updated_at', minutesAgo(ACTIVE_WINDOW_MIN)),
-  ) as { id: string; event_id: string; judge_attempts: number }[];
-  for (const s of stuck) await failOrRetry(s.id, s.judge_attempts + 1, new Error('DEADLINE_EXCEEDED: judging took too long and was stopped'));
-  timedOut += stuck.length;
-  for (const eventId of new Set(stuck.map((s) => s.event_id))) await settleEvent(eventId);
+  for (const store of STORES) {
+    const stuck = must(
+      await db()
+        .from(store.submissions)
+        .select(`id, ${store.contestFk}, judge_attempts`)
+        .eq('status', 'analyzing')
+        .lt('updated_at', minutesAgo(ACTIVE_WINDOW_MIN)),
+    ) as unknown as { id: string; judge_attempts: number; event_id?: string; assignment_id?: string }[];
+    for (const s of stuck) await failOrRetryIn(store, s.id, s.judge_attempts + 1, new Error('DEADLINE_EXCEEDED: judging took too long and was stopped'));
+    timedOut += stuck.length;
+    for (const contestId of new Set(stuck.map((s) => (store.kind === 'event' ? s.event_id : s.assignment_id)!))) await settleContest(store, contestId);
+  }
 
   // Queued submissions whose turn has come, while there are free slots.
   requeued += await dispatchJudging();
@@ -49,7 +52,9 @@ async function recoverStuckJobs(): Promise<{ requeued: number; timedOut: number 
 
 /** One scheduler pass: closes events whose deadline passed and recovers stuck jobs. Safe to run at any time. */
 export async function tick(): Promise<{ closed: number; requeued: number; timedOut: number }> {
-  const closed = await closeDueEvents();
+  // Events and course assignments whose deadline passed.
+  let closed = 0;
+  for (const store of STORES) closed += await closeDueContests(store);
   const recovered = await recoverStuckJobs();
   return { closed, ...recovered };
 }

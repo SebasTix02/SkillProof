@@ -20,13 +20,16 @@ export function judgingDecision(status: string | null, eventPausedAt: string | n
   return 'continue';
 }
 
-/** Checkpoint for judging one submission. */
-export function submissionCheckpoint(submissionId: string): Checkpoint {
+/** Checkpoint for judging one submission of an event (default) or of a course assignment. */
+export function submissionCheckpoint(submissionId: string, store: { kind: 'event' | 'assignment' } = { kind: 'event' }): Checkpoint {
   return async () => {
-    const { data, error } = await db().from('submissions').select('status, events(judging_paused_at)').eq('id', submissionId).maybeSingle();
+    const { data, error } =
+      store.kind === 'event'
+        ? await db().from('submissions').select('status, contest:events(judging_paused_at)').eq('id', submissionId).maybeSingle()
+        : await db().from('assignment_submissions').select('status, contest:course_assignments(judging_paused_at)').eq('id', submissionId).maybeSingle();
     if (error) return; // a failed check never stops the job
-    const row = data as { status: string; events: { judging_paused_at: string | null } | null } | null;
-    const decision = judgingDecision(row?.status ?? null, row?.events?.judging_paused_at ?? null);
+    const row = data as { status: string; contest: { judging_paused_at: string | null } | null } | null;
+    const decision = judgingDecision(row?.status ?? null, row?.contest?.judging_paused_at ?? null);
     if (decision !== 'continue') throw new JobStopped(decision);
   };
 }
