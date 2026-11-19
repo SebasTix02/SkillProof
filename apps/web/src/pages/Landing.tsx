@@ -171,7 +171,7 @@ export function Landing() {
                 />
 
                 <div className="hidden border border-line bg-white p-2.5 sm:absolute sm:top-3 sm:left-3 sm:flex sm:items-center sm:gap-2.5 sm:rounded-[4px]">
-                  <div className="flex h-7 w-7 items-center justify-center rounded-[3px] border border-accent/25 bg-accent-soft text-accent">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-[3px] border border-accent/25 bg-accent-soft text-accent-ink">
                     <span className="material-symbols-outlined text-[16px]">account_tree</span>
                   </div>
                   <div>
@@ -450,7 +450,7 @@ export function Landing() {
                   },
                 ].map((item) => (
                   <li key={item.step} className="flex items-start gap-3">
-                    <span className="font-mono-code mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-[3px] border border-accent/30 bg-accent-soft text-[11px] font-bold text-accent">
+                    <span className="font-mono-code mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-[3px] border border-accent/30 bg-accent-soft text-[11px] font-bold text-accent-ink">
                       {item.step}
                     </span>
                     <div>
@@ -511,7 +511,7 @@ export function Landing() {
                   },
                 ].map((item) => (
                   <li key={item.step} className="flex items-start gap-3">
-                    <span className="font-mono-code mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-[3px] border border-good/30 bg-good-soft text-[11px] font-bold text-good">
+                    <span className="font-mono-code mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-[3px] border border-good/30 bg-good-soft text-[11px] font-bold text-good-ink">
                       {item.step}
                     </span>
                     <div>
@@ -598,7 +598,7 @@ export function Landing() {
       {/* 5. High-Impact Dark Architectural Call to Action */}
       <DarkBanner id="demo" className="p-8 sm:p-12 lg:p-14">
         <div className="mx-auto max-w-[740px] space-y-5 text-center">
-          <div className="font-mono-code inline-flex items-center gap-2 rounded-[3px] border border-[#262B34] bg-[#15181E] px-3 py-1 text-[11px] font-semibold tracking-wider text-accent-soft uppercase">
+          <div className="font-mono-code inline-flex items-center gap-2 rounded-[3px] border border-dark-hairline bg-dark-surface px-3 py-1 text-[11px] font-semibold tracking-wider text-accent-soft uppercase">
             <LiveDot tone="accent" pulse={false} />
             THE STANDARD FOR AUTHENTIC CODE CREDENTIALING
           </div>
@@ -607,7 +607,7 @@ export function Landing() {
             Make genuine engineering understanding undeniable.
           </h2>
 
-          <p className="mx-auto max-w-[600px] text-[15px] leading-[24px] text-[#8E95A3] sm:text-[16px]">
+          <p className="mx-auto max-w-[600px] text-[15px] leading-[24px] text-dark-muted sm:text-[16px]">
             Launch an AI-audited hackathon with commit-locked rubric scoring, or take a 3-minute live voice interview on
             your own GitHub repository in minutes.
           </p>
@@ -619,13 +619,13 @@ export function Landing() {
             </Link>
             <Link
               to={secondaryHref}
-              className="btn-tactile inline-flex items-center justify-center gap-2 rounded-[4px] border border-[#262B34] bg-[#15181E] px-6 py-3 text-[14px] font-medium text-[#EDEDEC] hover:border-[#8E95A3] hover:bg-[#1E222B]"
+              className="btn-tactile inline-flex items-center justify-center gap-2 rounded-[4px] border border-dark-hairline bg-dark-surface px-6 py-3 text-[14px] font-medium text-dark-ink hover:border-dark-muted hover:bg-[#1E222B]"
             >
               <span>{secondaryLabel}</span>
             </Link>
           </div>
 
-          <div className="font-mono-code flex flex-wrap items-center justify-center gap-5 border-t border-[#262B34] pt-6 text-[11px] text-[#8E95A3]">
+          <div className="font-mono-code flex flex-wrap items-center justify-center gap-5 border-t border-dark-hairline pt-6 text-[11px] text-dark-muted">
             <span>PUBLIC GITHUB REPOSITORIES</span>
             <span>•</span>
             <span>COMMIT-LOCKED RUBRIC SCORING</span>

@@ -139,7 +139,7 @@ export function CommandConsoleHeader({
   footerSlot?: ReactNode;
 }) {
   return (
-    <section className="overflow-hidden rounded-[6px] border border-[#262B34] bg-[#0F141C] p-5 text-white sm:p-6">
+    <section className="overflow-hidden rounded-[6px] border border-dark-hairline bg-dark-inset p-5 text-white sm:p-6">
       {(breadcrumbs || statusChips) && (
         <div className="font-mono-code flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-3.5 text-[11px] text-white/65">
           {breadcrumbs && <div className="flex flex-wrap items-center gap-2">{breadcrumbs}</div>}
@@ -152,7 +152,7 @@ export function CommandConsoleHeader({
           {(eyebrowBadge || eyebrowMeta) && (
             <div className="font-mono-code flex flex-wrap items-center gap-2.5 text-[11px]">
               {eyebrowBadge && (
-                <span className="rounded-[3px] border border-accent/40 bg-accent/20 px-2 py-0.5 font-semibold tracking-wider text-[#93B4FF] uppercase">
+                <span className="rounded-[3px] border border-accent/40 bg-accent/20 px-2 py-0.5 font-semibold tracking-wider text-accent-on-dark uppercase">
                   {eyebrowBadge}
                 </span>
               )}

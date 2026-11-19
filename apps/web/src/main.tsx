@@ -1,8 +1,9 @@
 import { StrictMode, type ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import { ConfirmProvider } from './components/shared/ConfirmDialog';
 import { ToastProvider } from './components/toast';
-import { Layout, Notice, Spinner } from './components/ui';
+import { Layout, Notice, PageState } from './components/ui';
 import './index.css';
 import { AuthProvider, useAuth } from './lib/auth';
 import { configured } from './lib/supabase';
@@ -25,7 +26,7 @@ import { PublicProfile } from './pages/PublicProfile';
 function Private({ children, organizer = false }: { children: ReactNode; organizer?: boolean }) {
   const { session, loading, org } = useAuth();
   const location = useLocation();
-  if (loading) return <div className="py-16 text-center"><Spinner /></div>;
+  if (loading) return <PageState loading error={null} />;
   if (!session) return <Navigate to={`/login?next=${encodeURIComponent(location.pathname + location.search)}`} replace />;
   if (organizer && !org) return <Notice tone="error">This area is for organizers. Create an organizer account to run events.</Notice>;
   return <>{children}</>;
@@ -83,7 +84,9 @@ createRoot(document.getElementById('root')!).render(
     <BrowserRouter>
       <AuthProvider>
         <ToastProvider>
-          <App />
+          <ConfirmProvider>
+            <App />
+          </ConfirmProvider>
         </ToastProvider>
       </AuthProvider>
     </BrowserRouter>

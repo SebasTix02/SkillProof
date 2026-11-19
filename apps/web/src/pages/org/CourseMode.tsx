@@ -197,7 +197,7 @@ export function CourseMode() {
     effectiveSelectedId ? `/api/submissions/${effectiveSelectedId}` : null,
   );
 
-  if (orgEvents.loading && !orgEvents.data) return <PageState loading error={null} />;
+  if (orgEvents.loading && !orgEvents.data) return <PageState loading error={null} kind="console" />;
   if (orgEvents.error) return <PageState loading={false} error={orgEvents.error} />;
 
   const event = consoleData.data?.event ?? events.find((e) => e.id === activeEventId) ?? null;
@@ -287,7 +287,7 @@ export function CourseMode() {
       {/* 1. Faculty Portal Department Bar */}
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-[6px] border border-line bg-white px-5 py-2.5">
         <div className="font-mono-code flex flex-wrap items-center gap-2 text-[11px]">
-          <span className="inline-flex items-center gap-1.5 rounded-[3px] bg-accent-soft px-2 py-0.5 font-bold text-accent">
+          <span className="inline-flex items-center gap-1.5 rounded-[3px] bg-accent-soft px-2 py-0.5 font-bold text-accent-ink">
             <span className="material-symbols-outlined text-[14px]">school</span>
             <span>FACULTY PORTAL</span>
           </span>
@@ -304,7 +304,7 @@ export function CourseMode() {
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          <span className="font-mono-code inline-flex items-center gap-1.5 rounded-full border border-good/30 bg-good-soft px-2.5 py-0.5 text-[10px] font-semibold text-good">
+          <span className="font-mono-code inline-flex items-center gap-1.5 rounded-full border border-good/30 bg-good-soft px-2.5 py-0.5 text-[10px] font-semibold text-good-ink">
             <LiveDot tone="good" />
             <span>GRADEBOOK SYNC READY</span>
           </span>
@@ -592,7 +592,7 @@ export function CourseMode() {
                       onClick={() => setFilter(f.key)}
                       className={`cursor-pointer px-2.5 py-1.5 transition-colors ${
                         filter === f.key
-                          ? 'bg-accent-soft font-bold text-accent'
+                          ? 'bg-accent-soft font-bold text-accent-ink'
                           : 'bg-white text-muted hover:bg-paper hover:text-ink'
                       }`}
                     >

@@ -85,7 +85,7 @@ export function Report({ report }: { report: ReportView }) {
       </KpiGrid>
 
       {report.confidence === 'low' && (
-        <div className="rounded-[4px] border border-warn/30 border-l-[3px] border-l-warn bg-warn-soft/60 px-4 py-2.5 text-[13px] text-warn">
+        <div className="rounded-[4px] border border-warn/30 border-l-[3px] border-l-warn bg-warn-soft/60 px-4 py-2.5 text-[13px] text-warn-ink">
           The candidate said too little for a reliable judgement. Read this score with care.
         </div>
       )}

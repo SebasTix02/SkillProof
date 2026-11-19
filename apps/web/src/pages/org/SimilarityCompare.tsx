@@ -345,7 +345,7 @@ export function SimilarityCompare() {
   const subA = submissions.find((s) => s.id === idA) ?? null;
   const subB = submissions.find((s) => s.id === idB) ?? null;
 
-  if (!data) return <PageState loading={loading} error={error} />;
+  if (!data) return <PageState loading={loading} error={error} kind="detail" />;
 
   const { event } = data;
   const analysisA = detailA.data ? one(detailA.data.submission.repo_analyses) : null;
@@ -432,7 +432,7 @@ export function SimilarityCompare() {
       <CommandConsoleHeader
         breadcrumbs={
           <>
-            <Link to={`/org/events/${event.id}`} className="font-semibold text-[#93B4FF] hover:underline">
+            <Link to={`/org/events/${event.id}`} className="font-semibold text-accent-on-dark hover:underline">
               ← {event.name.toUpperCase()}
             </Link>
             <span>//</span>
@@ -440,7 +440,7 @@ export function SimilarityCompare() {
             {activeFlag && (
               <>
                 <span>//</span>
-                <span className="inline-flex items-center gap-1.5 rounded-[3px] border border-bad/40 bg-bad/20 px-2 py-0.5 font-semibold text-[#FCA5A5]">
+                <span className="inline-flex items-center gap-1.5 rounded-[3px] border border-bad/40 bg-bad/20 px-2 py-0.5 font-semibold text-bad-on-dark">
                   <LiveDot tone="bad" />
                   <span>{SIMILARITY_SIGNAL_LABEL[activeFlag.signal].toUpperCase()}</span>
                 </span>
@@ -453,7 +453,7 @@ export function SimilarityCompare() {
             <span className="rounded-[3px] border border-white/10 bg-white/5 px-2.5 py-0.5 text-white/80">
               FLAGGED PAIRS: {flags.length}
             </span>
-            <span className="rounded-[3px] border border-good/30 bg-good/20 px-2.5 py-0.5 text-[#79d9ae]">
+            <span className="rounded-[3px] border border-good/30 bg-good/20 px-2.5 py-0.5 text-good-on-dark">
               COMMIT-LOCKED DIFF
             </span>
           </>
@@ -468,7 +468,7 @@ export function SimilarityCompare() {
               onClick={() => void dismissFalsePositive()}
               className="btn-tactile font-mono-code inline-flex cursor-pointer items-center gap-1.5 rounded-[4px] border border-white/15 bg-white/10 px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-white/20"
             >
-              <span className="material-symbols-outlined text-[15px] text-[#79d9ae]">verified_user</span>
+              <span className="material-symbols-outlined text-[15px] text-good-on-dark">verified_user</span>
               <span>Dismiss False Positive</span>
             </button>
             <button
@@ -802,7 +802,7 @@ export function SimilarityCompare() {
                 </Button>
                 <Button
                   type="submit"
-                  disabled={!canDecide || !activeFlag || savingDecision}
+                  disabled={!canDecide || !activeFlag || savingDecision} loading={savingDecision}
                   variant={verdict === 'independent_invention' ? 'primary' : 'danger'}
                 >
                   <span className="material-symbols-outlined text-[16px]">lock</span>

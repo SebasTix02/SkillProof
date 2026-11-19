@@ -18,6 +18,8 @@ import {
   linkButton,
   linkButtonSecondary,
   scoreTone,
+  useConfirm,
+  questionToOptions,
 } from '../../components/shared';
 import { JudgeReviewCard, JudgeReviewsList } from '../../components/JudgeReview';
 import { SubmissionJudgingControls } from '../../components/JudgingControls';
@@ -210,6 +212,7 @@ export function SubmissionDetail() {
   const navigate = useNavigate();
   const { org, me } = useAuth();
   const toast = useToast();
+  const confirm = useConfirm();
   const [rejudging, setRejudging] = useState(false);
   const [controlKey, setControlKey] = useState<string | null>(null);
   const [queueSearch, setQueueSearch] = useState('');
@@ -275,12 +278,12 @@ export function SubmissionDetail() {
     );
   }, [queue, queueSearch]);
 
-  if (!data) return <PageState loading={loading} error={error} />;
+  if (!data) return <PageState loading={loading} error={error} kind="detail" />;
   const { submission: sub, scores, feedback } = data;
 
   /** Pause, resume, cancel or judge again, from the controls bar. */
   async function control(key: string, path: string, success: string, confirmText?: string) {
-    if (confirmText && !window.confirm(confirmText)) return;
+    if (confirmText && !(await confirm(questionToOptions(confirmText, { confirmLabel: 'Continue' })))) return;
     setRejudging(true);
     setControlKey(key);
     try {
@@ -328,13 +331,13 @@ export function SubmissionDetail() {
       <CommandConsoleHeader
         breadcrumbs={
           <>
-            <Link to={`/org/events/${id}`} className="font-semibold text-[#93B4FF] hover:underline">
+            <Link to={`/org/events/${id}`} className="font-semibold text-accent-on-dark hover:underline">
               ← {sub.events.name.toUpperCase()}
             </Link>
             <span>//</span>
             <span>DOCKET #{sub.id.slice(0, 8).toUpperCase()}</span>
             <span>//</span>
-            <span className="inline-flex items-center gap-1.5 text-[#79d9ae]">
+            <span className="inline-flex items-center gap-1.5 text-good-on-dark">
               <LiveDot tone="mint" pulse={working} />
               <span>{STATUS_LABEL[sub.events.status].toUpperCase()}</span>
             </span>
@@ -342,11 +345,11 @@ export function SubmissionDetail() {
         }
         statusChips={
           <div className="flex items-center gap-2 rounded-[4px] border border-white/10 bg-white/5 px-3 py-1">
-            <span className="h-2 w-2 rounded-full bg-[#79d9ae]" />
+            <span className="h-2 w-2 rounded-full bg-good-on-dark" />
             <span className="font-medium text-white">{me?.profile.display_name || 'Judge'}</span>
             {me?.email && <span className="text-white/50">({me.email})</span>}
             <span className="text-white/30">|</span>
-            <span className="text-[#93B4FF] uppercase">
+            <span className="text-accent-on-dark uppercase">
               {(org?.roles ?? ['judge']).join(', ')}
             </span>
           </div>
@@ -392,7 +395,7 @@ export function SubmissionDetail() {
                     <strong className="text-white">{scoredInQueue}</strong> of{' '}
                     <strong className="text-white">{queue.length}</strong> Cohort Submissions Scored
                   </span>
-                  <span className="font-semibold text-[#93B4FF]">{queueProgressPct}% Complete</span>
+                  <span className="font-semibold text-accent-on-dark">{queueProgressPct}% Complete</span>
                 </div>
                 <ScoreBar
                   value={queueProgressPct}
@@ -499,7 +502,7 @@ export function SubmissionDetail() {
                           ACTIVE
                         </span>
                       ) : item.total != null ? (
-                        <span className="font-mono-code rounded-[2px] border border-good/30 bg-good-soft px-1.5 py-0.5 text-[10px] font-bold text-good">
+                        <span className="font-mono-code rounded-[2px] border border-good/30 bg-good-soft px-1.5 py-0.5 text-[10px] font-bold text-good-ink">
                           {item.total.toFixed(1)}
                         </span>
                       ) : (
@@ -710,14 +713,14 @@ export function SubmissionDetail() {
                 })}
               </div>
 
-              <div className="font-mono-code flex items-center justify-between bg-[#0F141C] px-4 py-2 text-[11px] text-white/80">
+              <div className="font-mono-code flex items-center justify-between bg-dark-inset px-4 py-2 text-[11px] text-white/80">
                 <div className="flex items-center gap-2">
-                  <span className="material-symbols-outlined text-[15px] text-[#93B4FF]">code</span>
+                  <span className="material-symbols-outlined text-[15px] text-accent-on-dark">code</span>
                   <span className="font-semibold text-white">
                     {activeScore?.evidence_json[0] ?? activeCriterion?.name ?? 'Criterion Evidence'}
                   </span>
                 </div>
-                <span className="rounded border border-white/15 bg-white/5 px-2 py-0.5 text-[10px] text-[#79d9ae]">
+                <span className="rounded border border-white/15 bg-white/5 px-2 py-0.5 text-[10px] text-good-on-dark">
                   SCORE: {activeScore?.override_score ?? activeScore?.ai_score ?? '–'} / 10
                 </span>
               </div>
@@ -739,7 +742,7 @@ export function SubmissionDetail() {
                             href={`${repoUrl}/blob/${sha}/${path}`}
                             target="_blank"
                             rel="noreferrer"
-                            className="font-mono-code inline-flex items-center gap-1 rounded-[3px] border border-white/15 bg-white/10 px-2 py-1 text-[11px] text-[#93B4FF] hover:bg-white/20 hover:underline"
+                            className="font-mono-code inline-flex items-center gap-1 rounded-[3px] border border-white/15 bg-white/10 px-2 py-1 text-[11px] text-accent-on-dark hover:bg-white/20 hover:underline"
                           >
                             <span className="material-symbols-outlined text-[13px]">open_in_new</span>
                             <span>{path}</span>
@@ -968,9 +971,9 @@ export function SubmissionDetail() {
                   <span
                     className={`font-mono-code inline-block rounded-[3px] border px-2 py-0.5 text-[11px] font-bold ${
                       delta > 0
-                        ? 'border-good/30 bg-good-soft text-good'
+                        ? 'border-good/30 bg-good-soft text-good-ink'
                         : delta < 0
-                          ? 'border-warn/30 bg-warn-soft text-warn'
+                          ? 'border-warn/30 bg-warn-soft text-warn-ink'
                           : 'border-line bg-white text-muted'
                     }`}
                   >

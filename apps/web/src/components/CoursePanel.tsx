@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
-import { Badge, Button, Input, Notice, NumberedSectionCard, Select, Spinner, Textarea, formatDate, linkButton } from './shared';
+import { Badge, Button, useConfirm, Input, Notice, NumberedSectionCard, Select, SkeletonTable, SkeletonText, Textarea, formatDate, linkButton } from './shared';
 import { useToast } from './toast';
 import { api, errorMessage } from '../lib/api';
 import { useAuth } from '../lib/auth';
@@ -33,6 +33,7 @@ const EMAIL = /[^\s,;<>"']+@[^\s,;<>"']+\.[^\s,;<>"']+/g;
 export function CoursePanel({ selectedId, onSelect }: { selectedId: string | null; onSelect: (id: string | null) => void }) {
   const { org } = useAuth();
   const toast = useToast();
+  const confirm = useConfirm();
   const canManage = !!org?.permissions.includes('course.manage');
   const list = useLoad<{ courses: Course[] }>(org ? `/api/orgs/${org.id}/courses` : null);
   const detail = useLoad<CourseDetail>(selectedId ? `/api/courses/${selectedId}` : null);
@@ -97,13 +98,15 @@ export function CoursePanel({ selectedId, onSelect }: { selectedId: string | nul
   }
 
   async function removeMember(userId: string, name: string) {
-    if (!selectedId || !window.confirm(`Remove ${name} from this course?`)) return;
+    if (!selectedId) return;
+    if (!(await confirm({ title: `Remove ${name} from this course?`, body: 'They lose access to its assignments. You can add them again later.', confirmLabel: 'Remove' }))) return;
     if (await run(`rm-${userId}`, () => api(`/api/courses/${selectedId}/members/${userId}`, { method: 'DELETE' }), `${name} removed.`, 'Could not remove them'))
       await Promise.all([detail.reload(), list.reload()]);
   }
 
   async function archive() {
-    if (!selectedId || !window.confirm('Archive this course? It disappears from the list; its assignments stay.')) return;
+    if (!selectedId) return;
+    if (!(await confirm({ title: 'Archive this course?', body: 'It disappears from the list; its assignments and grades stay.', confirmLabel: 'Archive' }))) return;
     if (await run('archive', () => api(`/api/courses/${selectedId}/archive`, { method: 'POST' }), 'Course archived.', 'Could not archive the course')) {
       onSelect(null);
       await list.reload();
@@ -124,7 +127,7 @@ export function CoursePanel({ selectedId, onSelect }: { selectedId: string | nul
       theme="emerald"
     >
       {list.loading ? (
-        <Spinner label="Loading courses" />
+        <SkeletonTable rows={3} cols={3} />
       ) : list.error ? (
         <Notice tone="error">{list.error}</Notice>
       ) : (
@@ -133,7 +136,7 @@ export function CoursePanel({ selectedId, onSelect }: { selectedId: string | nul
             <button
               type="button"
               onClick={() => onSelect(null)}
-              className={`font-mono-code rounded-[3px] border px-2.5 py-1 text-[11px] font-medium ${selectedId === null ? 'border-accent bg-accent-soft text-accent' : 'border-line text-muted hover:text-ink'}`}
+              className={`font-mono-code rounded-[3px] border px-2.5 py-1 text-[11px] font-medium ${selectedId === null ? 'border-accent bg-accent-soft text-accent-ink' : 'border-line text-muted hover:text-ink'}`}
             >
               All events
             </button>
@@ -142,7 +145,7 @@ export function CoursePanel({ selectedId, onSelect }: { selectedId: string | nul
                 key={c.id}
                 type="button"
                 onClick={() => onSelect(c.id)}
-                className={`font-mono-code rounded-[3px] border px-2.5 py-1 text-[11px] font-medium ${selectedId === c.id ? 'border-accent bg-accent-soft text-accent' : 'border-line text-muted hover:text-ink'}`}
+                className={`font-mono-code rounded-[3px] border px-2.5 py-1 text-[11px] font-medium ${selectedId === c.id ? 'border-accent bg-accent-soft text-accent-ink' : 'border-line text-muted hover:text-ink'}`}
               >
                 {c.code ? `${c.code} · ` : ''}
                 {c.name} <span className="text-muted">({c.member_count})</span>
@@ -163,14 +166,14 @@ export function CoursePanel({ selectedId, onSelect }: { selectedId: string | nul
               <Input placeholder="Term (Fall 2026)" value={form.term} onChange={(e) => setForm({ ...form, term: e.target.value })} />
               <Textarea rows={2} placeholder="Description (optional)" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="md:col-span-4" />
               <div className="flex gap-2 md:col-span-4">
-                <Button type="submit" disabled={busy === 'create'}>{busy === 'create' ? 'Creating…' : 'Create course'}</Button>
+                <Button type="submit" disabled={busy === 'create'} loading={busy === 'create'}>{busy === 'create' ? 'Creating…' : 'Create course'}</Button>
                 <Button type="button" variant="ghost" onClick={() => setCreating(false)}>Cancel</Button>
               </div>
             </form>
           )}
 
           {selectedId && (detail.loading ? (
-            <Spinner label="Loading course" />
+            <SkeletonText lines={4} />
           ) : detail.error ? (
             <Notice tone="error">{detail.error}</Notice>
           ) : d ? (
@@ -243,7 +246,7 @@ export function CoursePanel({ selectedId, onSelect }: { selectedId: string | nul
                         <option value="instructor">Instructor</option>
                       </Select>
                       <Input value={section} onChange={(e) => setSection(e.target.value)} placeholder="Section (optional)" className="h-8 w-40 bg-white text-[12px]" />
-                      <Button type="button" disabled={busy === 'members' || !emails.match(EMAIL)} onClick={() => void addMembers()}>
+                      <Button type="button" disabled={busy === 'members' || !emails.match(EMAIL)} loading={busy === 'members'} onClick={() => void addMembers()}>
                         {busy === 'members' ? 'Adding…' : 'Add to course'}
                       </Button>
                     </div>

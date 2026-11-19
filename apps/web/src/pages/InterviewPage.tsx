@@ -20,6 +20,8 @@ import {
   formatClock,
   formatDate,
   linkButtonSecondary,
+  useConfirm,
+  questionToOptions,
 } from '../components/shared';
 import { api, errorMessage } from '../lib/api';
 import { useToast } from '../components/toast';
@@ -109,12 +111,12 @@ function StageController({
                 <span
                   className={`inline-flex items-center gap-1.5 rounded-[3px] px-2.5 py-1 transition-colors ${
                     isEmerald
-                      ? 'border border-good/30 bg-good-soft font-semibold text-good'
+                      ? 'border border-good/30 bg-good-soft font-semibold text-good-ink'
                       : isCurrent
-                        ? 'border border-accent/25 bg-accent-soft font-semibold text-accent'
+                        ? 'border border-accent/25 bg-accent-soft font-semibold text-accent-ink'
                         : isDone
-                          ? 'text-good font-medium'
-                          : 'text-muted/75'
+                          ? 'text-good-ink font-medium'
+                          : 'text-faint'
                   }`}
                 >
                   {isCurrent && (
@@ -143,7 +145,7 @@ function StageController({
           </span>
           <span
             className={`inline-flex items-center gap-1.5 rounded-[3px] px-3 py-1 font-semibold ${
-              status === 'completed' ? 'border border-good/30 bg-good-soft text-good' : 'text-muted'
+              status === 'completed' ? 'border border-good/30 bg-good-soft text-good-ink' : 'text-muted'
             }`}
           >
             <span className="material-symbols-outlined text-[14px] text-good">verified</span>
@@ -165,6 +167,7 @@ function Room({
   onLiveChange: (active: boolean) => void;
 }) {
   const { interview, questions } = data;
+  const confirm = useConfirm();
   const [phase, setPhase] = useState<'idle' | 'connecting' | 'live' | 'sending'>('idle');
   const [error, setError] = useState<string | null>(null);
   const [left, setLeft] = useState(data.seconds);
@@ -365,8 +368,14 @@ function Room({
     }
   }
 
-  function confirmEnd() {
-    if (!window.confirm('End the interview now? Your report is written from what you said so far, and you cannot take another interview on this commit.')) return;
+  async function confirmEnd() {
+    const ok = await confirm({
+      title: 'End the interview now?',
+      body: 'Your report is written from what you said so far, and you cannot take another interview on this commit.',
+      confirmLabel: 'End interview',
+      undoable: false,
+    });
+    if (!ok) return;
     // The interviewer finishes the sentence it is saying, then the interview ends.
     wrap.current.endNow(Date.now());
     setWrapping((w) => w ?? 'end');
@@ -560,13 +569,13 @@ function Room({
         <div className="flex min-w-0 flex-wrap items-center gap-2.5">
           <span className="font-mono-code inline-flex items-center gap-1.5 rounded-[3px] border border-line bg-white px-2.5 py-1 text-[11px] font-semibold tracking-wider text-accent uppercase">
             <LiveDot tone="accent" />
-            <span>ORAL EXAMINER COCKPIT</span>
+            <span>AI INTERVIEWER</span>
           </span>
           <span className="font-mono-code truncate text-[12px] font-semibold text-ink">
             @{interview.repo.owner}/{interview.repo.name}
           </span>
           {interview.commit_sha && (
-            <span className="font-mono-code rounded-[3px] border border-accent/25 bg-accent-soft px-2 py-0.5 text-[11px] font-medium text-accent">
+            <span className="font-mono-code rounded-[3px] border border-accent/25 bg-accent-soft px-2 py-0.5 text-[11px] font-medium text-accent-ink">
               COMMIT: {interview.commit_sha.slice(0, 7)}
             </span>
           )}
@@ -949,15 +958,16 @@ export function InterviewPage() {
   );
 
   const toast = useToast();
+  const confirm = useConfirm();
   const [acting, setActing] = useState<string | null>(null);
 
-  if (!data) return <PageState loading={loading} error={error} />;
+  if (!data) return <PageState loading={loading} error={error} kind="detail" />;
   const { interview } = data;
   const activity = data.activity ?? [];
 
   /** Cancel a preparation, or pause, resume or cancel the report. */
   async function control(action: 'cancel' | 'pause-report' | 'resume-report', confirmText?: string) {
-    if (confirmText && !window.confirm(confirmText)) return;
+    if (confirmText && !(await confirm(questionToOptions(confirmText, { confirmLabel: action === 'cancel' ? 'Cancel it' : 'Confirm', cancelLabel: 'Keep it' })))) return;
     setActing(action);
     try {
       await api(`/api/interviews/${interview.id}/${action}`, { method: 'POST' });
@@ -1044,7 +1054,7 @@ export function InterviewPage() {
             <div className="flex justify-center">
               <Button
                 variant="secondary"
-                disabled={!!acting}
+                disabled={!!acting} loading={acting === 'cancel'}
                 onClick={() => void control('cancel', 'Cancel the preparation? You can start again later; it does not use up your interview on this commit.')}
               >
                 {acting === 'cancel' ? 'Canceling…' : 'Cancel preparation'}
@@ -1071,11 +1081,11 @@ export function InterviewPage() {
           </Notice>
           {interview.is_owner && (
             <div className="flex flex-wrap gap-2">
-              <Button disabled={!!acting} onClick={() => void control('resume-report')}>
+              <Button disabled={!!acting} loading={acting === 'resume-report'} onClick={() => void control('resume-report')}>
                 {interview.status === 'report_paused' ? 'Resume the report' : 'Write the report'}
               </Button>
               {interview.status === 'report_paused' && (
-                <Button variant="secondary" disabled={!!acting} onClick={() => void control('cancel', 'Cancel the report? Your answers stay saved and you can write it later.')}>
+                <Button variant="secondary" disabled={!!acting} loading={acting === 'cancel'} onClick={() => void control('cancel', 'Cancel the report? Your answers stay saved and you can write it later.')}>
                   Cancel the report
                 </Button>
               )}
@@ -1113,8 +1123,8 @@ export function InterviewPage() {
           {interview.error && <Notice tone="warn">{interview.error}</Notice>}
           {interview.is_owner && (
             <div className="flex justify-center gap-2">
-              <Button variant="secondary" disabled={!!acting} onClick={() => void control('pause-report')}>Pause</Button>
-              <Button variant="secondary" disabled={!!acting} onClick={() => void control('cancel', 'Cancel the report? Your answers stay saved and you can write it later. This still counts as your interview on this commit.')}>
+              <Button variant="secondary" disabled={!!acting} loading={acting === 'pause-report'} onClick={() => void control('pause-report')}>Pause</Button>
+              <Button variant="secondary" disabled={!!acting} loading={acting === 'cancel'} onClick={() => void control('cancel', 'Cancel the report? Your answers stay saved and you can write it later. This still counts as your interview on this commit.')}>
                 Cancel
               </Button>
             </div>
@@ -1141,7 +1151,7 @@ export function InterviewPage() {
                     DOSSIER #SP-{interview.id.slice(0, 6).toUpperCase()}
                   </span>
                 </div>
-                <div className="rounded-[3px] border border-good/30 bg-good-soft px-2.5 py-0.5 font-medium text-good">
+                <div className="rounded-[3px] border border-good/30 bg-good-soft px-2.5 py-0.5 font-medium text-good-ink">
                   {interview.created_at ? `ISSUED ${formatDate(interview.created_at).toUpperCase()} • ` : ''}
                   COMMIT: {interview.commit_sha?.slice(0, 7) ?? 'HEAD'}
                 </div>
@@ -1160,7 +1170,7 @@ export function InterviewPage() {
                   </p>
                 </div>
 
-                <span className="font-mono-code inline-flex items-center gap-1.5 self-start rounded-[3px] border border-good/30 bg-good-soft px-3 py-1.5 text-[11px] font-bold text-good md:self-auto">
+                <span className="font-mono-code inline-flex items-center gap-1.5 self-start rounded-[3px] border border-good/30 bg-good-soft px-3 py-1.5 text-[11px] font-bold text-good-ink md:self-auto">
                   <span className="material-symbols-outlined text-[15px]">verified</span>
                   <span>VERIFICATION COMPLETED</span>
                 </span>

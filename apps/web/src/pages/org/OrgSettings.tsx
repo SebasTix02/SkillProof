@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { useCallback, useMemo, useState, type FormEvent } from 'react';
+import { Link } from 'react-router-dom';
 import {
   Button,
   CommandConsoleHeader,
@@ -14,17 +14,22 @@ import {
   RoleBadge,
   RoleCapabilityGrid,
   Select,
-  Spinner,
+  SkeletonTable,
+  SkeletonText,
   ToggleSwitch,
   TopAccentKpiCard,
   formatDate,
   linkButtonSecondary,
   normalizeOrgRole,
   type OrgRoleKey,
+  useConfirm,
+  permissionLabels,
 } from '../../components/shared';
 import { useToast } from '../../components/toast';
 import { api, errorMessage } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
+import { roleLabel } from '../../lib/nav';
+import { isDirty, useUnsavedChanges } from '../../lib/dirty';
 import { useLoad } from '../../lib/useLoad';
 
 /** Role keys as the API names them. The screen shows "owner" for org_owner. */
@@ -106,6 +111,7 @@ function primaryRole(roles: string[]): OrgRoleKey {
 export function OrgSettings() {
   const { org, me } = useAuth();
   const toast = useToast();
+  const confirm = useConfirm();
   const perms = org?.permissions ?? [];
   const canManage = perms.includes('org.manage_members');
   const canSeeUsage = perms.includes('org.view_usage');
@@ -117,7 +123,6 @@ export function OrgSettings() {
   const [auditLimit, setAuditLimit] = useState(50);
   const audit = useLoad<{ entries: AuditEntry[] }>(org && canAudit ? `/api/orgs/${org.id}/audit?limit=${auditLimit}` : null);
 
-  const [activeTab, setActiveTab] = useState<'members' | 'telemetry' | 'invitations' | 'enclave'>('members');
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState<OrgRoleKey>('judge');
   const [memberSearch, setMemberSearch] = useState('');
@@ -131,6 +136,12 @@ export function OrgSettings() {
   const orgInfo = members.data?.organization;
   const seatLimit = usage.data?.seat_limit ?? orgInfo?.seat_limit ?? null;
   const policies: OrgSettingsJson = policyDraft ?? orgInfo?.settings_json ?? {};
+  const policiesDirty = !!policyDraft && isDirty(orgInfo?.settings_json ?? {}, policyDraft);
+  const askToLeave = useCallback(
+    () => confirm({ title: 'Leave without saving?', body: 'Your changes to the policies will be lost.', confirmLabel: 'Leave', cancelLabel: 'Stay' }),
+    [confirm],
+  );
+  useUnsavedChanges(policiesDirty, askToLeave);
 
   const filteredMembers = useMemo(() => {
     const q = memberSearch.trim().toLowerCase();
@@ -195,13 +206,19 @@ export function OrgSettings() {
 
   async function removeMember(m: Member) {
     if (!org) return;
-    if (!window.confirm(`Remove ${m.display_name || m.email} from ${org.name}? They lose access at once.`)) return;
+    if (!(await confirm({ title: `Remove ${m.display_name || m.email} from ${org.name}?`, body: 'They lose access at once. You can invite them again later.', confirmLabel: 'Remove member' }))) return;
     await run(`remove-${m.user_id}`, () => api(`/api/orgs/${org.id}/members/${m.user_id}`, { method: 'DELETE' }), 'Member removed.', 'Could not remove the member');
     await members.reload();
   }
 
   async function revokeInvite(inv: Invitation) {
     if (!org) return;
+    const ok = await confirm({
+      title: `Revoke the invitation for ${inv.email}?`,
+      body: 'Its link stops working at once. You can send a new invitation later.',
+      confirmLabel: 'Revoke invitation',
+    });
+    if (!ok) return;
     await run(`revoke-${inv.id}`, () => api(`/api/orgs/${org.id}/invitations/${inv.id}`, { method: 'DELETE' }), `Invitation for ${inv.email} revoked.`, 'Could not revoke the invitation');
     if (newLink?.email === inv.email) setNewLink(null);
     await invites.reload();
@@ -229,50 +246,25 @@ export function OrgSettings() {
     toast.success(`Audit trail exported (${entries.length} entries).`);
   }
 
-  // The side menu links to a section of this page (#section-roster, #section-usage, #section-enclave).
-  const { hash } = useLocation();
-  useEffect(() => {
-    const tabs: Record<string, typeof activeTab> = {
-      '#section-roster': 'members',
-      '#section-usage': 'telemetry',
-      '#section-dispatch-queue': 'invitations',
-      '#section-enclave': 'enclave',
-    };
-    const tab = tabs[hash];
-    if (!tab || !org) return;
-    setActiveTab(tab);
-    document.getElementById(hash.slice(1))?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }, [hash, org]);
-
-  function jumpToSection(tab: typeof activeTab, elementId: string) {
-    setActiveTab(tab);
-    document.getElementById(elementId)?.scrollIntoView({ behavior: 'smooth' });
-  }
-
-  if (!org) return <PageState loading error={null} />;
-
-  const tabClass = (tab: typeof activeTab) =>
-    `font-mono-code inline-flex cursor-pointer items-center gap-2 rounded-[4px] px-3.5 py-1.5 text-[11px] font-semibold transition-colors ${
-      activeTab === tab ? 'bg-accent text-white' : 'border border-white/10 bg-white/5 text-white/75 hover:bg-white/15 hover:text-white'
-    }`;
+  if (!org) return <PageState loading error={null} kind="sections" />;
 
   return (
     <div className="space-y-8">
       <CommandConsoleHeader
         breadcrumbs={
           <>
-            <span className="inline-flex items-center gap-1.5 font-semibold text-[#79d9ae]">
+            <span className="inline-flex items-center gap-1.5 font-semibold text-good-on-dark">
               <LiveDot tone="mint" />
-              <span>REGISTRY://ORGANIZATIONS/{org.slug.toUpperCase()}</span>
+              <span>ORGANIZATION · {org.name.toUpperCase()}</span>
             </span>
             <span>•</span>
-            <span className="font-semibold text-[#93B4FF]">PLAN: {(usage.data?.plan ?? orgInfo?.plan ?? org.plan ?? 'free').toUpperCase()}</span>
+            <span className="font-semibold text-accent-on-dark">{(usage.data?.plan ?? orgInfo?.plan ?? org.plan ?? 'free').toUpperCase()} PLAN</span>
           </>
         }
         statusChips={
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-good/40 bg-good/20 px-2.5 py-0.5 text-[10px] font-semibold text-[#79d9ae]">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-good/40 bg-good/20 px-2.5 py-0.5 text-[10px] font-semibold text-good-on-dark">
             <LiveDot tone="mint" />
-            <span>ROW LEVEL SECURITY ON</span>
+            <span>YOUR ROLE: {roleLabel(org).toUpperCase()}</span>
           </span>
         }
         title="Organization Settings & Resource Allocation"
@@ -281,28 +273,6 @@ export function OrgSettings() {
           <Link to="/org/events" className={`${linkButtonSecondary} border-white/15 bg-white/10 text-white hover:bg-white/20`}>
             <span>← Organizer Console</span>
           </Link>
-        }
-        footerSlot={
-          <div className="flex flex-wrap items-center gap-2">
-            <button type="button" onClick={() => jumpToSection('members', 'section-roster')} className={tabClass('members')}>
-              <span className="material-symbols-outlined text-[15px]">group</span>
-              <span>Members &amp; Access</span>
-              {canManage && <span className="rounded-[2px] bg-white/20 px-1.5 py-0.2 text-[10px] font-bold">{memberList.length}</span>}
-            </button>
-            <button type="button" onClick={() => jumpToSection('telemetry', 'section-usage')} className={tabClass('telemetry')}>
-              <span className="material-symbols-outlined text-[15px]">analytics</span>
-              <span>AI Usage</span>
-            </button>
-            <button type="button" onClick={() => jumpToSection('invitations', 'section-dispatch-queue')} className={tabClass('invitations')}>
-              <span className="material-symbols-outlined text-[15px]">schedule_send</span>
-              <span>Pending Invitations</span>
-              {canManage && <span className="rounded-[2px] bg-warn px-1.5 py-0.2 text-[10px] font-bold text-white">{invitations.length}</span>}
-            </button>
-            <button type="button" onClick={() => jumpToSection('enclave', 'section-enclave')} className={tabClass('enclave')}>
-              <span className="material-symbols-outlined text-[15px]">verified_user</span>
-              <span>Audit Trail &amp; Policies</span>
-            </button>
-          </div>
         }
       />
 
@@ -348,8 +318,8 @@ export function OrgSettings() {
           eyebrow="Your Permissions"
           icon="verified"
           value={perms.length}
-          unit="grants"
-          description={perms.join(', ') || 'none'}
+          unit={perms.length === 1 ? 'permission' : 'permissions'}
+          description={permissionLabels(perms).join(' · ') || 'No permissions in this organization.'}
           progress={100}
         />
       </div>
@@ -399,7 +369,7 @@ export function OrgSettings() {
                 </Select>
               </div>
               <div className="md:col-span-3">
-                <Button type="submit" className="h-10 w-full" disabled={busy === 'invite'}>
+                <Button type="submit" className="h-10 w-full" disabled={busy === 'invite'} loading={busy === 'invite'}>
                   <span className="material-symbols-outlined text-[17px]">link</span>
                   <span>{busy === 'invite' ? 'Creating…' : 'Create Invitation Link'}</span>
                 </Button>
@@ -472,7 +442,7 @@ export function OrgSettings() {
             </div>
 
             {members.loading ? (
-              <div className="py-8 text-center"><Spinner label="Loading members" /></div>
+              <SkeletonTable rows={4} cols={4} />
             ) : members.error ? (
               <Notice tone="error">{members.error}</Notice>
             ) : (
@@ -509,7 +479,7 @@ export function OrgSettings() {
                                 <div className="flex items-center gap-2 font-medium text-ink">
                                   <span>{name}</span>
                                   {isMe && (
-                                    <span className="font-mono-code rounded-[2px] border border-accent/25 bg-accent-soft px-1.5 py-0.2 text-[9px] font-bold text-accent uppercase">YOU</span>
+                                    <span className="font-mono-code rounded-[2px] border border-accent/25 bg-accent-soft px-1.5 py-0.2 text-[9px] font-bold text-accent-ink uppercase">YOU</span>
                                   )}
                                 </div>
                                 <div className="font-mono-code text-[11px] text-muted">{m.email ?? '—'}</div>
@@ -567,7 +537,7 @@ export function OrgSettings() {
           theme="amber"
         >
           {invites.loading ? (
-            <div className="py-6 text-center"><Spinner label="Loading invitations" /></div>
+            <SkeletonTable rows={2} cols={4} />
           ) : invites.error ? (
             <Notice tone="error">{invites.error}</Notice>
           ) : invitations.length === 0 ? (
@@ -629,7 +599,7 @@ export function OrgSettings() {
           theme="indigo"
         >
           {usage.loading ? (
-            <div className="py-6 text-center"><Spinner label="Loading usage" /></div>
+            <SkeletonTable rows={3} cols={4} />
           ) : usage.error ? (
             <Notice tone="error">{usage.error}</Notice>
           ) : (usage.data?.usage.length ?? 0) === 0 ? (
@@ -669,8 +639,8 @@ export function OrgSettings() {
       <DarkBanner id="section-enclave" className="space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-4">
           <div className="flex items-center gap-3">
-            <span className="font-mono-code rounded-[3px] border border-accent/40 bg-accent/20 px-2.5 py-0.5 text-[11px] font-bold text-[#93B4FF]">
-              SECTION 05 // GOVERNANCE
+            <span className="font-mono-code rounded-[3px] border border-accent/40 bg-accent/20 px-2.5 py-0.5 text-[11px] font-bold text-accent-on-dark">
+              SECTION 05 // AUDIT & POLICIES
             </span>
             <h3 className="font-serif-heading text-[22px] font-medium text-white">Audit Trail &amp; Organization Policies</h3>
           </div>
@@ -719,7 +689,7 @@ export function OrgSettings() {
           <div className="space-y-2">
             <div className="font-mono-code text-[11px] tracking-wider text-white/55 uppercase">Recent activity</div>
             {audit.loading ? (
-              <Spinner label="Loading audit trail" />
+              <SkeletonText lines={5} />
             ) : audit.error ? (
               <Notice tone="error">{audit.error}</Notice>
             ) : (audit.data?.entries.length ?? 0) === 0 ? (
@@ -729,7 +699,7 @@ export function OrgSettings() {
                 {audit.data!.entries.map((e) => (
                   <li key={e.id} className="flex flex-wrap items-baseline gap-x-3 px-3 py-2 text-white/80">
                     <span className="text-white/50">{formatDate(e.created_at)}</span>
-                    <span className="font-semibold text-[#93B4FF]">{e.action}</span>
+                    <span className="font-semibold text-accent-on-dark">{e.action}</span>
                     <span>{e.profiles?.display_name ?? 'System'}</span>
                     <span className="text-white/50">{e.subject_type}</span>
                   </li>
@@ -737,7 +707,7 @@ export function OrgSettings() {
               </ul>
             )}
             {(audit.data?.entries.length ?? 0) >= auditLimit && (
-              <button type="button" onClick={() => setAuditLimit((n) => n + 100)} className="text-[12px] font-semibold text-[#93B4FF] hover:underline">
+              <button type="button" onClick={() => setAuditLimit((n) => n + 100)} className="text-[12px] font-semibold text-accent-on-dark hover:underline">
                 Load more
               </button>
             )}
@@ -756,8 +726,13 @@ export function OrgSettings() {
               <span>Export Audit Trail (JSON)</span>
             </button>
           )}
+          {canManage && policiesDirty && (
+            <span role="status" className="font-mono-code text-[11px] font-semibold text-warn-on-dark">
+              Unsaved changes
+            </span>
+          )}
           {canManage && (
-            <Button type="button" onClick={() => void savePolicies()} disabled={!policyDraft || busy === 'policies'}>
+            <Button type="button" onClick={() => void savePolicies()} disabled={!policiesDirty || busy === 'policies'} loading={busy === 'policies'}>
               <span className="material-symbols-outlined text-[16px]">save</span>
               <span>{busy === 'policies' ? 'Saving…' : 'Save Policies'}</span>
             </Button>

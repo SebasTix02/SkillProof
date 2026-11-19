@@ -83,7 +83,7 @@ export function EventPage() {
   const { data, error, loading, reload } = useLoad<EventResponse>(`/api/events/by-slug/${slug}`);
   const [activeTab, setActiveTab] = useState<'workspace' | 'rubric' | 'leaderboard'>('workspace');
 
-  if (!data) return <PageState loading={loading} error={error} />;
+  if (!data) return <PageState loading={loading} error={error} kind="detail" />;
   const { event } = data;
   const activeStep = getLifecycleStep(event, data.is_participant);
 
@@ -111,7 +111,7 @@ export function EventPage() {
                 SLUG: /e/{event.slug}
               </span>
               <span className="text-line">•</span>
-              <span className="flex items-center gap-1 rounded-[3px] border border-accent/25 bg-accent-soft px-2 py-0.5 font-semibold tracking-wider text-accent uppercase">
+              <span className="flex items-center gap-1 rounded-[3px] border border-accent/25 bg-accent-soft px-2 py-0.5 font-semibold tracking-wider text-accent-ink uppercase">
                 <span className="material-symbols-outlined text-[13px]">shield</span>
                 {VISIBILITY_LABEL[event.visibility]} TRACK
               </span>
@@ -137,7 +137,7 @@ export function EventPage() {
                   <span className="text-line">|</span>
                   <Link
                     to={`/org/events/${event.id}`}
-                    className="font-mono-code inline-flex items-center gap-1 rounded-[3px] border border-accent/25 bg-accent-soft px-2 py-0.5 text-[11px] font-semibold text-accent hover:underline"
+                    className="font-mono-code inline-flex items-center gap-1 rounded-[3px] border border-accent/25 bg-accent-soft px-2 py-0.5 text-[11px] font-semibold text-accent-ink hover:underline"
                   >
                     <span>Open Organizer Console</span>
                     <span>↗</span>
@@ -241,7 +241,7 @@ export function EventPage() {
                   </span>
                   <span
                     className={`h-2 w-2 rounded-full ${
-                      isCurrent ? 'bg-[#79d9ae] animate-pulse' : isCompleted ? 'bg-good' : 'bg-line'
+                      isCurrent ? 'bg-good-on-dark animate-pulse' : isCompleted ? 'bg-good' : 'bg-line'
                     }`}
                   />
                 </div>
@@ -380,7 +380,7 @@ function Join({ event, onJoined }: { event: EventView; onJoined: () => Promise<v
       <div className="grid grid-cols-1 gap-6 md:grid-cols-12">
         <div className="flex flex-col justify-between space-y-6 rounded-[6px] border border-line bg-white p-6 sm:p-8 md:col-span-7">
           <div className="space-y-4">
-            <span className="font-mono-code inline-block rounded-[3px] border border-accent/25 bg-accent-soft px-2.5 py-1 text-[11px] font-semibold text-accent uppercase">
+            <span className="font-mono-code inline-block rounded-[3px] border border-accent/25 bg-accent-soft px-2.5 py-1 text-[11px] font-semibold text-accent-ink uppercase">
               STAGE 01 // CANDIDATE REGISTRATION
             </span>
             <h2 className="font-serif-heading text-[26px] leading-tight font-medium text-ink">
@@ -410,7 +410,7 @@ function Join({ event, onJoined }: { event: EventView; onJoined: () => Promise<v
           {event.visibility !== 'code' && (
             <form onSubmit={join} className="space-y-3">
               {error && <Notice tone="error">{error}</Notice>}
-              <Button type="submit" disabled={busy} className="px-6 py-2.5">
+              <Button type="submit" disabled={busy} loading={busy} className="px-6 py-2.5">
                 <span className="material-symbols-outlined text-[17px]">key</span>
                 <span>{busy ? 'Joining Event…' : 'Join Event as Candidate'}</span>
                 <span className="arrow-nudge font-mono-code text-[12px]">→</span>
@@ -491,7 +491,7 @@ function Participant({ event }: { event: EventView }) {
     `/api/events/${event.id}/results`,
     (r) => r.status === 'judging' || r.status === 'review',
   );
-  if (!mine.data) return <PageState loading={mine.loading} error={mine.error} />;
+  if (!mine.data) return <PageState loading={mine.loading} error={mine.error} kind="list" />;
   const closed = !mine.data.accepting;
   const sub = mine.data.submission;
 
@@ -528,7 +528,7 @@ function Participant({ event }: { event: EventView }) {
                 <span className="material-symbols-outlined text-[17px] text-good">verified</span>
               </div>
               <div className="text-[13px] font-semibold text-ink">Commit SHA Freeze</div>
-              <span className="font-mono-code inline-block rounded-[2px] bg-good-soft px-2 py-0.5 text-[10px] font-bold text-good">
+              <span className="font-mono-code inline-block rounded-[2px] bg-good-soft px-2 py-0.5 text-[10px] font-bold text-good-ink">
                 {sub?.locked_commit_sha ? `@${sub.locked_commit_sha.slice(0, 7)} LOCKED` : 'LOCKED'}
               </span>
             </div>
@@ -577,7 +577,7 @@ function Participant({ event }: { event: EventView }) {
                 <span className="material-symbols-outlined text-[17px] text-warn">gavel</span>
               </div>
               <div className="text-[13px] font-semibold text-ink">Organizer Calibration</div>
-              <span className="font-mono-code inline-block rounded-[2px] bg-warn-soft px-2 py-0.5 text-[10px] font-bold text-warn">
+              <span className="font-mono-code inline-block rounded-[2px] bg-warn-soft px-2 py-0.5 text-[10px] font-bold text-warn-ink">
                 {results.data.status === 'review' ? 'IN JURY REVIEW' : 'PENDING'}
               </span>
             </div>
@@ -686,7 +686,7 @@ function SubmissionCard({
                 <span className="text-muted"> · v{current.version_no} ({formatDate(current.created_at)})</span>
               </div>
               {mine.submission?.locked_commit_sha && (
-                <span className="rounded-[2px] border border-accent/25 bg-accent-soft px-2 py-0.5 text-[11px] font-bold text-accent">
+                <span className="rounded-[2px] border border-accent/25 bg-accent-soft px-2 py-0.5 text-[11px] font-bold text-accent-ink">
                   FROZEN @{mine.submission.locked_commit_sha.slice(0, 7)}
                 </span>
               )}
@@ -764,7 +764,7 @@ function SubmissionCard({
               )}
 
               <div className="flex flex-col items-center justify-between gap-3 border-t border-line pt-4 sm:flex-row">
-                <Button type="submit" disabled={busy} className="w-full sm:w-auto">
+                <Button type="submit" disabled={busy} loading={busy} className="w-full sm:w-auto">
                   <span className="material-symbols-outlined text-[17px]">lock</span>
                   <span>
                     {busy ? 'Checking Repository…' : current ? 'Save & Send New Version' : 'Submit Project Dossier'}
@@ -834,7 +834,7 @@ function SubmissionCard({
                       </span>
                       <span
                         className={`font-mono-code rounded-[2px] px-1.5 py-0.5 text-[10px] font-semibold ${
-                          idx === 0 ? 'bg-accent-soft text-accent' : 'bg-paper text-muted'
+                          idx === 0 ? 'bg-accent-soft text-accent-ink' : 'bg-paper text-muted'
                         }`}
                       >
                         {v.repos.owner}/{v.repos.name}
@@ -896,12 +896,12 @@ function ResultsView({
               <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line pb-3.5">
                 <div className="flex items-center gap-2">
                   <span className="material-symbols-outlined text-[19px] text-good">verified</span>
-                  <span className="font-mono-code rounded-[3px] border border-good/30 bg-good-soft px-2 py-0.5 text-[11px] font-bold text-good uppercase">
+                  <span className="font-mono-code rounded-[3px] border border-good/30 bg-good-soft px-2 py-0.5 text-[11px] font-bold text-good-ink uppercase">
                     Certified Audit Dossier #{mine.id.slice(0, 6).toUpperCase()}
                   </span>
                 </div>
                 {myRank != null && (
-                  <span className="font-mono-code inline-flex items-center gap-1.5 rounded-[3px] border border-accent/25 bg-accent-soft px-2.5 py-1 text-[11px] font-semibold text-accent">
+                  <span className="font-mono-code inline-flex items-center gap-1.5 rounded-[3px] border border-accent/25 bg-accent-soft px-2.5 py-1 text-[11px] font-semibold text-accent-ink">
                     <span className="material-symbols-outlined text-[14px]">military_tech</span>
                     <span>
                       RANKED #{String(myRank).padStart(2, '0')} / {totalTeams} COHORTS
@@ -921,13 +921,13 @@ function ResultsView({
               </div>
 
               {/* Cockpit Visual Preview Framing */}
-              <div className="relative overflow-hidden rounded-[4px] border border-line bg-[#0D0F12]">
-                <div className="font-mono-code flex items-center justify-between border-b border-[#262B34] bg-[#14161A] px-3 py-1.5 text-[11px] text-[#8E95A3]">
+              <div className="relative overflow-hidden rounded-[4px] border border-line bg-dark-canvas">
+                <div className="font-mono-code flex items-center justify-between border-b border-dark-hairline bg-ink px-3 py-1.5 text-[11px] text-dark-muted">
                   <div className="flex items-center gap-2">
-                    <span className="h-2 w-2 rounded-full bg-[#79d9ae]" />
-                    <span className="font-medium text-white">AUTOMATED EVALUATION COCKPIT</span>
+                    <span className="h-2 w-2 rounded-full bg-good-on-dark" />
+                    <span className="font-medium text-white">AUTOMATED EVALUATION</span>
                   </div>
-                  <span className="text-[#79d9ae]">RUBRIC AUDIT: COMPLETED</span>
+                  <span className="text-good-on-dark">RUBRIC AUDIT: COMPLETED</span>
                 </div>
                 <img
                   src={COCKPIT_PREVIEW}
@@ -989,10 +989,10 @@ function ResultsView({
           </div>
 
           {/* Right 5 Cols: Dark Audio Dossier Audit & Ownership Interview Panel */}
-          <div className="flex flex-col justify-between space-y-5 rounded-[6px] border border-[#262B34] bg-[#14161A] p-6 text-white lg:col-span-5">
+          <div className="flex flex-col justify-between space-y-5 rounded-[6px] border border-dark-hairline bg-ink p-6 text-white lg:col-span-5">
             <div className="space-y-4">
               <div className="flex items-center justify-between border-b border-white/10 pb-3">
-                <span className="font-mono-code inline-flex items-center gap-1.5 rounded-[3px] border border-accent/40 bg-accent/20 px-2.5 py-1 text-[11px] font-semibold tracking-wider text-[#b6c4ff] uppercase">
+                <span className="font-mono-code inline-flex items-center gap-1.5 rounded-[3px] border border-accent/40 bg-accent/20 px-2.5 py-1 text-[11px] font-semibold tracking-wider text-accent-on-dark uppercase">
                   <span className="material-symbols-outlined text-[15px] text-accent">mic</span>
                   <span>AUDIO DOSSIER AUDIT</span>
                 </span>
@@ -1011,8 +1011,8 @@ function ResultsView({
               {/* Stylized Waveform Box */}
               <div className="space-y-3 rounded-[4px] border border-white/10 bg-black/40 p-4">
                 <div className="font-mono-code flex items-center justify-between text-[11px] text-white/60">
-                  <span className="flex items-center gap-1.5 text-[#79d9ae]">
-                    <span className="h-2 w-2 rounded-full bg-[#79d9ae]" />
+                  <span className="flex items-center gap-1.5 text-good-on-dark">
+                    <span className="h-2 w-2 rounded-full bg-good-on-dark" />
                     <span>
                       {mine.ownership
                         ? `Ownership Verified (${mine.ownership.score}/100)`

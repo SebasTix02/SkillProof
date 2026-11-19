@@ -26,6 +26,8 @@ import {
   scoreTone,
   type SimilaritySignal,
   type SubmissionPipelineStatus,
+  useConfirm,
+  questionToOptions,
 } from '../../components/shared';
 import { JudgeAssignments } from '../../components/JudgeAssignments';
 import { SubmissionJudgingControls } from '../../components/JudgingControls';
@@ -144,7 +146,7 @@ function Allowlist({ eventId }: { eventId: string }) {
               onChange={(e) => void onFile(e)}
             />
           </label>
-          <Button disabled={busy || emails.length === 0} onClick={() => void add()}>
+          <Button disabled={busy || emails.length === 0} loading={busy} onClick={() => void add()}>
             {busy ? 'Adding…' : `Add ${emails.length} email${emails.length === 1 ? '' : 's'}`}
           </Button>
         </div>
@@ -184,6 +186,7 @@ export function EventConsole() {
   const [search, setSearch] = useState('');
   const [confirmClose, setConfirmClose] = useState(false);
   const toast = useToast();
+  const confirm = useConfirm();
   const { org } = useAuth();
   const canManage = !!org?.permissions.includes('event.manage');
 
@@ -208,11 +211,11 @@ export function EventConsole() {
     );
   }, [data, search]);
 
-  if (!data) return <PageState loading={loading} error={error} />;
+  if (!data) return <PageState loading={loading} error={error} kind="console" />;
   const { event, submissions } = data;
 
   async function act(key: string, path: string, success: string, confirmText?: string) {
-    if (confirmText && !window.confirm(confirmText)) return;
+    if (confirmText && !(await confirm(questionToOptions(confirmText, { confirmLabel: 'Continue' })))) return;
     setBusy(key);
     try {
       await api(path, { method: 'POST' });
@@ -268,7 +271,7 @@ export function EventConsole() {
       <CommandConsoleHeader
         breadcrumbs={
           <>
-            <Link to="/org/events" className="text-[#93B4FF] hover:underline">
+            <Link to="/org/events" className="text-accent-on-dark hover:underline">
               ← ALL ORGANIZATION EVENTS
             </Link>
             <span>//</span>
@@ -279,7 +282,7 @@ export function EventConsole() {
         }
         statusChips={
           <>
-            <span className="inline-flex items-center gap-1.5 rounded-[3px] border border-white/10 bg-white/5 px-2.5 py-0.5 text-[#79d9ae]">
+            <span className="inline-flex items-center gap-1.5 rounded-[3px] border border-white/10 bg-white/5 px-2.5 py-0.5 text-good-on-dark">
               <LiveDot
                 tone={event.status === 'open' || event.status === 'judging' ? 'mint' : 'good'}
                 pulse={event.status === 'open' || event.status === 'judging'}
@@ -399,7 +402,7 @@ export function EventConsole() {
               </p>
             </div>
             <Button
-              disabled={!!busy}
+              disabled={!!busy} loading={busy === 'open'}
               onClick={() =>
                 void act(
                   'open',
@@ -442,7 +445,7 @@ export function EventConsole() {
                 </span>
                 <Button
                   variant="danger"
-                  disabled={!!busy}
+                  disabled={!!busy} loading={busy === 'close'}
                   onClick={() =>
                     void act(
                       'close',
@@ -479,18 +482,18 @@ export function EventConsole() {
                 {event.judging_paused_at ? (
                   <>
                     <span className="font-mono-code rounded-[3px] bg-warn px-2 py-0.5 text-[11px] font-bold text-white uppercase">Judging paused</span>
-                    <Button disabled={!!busy} onClick={() => void act('resume-all', `/api/events/${event.id}/judging/resume`, 'Judging resumed.')}>
+                    <Button disabled={!!busy} loading={busy === 'resume-all'} onClick={() => void act('resume-all', `/api/events/${event.id}/judging/resume`, 'Judging resumed.')}>
                       Resume judging
                     </Button>
                   </>
                 ) : (
-                  <Button variant="secondary" disabled={!!busy} onClick={() => void act('pause-all', `/api/events/${event.id}/judging/pause`, 'Judging paused. Running submissions stop at their next checkpoint.')}>
+                  <Button variant="secondary" disabled={!!busy} loading={busy === 'pause-all'} onClick={() => void act('pause-all', `/api/events/${event.id}/judging/pause`, 'Judging paused. Running submissions stop at their next checkpoint.')}>
                     Pause judging
                   </Button>
                 )}
                 <Button
                   variant="danger"
-                  disabled={!!busy}
+                  disabled={!!busy} loading={busy === 'cancel-all'}
                   onClick={() =>
                     void act(
                       'cancel-all',
@@ -529,7 +532,7 @@ export function EventConsole() {
                 </Link>
               )}
               <Button
-                disabled={!!busy}
+                disabled={!!busy} loading={busy === 'publish'}
                 onClick={() =>
                   void act(
                     'publish',
@@ -642,9 +645,21 @@ export function EventConsole() {
         />
 
         {filteredSubmissions.length === 0 ? (
-          <p className="py-6 text-center text-[13px] text-muted">
-            {submissions.length === 0 ? 'No submissions yet.' : 'No submissions match your search filter.'}
-          </p>
+          <div className="space-y-3 py-8 text-center">
+            <p className="text-[14px] font-semibold text-ink">{submissions.length === 0 ? 'No submissions yet' : 'No submissions match your search'}</p>
+            <p className="mx-auto max-w-md text-[13px] text-muted">
+              {submissions.length === 0
+                ? event.status === 'draft'
+                  ? 'Open the event so participants can join and submit their repositories.'
+                  : 'Share the event link: participants join and submit a GitHub repository before the deadline.'
+                : 'Clear the search to see every submission.'}
+            </p>
+            {submissions.length === 0 && event.status !== 'draft' && (
+              <div className="flex justify-center">
+                <CopyLinkButton value={link} label="Copy event link" />
+              </div>
+            )}
+          </div>
         ) : (
           <div className="overflow-x-auto rounded-[4px] border border-line">
             <table className="w-full border-collapse text-left text-[13px]">

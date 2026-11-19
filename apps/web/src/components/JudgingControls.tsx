@@ -28,12 +28,12 @@ export function SubmissionJudgingControls({
   return (
     <>
       {running && (
-        <Button variant="secondary" className={cls} disabled={!!busy} onClick={() => act(`pause-${id}`, `/api/submissions/${id}/pause`, `Judging of ${name} paused. It stops at the next checkpoint.`)}>
+        <Button variant="secondary" className={cls} disabled={!!busy} loading={busy === `pause-${id}`} onClick={() => act(`pause-${id}`, `/api/submissions/${id}/pause`, `Judging of ${name} paused. It stops at the next checkpoint.`)}>
           {busy === `pause-${id}` ? 'Pausing…' : 'Pause'}
         </Button>
       )}
       {status === 'paused' && (
-        <Button className={cls} disabled={!!busy} onClick={() => act(`resume-${id}`, `/api/submissions/${id}/resume`, `Judging of ${name} resumed.`)}>
+        <Button className={cls} disabled={!!busy} loading={busy === `resume-${id}`} onClick={() => act(`resume-${id}`, `/api/submissions/${id}/resume`, `Judging of ${name} resumed.`)}>
           {busy === `resume-${id}` ? 'Resuming…' : 'Resume'}
         </Button>
       )}
@@ -41,7 +41,7 @@ export function SubmissionJudgingControls({
         <Button
           variant="danger"
           className={cls}
-          disabled={!!busy}
+          disabled={!!busy} loading={busy === `cancel-${id}`}
           onClick={() =>
             act(`cancel-${id}`, `/api/submissions/${id}/cancel`, `Judging of ${name} canceled.`, `Cancel judging ${name}? No new scores are written. You can start over with "Judge again".`)
           }
@@ -50,7 +50,7 @@ export function SubmissionJudgingControls({
         </Button>
       )}
       {(status === 'error' || status === 'canceled') && frozen && (
-        <Button variant="secondary" className={cls} disabled={!!busy} onClick={() => act(`re-${id}`, `/api/submissions/${id}/rejudge`, `Judging ${name} again.`)}>
+        <Button variant="secondary" className={cls} disabled={!!busy} loading={busy === `re-${id}`} onClick={() => act(`re-${id}`, `/api/submissions/${id}/rejudge`, `Judging ${name} again.`)}>
           {busy === `re-${id}` ? 'Queuing…' : 'Judge again'}
         </Button>
       )}

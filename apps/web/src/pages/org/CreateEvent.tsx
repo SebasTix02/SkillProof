@@ -91,7 +91,7 @@ export function CreateEvent() {
       <CommandConsoleHeader
         breadcrumbs={
           <>
-            <Link to="/org/events" className="text-[#93B4FF] hover:underline">
+            <Link to="/org/events" className="text-accent-on-dark hover:underline">
               ← ORGANIZER CONSOLE
             </Link>
             <span>//</span>
@@ -103,7 +103,7 @@ export function CreateEvent() {
             RUBRIC CRITERIA: {rubric.length} ({totalWeight} WEIGHT)
           </span>
         }
-        eyebrowBadge="STAGE 02 // ASSESSMENT ARCHITECT"
+        eyebrowBadge="NEW EVENT // SETUP"
         title={courseId ? "New Course Assignment" : "Draft New Hackathon or Capstone Event"}
         subtitle="Configure the event schedule, cohort access control, submission limits, 3-minute voice defense option, and weighted evaluation rubric."
         actions={
@@ -180,7 +180,7 @@ export function CreateEvent() {
           icon="shield_lock"
           title="Cohort Access & Visibility"
           subtitle="Control who can join and submit a repository to this event."
-          sectionTag="SECTION 02 // GATEKEEPING"
+          sectionTag="SECTION 02 // ACCESS"
           theme="indigo"
         >
           <div className="space-y-4">
@@ -227,7 +227,7 @@ export function CreateEvent() {
           icon="record_voice_over"
           title="Submission Quota & Oral Defense"
           subtitle="Configure version limits and 3-minute Gemini Live voice cross-examination."
-          sectionTag="SECTION 03 // PROTOCOL"
+          sectionTag="SECTION 03 // SUBMISSIONS"
           theme="emerald"
         >
           <div className="space-y-4">
@@ -383,10 +383,10 @@ export function CreateEvent() {
           <strong className="text-good">OPEN FOR SUBMISSIONS</strong>
         </div>
         <div className="flex flex-wrap gap-3">
-          <Button type="button" variant="secondary" disabled={busy} onClick={(e) => void submit(e, false)}>
+          <Button type="button" variant="secondary" disabled={busy} loading={busy} onClick={(e) => void submit(e, false)}>
             Save as Draft
           </Button>
-          <Button type="submit" disabled={busy}>
+          <Button type="submit" disabled={busy} loading={busy}>
             <span className="material-symbols-outlined text-[17px]">rocket_launch</span>
             <span>{busy ? 'Creating Event…' : 'Create & Open Event'}</span>
           </Button>

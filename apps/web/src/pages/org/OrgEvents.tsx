@@ -18,6 +18,7 @@ import {
 import { MyReviewQueue } from '../../components/MyReviewQueue';
 import { useToast } from '../../components/toast';
 import { useAuth } from '../../lib/auth';
+import { roleLabel } from '../../lib/nav';
 import { STATUS_LABEL, VISIBILITY_LABEL, type EventView } from '../../lib/types';
 import { useLoad } from '../../lib/useLoad';
 
@@ -100,26 +101,24 @@ export function OrgEvents() {
   return (
     <div className="space-y-8">
       {isJudge && <MyReviewQueue />}
-      {/* 1. Sovereign Command Console Context Header */}
+      {/* 1. Event console header */}
       <CommandConsoleHeader
         breadcrumbs={
           <>
-            <span className="font-semibold tracking-wider text-[#93B4FF]">TERMINAL DOSSIER</span>
-            <span>//</span>
-            <span>REGISTRY://2026.ORG</span>
+            <span className="font-semibold tracking-wider text-accent-on-dark">EVENT CONSOLE</span>
             <span>//</span>
             <span className="font-semibold text-white">{org?.name?.toUpperCase() ?? 'ORGANIZATION'}</span>
           </>
         }
         statusChips={
           <>
-            <span className="inline-flex items-center gap-1.5 rounded-[3px] border border-white/10 bg-white/5 px-2.5 py-0.5 text-[#93B4FF]">
+            <span className="inline-flex items-center gap-1.5 rounded-[3px] border border-white/10 bg-white/5 px-2.5 py-0.5 text-accent-on-dark">
               <LiveDot tone="accent" />
               <span>ACTIVE PARTICIPANTS: {stats.totalParticipants}</span>
             </span>
-            <span className="inline-flex items-center gap-1.5 rounded-[3px] border border-white/10 bg-white/5 px-2.5 py-0.5 text-[#79d9ae]">
+            <span className="inline-flex items-center gap-1.5 rounded-[3px] border border-white/10 bg-white/5 px-2.5 py-0.5 text-good-on-dark">
               <LiveDot tone="mint" pulse={stats.inAdjudication > 0} />
-              <span>ADJUDICATION QUEUE: {stats.inAdjudication} EVENTS</span>
+              <span>IN JUDGING: {stats.inAdjudication} {stats.inAdjudication === 1 ? 'EVENT' : 'EVENTS'}</span>
             </span>
             {org?.slug && (
               <span className="rounded-[3px] border border-white/10 bg-white/5 px-2.5 py-0.5 text-white/70">
@@ -128,10 +127,10 @@ export function OrgEvents() {
             )}
           </>
         }
-        eyebrowBadge="Audit Directive v1.0.4"
-        eyebrowMeta={`ROLES: ${(org?.roles ?? ['organizer']).join(', ').toUpperCase()}`}
-        title="SkillProof Sovereign Command Console"
-        subtitle="Live commit-frozen evaluation pipeline, repository rubric deconstruction, and 3-minute oral defense verification engine for institutional engineering cohorts."
+        eyebrowBadge="Organizer"
+        eyebrowMeta={`YOUR ROLE: ${roleLabel(org).toUpperCase()}`}
+        title="Event Console"
+        subtitle="Create events, follow submissions and AI judging, and publish results. Every repository is frozen at its last commit before the deadline."
         actions={
           <>
             <button
@@ -149,111 +148,73 @@ export function OrgEvents() {
               <span className="material-symbols-outlined text-[16px]">settings</span>
               <span>Org Settings</span>
             </Link>
-            <Link to="/org/events/new" className={linkButton}>
-              <span className="material-symbols-outlined text-[17px]">add</span>
-              <span>Draft New Assessment</span>
-            </Link>
-          </>
-        }
-        footerSlot={
-          <nav className="flex flex-wrap items-center gap-2" aria-label="Organizer Suite Navigation">
-            <Link
-              to="/org/events"
-              className="font-mono-code inline-flex items-center gap-2 rounded-[4px] bg-accent px-3.5 py-1.5 text-[11px] font-semibold text-white"
-            >
-              <span className="material-symbols-outlined text-[15px]">folder_managed</span>
-              <span>01. Active &amp; Past Events</span>
-              <span className="rounded-[2px] bg-white px-1.5 py-0.2 text-[10px] font-bold text-accent">
-                {stats.totalEvents}
-              </span>
-            </Link>
-            <Link
-              to="/org/events/new"
-              className="font-mono-code inline-flex items-center gap-2 rounded-[4px] border border-white/10 bg-white/5 px-3.5 py-1.5 text-[11px] font-medium text-white/80 transition-colors hover:bg-white/15 hover:text-white"
-            >
-              <span className="material-symbols-outlined text-[15px]">tune</span>
-              <span>02. Create Event &amp; Rubric</span>
-            </Link>
-            {events[0] && (
-              <Link
-                to={`/org/events/${events[0].id}`}
-                className="font-mono-code inline-flex items-center gap-2 rounded-[4px] border border-white/10 bg-white/5 px-3.5 py-1.5 text-[11px] font-medium text-white/80 transition-colors hover:bg-white/15 hover:text-white"
-              >
-                <span className="material-symbols-outlined text-[15px]">gavel</span>
-                <span>03. Latest Event Console</span>
-                <span className="rounded-[2px] bg-good px-1.5 py-0.2 text-[10px] font-bold text-white">LIVE</span>
+            {org?.permissions.includes('event.create') && (
+              <Link to="/org/events/new" className={linkButton}>
+                <span className="material-symbols-outlined text-[17px]">add</span>
+                <span>New event</span>
               </Link>
             )}
-            <Link
-              to="/org/courses"
-              className="font-mono-code inline-flex items-center gap-2 rounded-[4px] border border-white/10 bg-white/5 px-3.5 py-1.5 text-[11px] font-medium text-white/80 transition-colors hover:bg-white/15 hover:text-white"
-            >
-              <span className="material-symbols-outlined text-[15px]">school</span>
-              <span>04. Teacher &amp; Course Mode</span>
-            </Link>
-            <Link
-              to="/org/settings"
-              className="font-mono-code inline-flex items-center gap-2 rounded-[4px] border border-white/10 bg-white/5 px-3.5 py-1.5 text-[11px] font-medium text-white/80 transition-colors hover:bg-white/15 hover:text-white"
-            >
-              <span className="material-symbols-outlined text-[15px]">admin_panel_settings</span>
-              <span>05. Organization &amp; Seats</span>
-            </Link>
-          </nav>
+          </>
         }
       />
 
-      {/* 2. KPI & Telemetry Strip (4 Color-Themed Visual Cards) */}
-      <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <TopAccentKpiCard
-          accent="cobalt"
-          eyebrow="Telemetry // 01"
-          icon="hub"
-          value={stats.totalEvents}
-          unit="Events"
-          description={`${stats.totalParticipants} registered participants across your organization cohorts.`}
-          footerLeft="SUBMISSION RATE"
-          footerRight={`${stats.conversionPct}%`}
-        />
-        <TopAccentKpiCard
-          accent="emerald"
-          eyebrow="Telemetry // 02"
-          icon="account_tree"
-          value={stats.totalSubmissions}
-          unit="Repositories"
-          description="GitHub repositories ingested and tracked for commit-freeze rubric evaluation."
-          progress={stats.conversionPct}
-          footerLeft="COMMIT LOCK"
-          footerRight="AT THE DEADLINE"
-        />
-        <TopAccentKpiCard
-          accent="amber"
-          eyebrow="Telemetry // 03"
-          icon="fact_check"
-          value={String(stats.inAdjudication).padStart(2, '0')}
-          unit="In Review"
-          description="Events currently in AI judging or awaiting organizer score calibration."
-          footerLeft="CALIBRATION MODE"
-          footerRight={stats.inAdjudication > 0 ? 'ACTION READY' : 'ALL CLEAR'}
-        />
-        <TopAccentKpiCard
-          accent="indigo"
-          eyebrow="Telemetry // 04"
-          icon="record_voice_over"
-          value={`${stats.voiceCoveragePct}%`}
-          unit="Voice Defense"
-          description={`${stats.withVoice} of ${stats.totalEvents || 1} events configured with 3-minute live oral defense.`}
-          footerLeft="LIVE AUDIO ENGINE"
-          footerRight="GEMINI LIVE"
-        />
-      </section>
+      {/* With no events yet, the four metrics at zero are hidden; the list below explains what to do. */}
+      {(loading || !!error || events.length > 0) && (
+        <>
+          {/* 2. KPI & Telemetry Strip (4 Color-Themed Visual Cards) */}
+          <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <TopAccentKpiCard
+              accent="cobalt"
+              eyebrow="Events"
+              icon="hub"
+              value={stats.totalEvents}
+              unit="Events"
+              description={`${stats.totalParticipants} registered participants across your organization cohorts.`}
+              footerLeft="SUBMISSION RATE"
+              footerRight={`${stats.conversionPct}%`}
+            />
+            <TopAccentKpiCard
+              accent="emerald"
+              eyebrow="Repositories"
+              icon="account_tree"
+              value={stats.totalSubmissions}
+              unit="Repositories"
+              description="GitHub repositories ingested and tracked for commit-freeze rubric evaluation."
+              progress={stats.conversionPct}
+              footerLeft="COMMIT LOCK"
+              footerRight="AT THE DEADLINE"
+            />
+            <TopAccentKpiCard
+              accent="amber"
+              eyebrow="Judging"
+              icon="fact_check"
+              value={String(stats.inAdjudication).padStart(2, '0')}
+              unit="In Review"
+              description="Events currently in AI judging or awaiting organizer score calibration."
+              footerLeft="CALIBRATION MODE"
+              footerRight={stats.inAdjudication > 0 ? 'ACTION READY' : 'ALL CLEAR'}
+            />
+            <TopAccentKpiCard
+              accent="indigo"
+              eyebrow="Voice interviews"
+              icon="record_voice_over"
+              value={`${stats.voiceCoveragePct}%`}
+              unit="Voice Defense"
+              description={`${stats.withVoice} of ${stats.totalEvents || 1} events configured with 3-minute live oral defense.`}
+              footerLeft="LIVE AUDIO ENGINE"
+              footerRight="GEMINI LIVE"
+            />
+          </section>
+        </>
+      )}
 
-      <PageState loading={loading} error={error} />
+      <PageState loading={loading} error={error} kind="table" />
 
       {/* 3. SECTION 01: Registered Hackathons & Capstone Evaluations */}
       {data && (
         <section className="space-y-5 rounded-[6px] border border-line bg-white p-6">
           <SectionHeader
-            eyebrow={`REGISTRY ARCHIVE • ORG_ID: ${org?.slug?.toUpperCase() ?? 'DEFAULT'}`}
+            eyebrow={`ALL EVENTS • ${org?.name?.toUpperCase() ?? 'ORGANIZATION'}`}
             eyebrowTone="accent"
             title="Registered Hackathons & Capstone Evaluations"
             subtitle="Manage submission windows, freeze repository commits, inspect AI rubric scores, and publish final leaderboards."
@@ -296,7 +257,7 @@ export function OrgEvents() {
                 onClick={() => setStatusFilter(tab.key)}
                 className={`font-mono-code cursor-pointer rounded-[3px] border px-2.5 py-1 text-[11px] font-semibold transition-colors ${
                   statusFilter === tab.key
-                    ? 'border-accent bg-accent-soft text-accent'
+                    ? 'border-accent bg-accent-soft text-accent-ink'
                     : 'border-transparent bg-paper text-muted hover:border-line hover:text-ink'
                 }`}
               >
