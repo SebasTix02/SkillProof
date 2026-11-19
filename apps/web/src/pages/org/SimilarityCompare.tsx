@@ -345,7 +345,7 @@ export function SimilarityCompare() {
   const subA = submissions.find((s) => s.id === idA) ?? null;
   const subB = submissions.find((s) => s.id === idB) ?? null;
 
-  if (!data) return <PageState loading={loading} error={error} />;
+  if (!data) return <PageState loading={loading} error={error} kind="detail" />;
 
   const { event } = data;
   const analysisA = detailA.data ? one(detailA.data.submission.repo_analyses) : null;
@@ -802,7 +802,7 @@ export function SimilarityCompare() {
                 </Button>
                 <Button
                   type="submit"
-                  disabled={!canDecide || !activeFlag || savingDecision}
+                  disabled={!canDecide || !activeFlag || savingDecision} loading={savingDecision}
                   variant={verdict === 'independent_invention' ? 'primary' : 'danger'}
                 >
                   <span className="material-symbols-outlined text-[16px]">lock</span>

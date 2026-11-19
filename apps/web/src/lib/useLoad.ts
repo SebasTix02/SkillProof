@@ -9,10 +9,11 @@ export function useLoad<T>(path: string | null, pollWhile?: (data: T) => boolean
   const pollRef = useRef(pollWhile);
   pollRef.current = pollWhile;
 
-  const reload = useCallback(async () => {
+  // `quiet`: a polling refresh keeps what is on screen and shows no progress bar.
+  const reload = useCallback(async (quiet = false) => {
     if (!path) return;
     try {
-      const next = await api<T>(path);
+      const next = await api<T>(path, { quiet });
       setData(next);
       setError(null);
     } catch (err) {
@@ -30,9 +31,9 @@ export function useLoad<T>(path: string | null, pollWhile?: (data: T) => boolean
 
   useEffect(() => {
     if (!data || !pollRef.current?.(data)) return;
-    const timer = setTimeout(() => void reload(), intervalMs);
+    const timer = setTimeout(() => void reload(true), intervalMs);
     return () => clearTimeout(timer);
   }, [data, reload, intervalMs]);
 
-  return { data, error, loading, reload };
+  return { data, error, loading, reload: useCallback(() => reload(), [reload]) };
 }

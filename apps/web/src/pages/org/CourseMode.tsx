@@ -197,7 +197,7 @@ export function CourseMode() {
     effectiveSelectedId ? `/api/submissions/${effectiveSelectedId}` : null,
   );
 
-  if (orgEvents.loading && !orgEvents.data) return <PageState loading error={null} />;
+  if (orgEvents.loading && !orgEvents.data) return <PageState loading error={null} kind="console" />;
   if (orgEvents.error) return <PageState loading={false} error={orgEvents.error} />;
 
   const event = consoleData.data?.event ?? events.find((e) => e.id === activeEventId) ?? null;

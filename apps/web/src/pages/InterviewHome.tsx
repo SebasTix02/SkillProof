@@ -153,7 +153,7 @@ export function InterviewHome() {
     me?.public_profile?.is_public && me.public_profile.slug ? `/p/${me.public_profile.slug}` : null;
 
   return (
-    <div className="mx-auto max-w-[1120px] space-y-8">
+    <div className="space-y-8">
       {/* 1. Header & Context Meta */}
       <DossierPageHeader
         borderBottom={false}
@@ -436,7 +436,7 @@ export function InterviewHome() {
 
       {/* 5. Structured Interviews Data Table */}
       <section className="overflow-hidden rounded-[6px] border border-line bg-white">
-        <PageState loading={list.loading} error={list.error} />
+        <PageState loading={list.loading} error={list.error} kind="table" />
 
         {!list.loading && !list.error && filteredInterviews.length === 0 && (
           <div className="space-y-2 p-10 text-center">

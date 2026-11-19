@@ -275,7 +275,7 @@ export function SubmissionDetail() {
     );
   }, [queue, queueSearch]);
 
-  if (!data) return <PageState loading={loading} error={error} />;
+  if (!data) return <PageState loading={loading} error={error} kind="detail" />;
   const { submission: sub, scores, feedback } = data;
 
   /** Pause, resume, cancel or judge again, from the controls bar. */

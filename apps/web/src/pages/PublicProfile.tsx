@@ -64,7 +64,7 @@ export function PublicProfile() {
     });
   }, [verified, sortBy]);
 
-  if (!data) return <PageState loading={loading} error={error} />;
+  if (!data) return <PageState loading={loading} error={error} kind="profile" />;
   const { profile } = data;
 
   const scores = verified

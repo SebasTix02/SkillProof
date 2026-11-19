@@ -1,18 +1,28 @@
 import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode, SelectHTMLAttributes, TextareaHTMLAttributes } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
-import { AppShell, Logo } from './AppShell';
+import { useDelayed } from '../lib/loading';
+import { AppShell, Logo, TopProgress } from './AppShell';
+import { PageSkeleton, type PageSkeletonKind } from './shared/Skeleton';
 
 const cx = (...parts: (string | false | null | undefined)[]) => parts.filter(Boolean).join(' ');
 
 export function Button({
   variant = 'primary',
   className,
+  loading = false,
+  children,
   ...props
-}: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'secondary' | 'danger' | 'ghost' }) {
+}: ButtonHTMLAttributes<HTMLButtonElement> & {
+  variant?: 'primary' | 'secondary' | 'danger' | 'ghost';
+  /** Shows a small spinner and disables the button while its action runs. */
+  loading?: boolean;
+}) {
   return (
     <button
       {...props}
+      disabled={props.disabled || loading}
+      aria-busy={loading || undefined}
       className={cx(
         'btn-tactile inline-flex cursor-pointer items-center justify-center gap-2 rounded-[4px] px-4 py-2 text-[13px] font-medium disabled:cursor-not-allowed disabled:opacity-50',
         variant === 'primary' && 'border border-accent bg-accent text-white hover:border-accent-hover hover:bg-accent-hover',
@@ -21,7 +31,12 @@ export function Button({
         variant === 'ghost' && 'border border-transparent bg-transparent text-muted hover:bg-paper hover:text-ink',
         className,
       )}
-    />
+    >
+      {loading && (
+        <span aria-hidden="true" className="h-3.5 w-3.5 shrink-0 animate-spin rounded-full border-2 border-current border-t-transparent opacity-80" />
+      )}
+      {children}
+    </button>
   );
 }
 
@@ -114,13 +129,13 @@ export function Spinner({ label = 'Loading' }: { label?: string }) {
   );
 }
 
-export function PageState({ loading, error }: { loading: boolean; error: string | null }) {
-  if (loading)
-    return (
-      <div className="py-16 text-center">
-        <Spinner />
-      </div>
-    );
+/**
+ * Loading or error state of a page (or a block of one). While loading it shows the skeleton of `kind`, only after
+ * 150 ms so quick loads do not flicker.
+ */
+export function PageState({ loading, error, kind = 'page' }: { loading: boolean; error: string | null; kind?: PageSkeletonKind }) {
+  const slow = useDelayed(loading);
+  if (loading) return slow ? <PageSkeleton kind={kind} /> : <div aria-busy="true" className="min-h-[40vh]" />;
   if (error)
     return (
       <div className="py-8">
@@ -146,6 +161,7 @@ export function Layout({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen bg-paper text-ink">
+      <TopProgress />
       <header className="no-print sticky top-0 z-50 h-14 border-b border-line bg-white">
         <div className="mx-auto flex h-full max-w-[1240px] items-center justify-between gap-4 px-4 sm:px-6">
           <div className="flex items-center gap-3 sm:gap-4">

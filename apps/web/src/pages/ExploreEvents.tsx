@@ -260,7 +260,7 @@ export function ExploreEvents() {
 
       {/* 2. Search, Filter, Sort & Private Event Lookup Bar */}
       <section className="rounded-[6px] border border-line bg-white p-5">
-        <div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-center">
+        <div className="flex flex-col justify-between gap-5 xl:flex-row xl:items-center">
           <div className="flex flex-1 flex-col items-stretch gap-3 sm:flex-row sm:items-center">
             <div className="relative min-w-[220px] flex-1">
               <span className="material-symbols-outlined pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-[18px] text-muted">
@@ -302,7 +302,7 @@ export function ExploreEvents() {
             </div>
           </div>
 
-          <div className="flex flex-col items-stretch gap-2 border-t border-line pt-4 sm:flex-row sm:items-center lg:border-t-0 lg:border-l lg:pt-0 lg:pl-5">
+          <div className="flex flex-col items-stretch gap-2 border-t border-line pt-4 sm:flex-row sm:items-center xl:border-t-0 xl:border-l xl:pt-0 xl:pl-5">
             <div className="mr-1 flex shrink-0 items-center gap-1.5 text-muted">
               <span className="material-symbols-outlined text-[18px] text-accent">vpn_key</span>
               <span className="font-mono-code text-[11px] font-semibold tracking-wide uppercase">Private Event</span>
@@ -335,7 +335,7 @@ export function ExploreEvents() {
           }
         />
 
-        <PageState loading={mine.loading} error={mine.error} />
+        <PageState loading={mine.loading} error={mine.error} kind="list" />
 
         {!mine.loading && !mine.error && filteredMine.length === 0 && (
           <div className="rounded-[6px] border border-line bg-white p-6 text-[13px] text-muted">
@@ -430,7 +430,7 @@ export function ExploreEvents() {
           rightSlot={<Badge>{String(filteredOpen.length).padStart(2, '0')} PUBLIC ARENAS AVAILABLE</Badge>}
         />
 
-        <PageState loading={open.loading} error={open.error} />
+        <PageState loading={open.loading} error={open.error} kind="cards" />
 
         {!open.loading && !open.error && filteredOpen.length === 0 && (
           <div className="rounded-[6px] border border-line bg-white p-6 text-[13px] text-muted">

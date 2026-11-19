@@ -2,7 +2,8 @@
  * What the side menu shows: every screen the signed-in user can open, grouped by section.
  *
  * Pure (no React), so the role rules are tested in nav.test.ts. Screens that need an id (an event, a submission,
- * an interview) are not in the menu: they highlight their parent item instead (see `activeItem`).
+ * an interview) are not in the menu: they highlight their parent item instead (see `activeItem`). Sections of one
+ * page (#section-… of Organization settings or Account) are sub-items (`children`) of that page's item.
  */
 import type { Me, Organization } from './auth';
 
@@ -17,7 +18,8 @@ export type NavIcon =
   | 'courses'
   | 'members'
   | 'usage'
-  | 'audit';
+  | 'audit'
+  | 'settings';
 
 export interface NavItem {
   key: string;
@@ -27,6 +29,8 @@ export interface NavItem {
   icon: NavIcon;
   /** Path patterns this item owns; `*` matches one segment. Defaults to the path of `to`. */
   owns?: string[];
+  /** Sections of the same page, shown indented under it. Their `to` carries the #section. */
+  children?: NavItem[];
 }
 
 export interface NavSection {
@@ -55,7 +59,18 @@ export function navSections(me: Me | null, org: Organization | null): NavSection
   ];
   const slug = me?.public_profile?.slug;
   if (slug && me?.public_profile?.is_public) personal.push({ key: 'profile', label: 'Public profile', to: `/p/${slug}`, icon: 'profile' });
-  personal.push({ key: 'account', label: 'Account', to: '/me', icon: 'account' });
+  personal.push({
+    key: 'account',
+    label: 'Account',
+    to: '/me',
+    icon: 'account',
+    children: [
+      { key: 'account-profile', label: 'Profile', to: '/me#section-profile', icon: 'account' },
+      { key: 'account-visibility', label: 'Public dossier', to: '/me#section-visibility', icon: 'account' },
+      { key: 'account-integrations', label: 'Connections', to: '/me#section-integrations', icon: 'account' },
+      { key: 'account-privacy', label: 'Privacy', to: '/me#section-privacy', icon: 'account' },
+    ],
+  });
 
   const sections: NavSection[] = [{ key: 'personal', title: 'You', items: personal }];
   if (!org) return sections;
@@ -69,10 +84,24 @@ export function navSections(me: Me | null, org: Organization | null): NavSection
   if (can('event.create')) items.push({ key: 'org-new', label: 'New event', to: '/org/events/new', icon: 'plus' });
   if (can('course.manage') || can('integrity.decide'))
     items.push({ key: 'org-courses', label: 'Courses & integrity', to: '/org/courses', icon: 'courses', owns: ['/org/courses', '/org/events/*/gradebook'] });
-  if (can('org.manage_members'))
-    items.push({ key: 'org-members', label: 'Members & invitations', to: '/org/settings#section-roster', icon: 'members' });
-  if (can('org.view_usage')) items.push({ key: 'org-usage', label: 'AI usage', to: '/org/settings#section-usage', icon: 'usage' });
-  if (can('audit.read')) items.push({ key: 'org-audit', label: 'Audit log', to: '/org/settings#section-enclave', icon: 'audit' });
+  // Organization settings is one page; its sections are sub-items, each one shown only with its permission.
+  const settings: NavItem[] = [];
+  if (can('org.manage_members')) {
+    settings.push({ key: 'org-members', label: 'Members', to: '/org/settings#section-roster', icon: 'members' });
+    settings.push({ key: 'org-invitations', label: 'Invitations', to: '/org/settings#section-dispatch-queue', icon: 'members' });
+  }
+  if (can('org.view_usage')) settings.push({ key: 'org-usage', label: 'AI usage', to: '/org/settings#section-usage', icon: 'usage' });
+  const audit = can('audit.read');
+  const policies = can('org.manage_members');
+  if (audit || policies)
+    settings.push({
+      key: 'org-audit',
+      label: audit && policies ? 'Audit log & policies' : audit ? 'Audit log' : 'Policies',
+      to: '/org/settings#section-enclave',
+      icon: 'audit',
+    });
+  if (settings.length)
+    items.push({ key: 'org-settings', label: 'Organization settings', to: '/org/settings', icon: 'settings', children: settings });
   sections.push({ key: 'org', title: org.name, items });
   return sections;
 }
@@ -86,22 +115,36 @@ function prefixScore(path: string, pattern: string): number {
   return q.length;
 }
 
+/** Every item, sub-items included, with the key of its parent. */
+export function flatItems(sections: NavSection[]): { item: NavItem; parent: string | null }[] {
+  return sections.flatMap((s) =>
+    s.items.flatMap((item) => [{ item, parent: null }, ...(item.children ?? []).map((c) => ({ item: c, parent: item.key }))]),
+  );
+}
+
 /**
  * The item to highlight for a location: the one whose path owns the most segments of it, so /org/events/new
- * picks New event and /org/events/abc/s/1 picks the event console. A #section only matches its own hash; with
- * no hash, the first item of that page wins.
+ * picks New event and /org/events/abc/s/1 picks the event console. A sub-item (#section) wins over its page only
+ * when the hash names it; with no hash, the page item is highlighted.
  */
 export function activeItem(sections: NavSection[], pathname: string, hash = ''): string | null {
   let best: { key: string; score: number } | null = null;
-  for (const item of sections.flatMap((s) => s.items)) {
+  for (const { item } of flatItems(sections)) {
     const [base, itemHash] = item.to.split('#') as [string, string | undefined];
     let score = Math.max(...(item.owns ?? [base]).map((o) => prefixScore(pathname, o)));
     if (score < 0) continue;
     if (itemHash !== undefined) {
-      if (hash && hash !== `#${itemHash}`) continue;
-      if (hash) score += 0.5;
+      if (hash !== `#${itemHash}`) continue;
+      score += 0.5;
     }
     if (!best || score > best.score) best = { key: item.key, score };
   }
   return best?.key ?? null;
+}
+
+/** The page item that holds the highlighted one (itself when it has no parent). */
+export function activeParent(sections: NavSection[], key: string | null): string | null {
+  if (!key) return null;
+  const found = flatItems(sections).find((f) => f.item.key === key);
+  return found ? (found.parent ?? found.item.key) : null;
 }

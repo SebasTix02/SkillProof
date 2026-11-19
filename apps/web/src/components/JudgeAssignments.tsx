@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Button, Notice, NumberedSectionCard, Select, Spinner } from './shared';
+import { Button, Notice, NumberedSectionCard, Select, SkeletonTable } from './shared';
 import { useToast } from './toast';
 import { api, errorMessage } from '../lib/api';
 import { useLoad } from '../lib/useLoad';
@@ -69,7 +69,7 @@ export function JudgeAssignments({ eventId, submissions }: { eventId: string; su
       theme="indigo"
     >
       {judges.loading || assigned.loading ? (
-        <Spinner label="Loading judges" />
+        <SkeletonTable rows={3} cols={3} />
       ) : judges.error || assigned.error ? (
         <Notice tone="error">{judges.error ?? assigned.error}</Notice>
       ) : judgeList.length === 0 ? (
@@ -90,7 +90,7 @@ export function JudgeAssignments({ eventId, submissions }: { eventId: string; su
             </label>
             <Button
               type="button"
-              disabled={!judgeId || picked.size === 0 || busy}
+              disabled={!judgeId || picked.size === 0 || busy} loading={busy}
               onClick={() => void change('POST', judgeId, [...picked], `${picked.size} submission${picked.size === 1 ? '' : 's'} assigned.`)}
             >
               Assign {picked.size || ''} selected

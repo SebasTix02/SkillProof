@@ -144,7 +144,7 @@ function Allowlist({ eventId }: { eventId: string }) {
               onChange={(e) => void onFile(e)}
             />
           </label>
-          <Button disabled={busy || emails.length === 0} onClick={() => void add()}>
+          <Button disabled={busy || emails.length === 0} loading={busy} onClick={() => void add()}>
             {busy ? 'Adding…' : `Add ${emails.length} email${emails.length === 1 ? '' : 's'}`}
           </Button>
         </div>
@@ -208,7 +208,7 @@ export function EventConsole() {
     );
   }, [data, search]);
 
-  if (!data) return <PageState loading={loading} error={error} />;
+  if (!data) return <PageState loading={loading} error={error} kind="console" />;
   const { event, submissions } = data;
 
   async function act(key: string, path: string, success: string, confirmText?: string) {
@@ -399,7 +399,7 @@ export function EventConsole() {
               </p>
             </div>
             <Button
-              disabled={!!busy}
+              disabled={!!busy} loading={busy === 'open'}
               onClick={() =>
                 void act(
                   'open',
@@ -442,7 +442,7 @@ export function EventConsole() {
                 </span>
                 <Button
                   variant="danger"
-                  disabled={!!busy}
+                  disabled={!!busy} loading={busy === 'close'}
                   onClick={() =>
                     void act(
                       'close',
@@ -479,18 +479,18 @@ export function EventConsole() {
                 {event.judging_paused_at ? (
                   <>
                     <span className="font-mono-code rounded-[3px] bg-warn px-2 py-0.5 text-[11px] font-bold text-white uppercase">Judging paused</span>
-                    <Button disabled={!!busy} onClick={() => void act('resume-all', `/api/events/${event.id}/judging/resume`, 'Judging resumed.')}>
+                    <Button disabled={!!busy} loading={busy === 'resume-all'} onClick={() => void act('resume-all', `/api/events/${event.id}/judging/resume`, 'Judging resumed.')}>
                       Resume judging
                     </Button>
                   </>
                 ) : (
-                  <Button variant="secondary" disabled={!!busy} onClick={() => void act('pause-all', `/api/events/${event.id}/judging/pause`, 'Judging paused. Running submissions stop at their next checkpoint.')}>
+                  <Button variant="secondary" disabled={!!busy} loading={busy === 'pause-all'} onClick={() => void act('pause-all', `/api/events/${event.id}/judging/pause`, 'Judging paused. Running submissions stop at their next checkpoint.')}>
                     Pause judging
                   </Button>
                 )}
                 <Button
                   variant="danger"
-                  disabled={!!busy}
+                  disabled={!!busy} loading={busy === 'cancel-all'}
                   onClick={() =>
                     void act(
                       'cancel-all',
@@ -529,7 +529,7 @@ export function EventConsole() {
                 </Link>
               )}
               <Button
-                disabled={!!busy}
+                disabled={!!busy} loading={busy === 'publish'}
                 onClick={() =>
                   void act(
                     'publish',

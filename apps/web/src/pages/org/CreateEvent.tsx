@@ -383,10 +383,10 @@ export function CreateEvent() {
           <strong className="text-good">OPEN FOR SUBMISSIONS</strong>
         </div>
         <div className="flex flex-wrap gap-3">
-          <Button type="button" variant="secondary" disabled={busy} onClick={(e) => void submit(e, false)}>
+          <Button type="button" variant="secondary" disabled={busy} loading={busy} onClick={(e) => void submit(e, false)}>
             Save as Draft
           </Button>
-          <Button type="submit" disabled={busy}>
+          <Button type="submit" disabled={busy} loading={busy}>
             <span className="material-symbols-outlined text-[17px]">rocket_launch</span>
             <span>{busy ? 'Creating Event…' : 'Create & Open Event'}</span>
           </Button>

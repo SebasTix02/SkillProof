@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Me, Organization } from './auth';
-import { activeItem, navSections, roleLabel } from './nav';
+import { activeItem, activeParent, navSections, roleLabel } from './nav';
 
 const PERMS: Record<string, string[]> = {
   org_owner: ['score.override', 'event.create', 'event.manage', 'results.publish', 'org.manage_members', 'org.view_usage', 'audit.read', 'integrity.decide', 'submission.review', 'course.manage'],
@@ -18,6 +18,9 @@ const me = (orgs: Organization[], publicProfile = false): Me => ({
 });
 
 const labels = (m: Me, o: Organization | null) => navSections(m, o).map((s) => [s.title, s.items.map((i) => i.label)]);
+/** Sub-items of Organization settings. */
+const subs = (o: Organization) =>
+  navSections(me([o]), o)[1]!.items.find((i) => i.key === 'org-settings')?.children?.map((c) => c.label) ?? [];
 
 describe('side menu by role', () => {
   it('a candidate sees their own screens only', () => {
@@ -27,27 +30,28 @@ describe('side menu by role', () => {
 
   it('an owner sees every organization screen', () => {
     const o = org('org_owner');
-    expect(labels(me([o]), o)[1]).toEqual([
-      'Test1',
-      ['Event console', 'New event', 'Courses & integrity', 'Members & invitations', 'AI usage', 'Audit log'],
-    ]);
+    expect(labels(me([o]), o)[1]).toEqual(['Test1', ['Event console', 'New event', 'Courses & integrity', 'Organization settings']]);
+    expect(subs(o)).toEqual(['Members', 'Invitations', 'AI usage', 'Audit log & policies']);
     expect(roleLabel(o)).toBe('Owner');
   });
 
   it('an organizer runs events and courses but does not manage members or read the audit log', () => {
     const o = org('organizer');
-    expect(labels(me([o]), o)[1]![1]).toEqual(['Event console', 'New event', 'Courses & integrity', 'AI usage']);
+    expect(labels(me([o]), o)[1]![1]).toEqual(['Event console', 'New event', 'Courses & integrity', 'Organization settings']);
+    expect(subs(o)).toEqual(['AI usage']);
   });
 
   it('a judge sees the review queue', () => {
     const o = org('judge');
     expect(labels(me([o]), o)[1]![1]).toEqual(['Review queue']);
+    expect(subs(o)).toEqual([]);
     expect(roleLabel(o)).toBe('Judge');
   });
 
   it('an auditor sees integrity, usage and the audit log', () => {
     const o = org('auditor');
-    expect(labels(me([o]), o)[1]![1]).toEqual(['Event console', 'Courses & integrity', 'AI usage', 'Audit log']);
+    expect(labels(me([o]), o)[1]![1]).toEqual(['Event console', 'Courses & integrity', 'Organization settings']);
+    expect(subs(o)).toEqual(['AI usage', 'Audit log']);
     expect(roleLabel(null)).toBe('Candidate');
   });
 });
@@ -71,10 +75,15 @@ describe('highlighted item', () => {
     expect(activeItem(sections, '/p/ana-1')).toBe('profile');
   });
 
-  it('uses the #section of the settings page', () => {
-    expect(activeItem(sections, '/org/settings')).toBe('org-members');
+  it('marks the section being read as a sub-item, and its page as the parent', () => {
+    expect(activeItem(sections, '/org/settings')).toBe('org-settings');
     expect(activeItem(sections, '/org/settings', '#section-usage')).toBe('org-usage');
     expect(activeItem(sections, '/org/settings', '#section-enclave')).toBe('org-audit');
+    expect(activeParent(sections, 'org-usage')).toBe('org-settings');
+    expect(activeParent(sections, 'org-settings')).toBe('org-settings');
+    expect(activeItem(sections, '/me', '#section-privacy')).toBe('account-privacy');
+    expect(activeParent(sections, 'account-privacy')).toBe('account');
+    expect(activeItem(sections, '/me', '#unknown')).toBe('account');
   });
 
   it('highlights nothing for screens outside the menu', () => {

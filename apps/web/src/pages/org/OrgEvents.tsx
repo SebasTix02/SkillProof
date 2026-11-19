@@ -247,7 +247,7 @@ export function OrgEvents() {
         />
       </section>
 
-      <PageState loading={loading} error={error} />
+      <PageState loading={loading} error={error} kind="table" />
 
       {/* 3. SECTION 01: Registered Hackathons & Capstone Evaluations */}
       {data && (

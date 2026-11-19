@@ -363,7 +363,7 @@ export function SignUp() {
 
         {error && <Notice tone="error">{error}</Notice>}
 
-        <Button type="submit" disabled={busy} className="w-full py-2.5">
+        <Button type="submit" disabled={busy} loading={busy} className="w-full py-2.5">
           <span>{busy ? 'Creating account…' : 'Create Account'}</span>
           <span className="arrow-nudge font-mono-code text-[12px]">→</span>
         </Button>
@@ -454,7 +454,7 @@ export function LogIn() {
 
         {error && <Notice tone="error">{error}</Notice>}
 
-        <Button type="submit" disabled={busy} className="w-full py-2.5">
+        <Button type="submit" disabled={busy} loading={busy} className="w-full py-2.5">
           <span>{busy ? 'Authenticating…' : 'Authenticate with Identity'}</span>
           <span className="arrow-nudge font-mono-code text-[12px]">→</span>
         </Button>
@@ -522,7 +522,7 @@ export function ForgotPassword() {
             />
           </Field>
           {error && <Notice tone="error">{error}</Notice>}
-          <Button type="submit" disabled={busy} className="w-full py-2.5">
+          <Button type="submit" disabled={busy} loading={busy} className="w-full py-2.5">
             <span>{busy ? 'Sending recovery link…' : 'Send Recovery Link'}</span>
             <span className="arrow-nudge font-mono-code text-[12px]">→</span>
           </Button>
@@ -595,7 +595,7 @@ export function ResetPassword() {
           />
         </Field>
         {error && <Notice tone="error">{error}</Notice>}
-        <Button type="submit" disabled={busy || loading} className="w-full py-2.5">
+        <Button type="submit" disabled={busy || loading} loading={busy} className="w-full py-2.5">
           {busy ? 'Saving passphrase…' : 'Save New Passphrase'}
         </Button>
       </form>
@@ -1401,7 +1401,7 @@ export function MyAccount() {
           >
             Discard
           </button>
-          <Button type="submit" disabled={busy} className="h-10 px-6">
+          <Button type="submit" disabled={busy} loading={busy} className="h-10 px-6">
             <span className="material-symbols-outlined text-[17px]">save</span>
             <span>{busy ? 'Saving…' : 'Save Changes'}</span>
           </Button>

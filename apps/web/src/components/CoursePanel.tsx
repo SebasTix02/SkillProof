@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
-import { Badge, Button, Input, Notice, NumberedSectionCard, Select, Spinner, Textarea, formatDate, linkButton } from './shared';
+import { Badge, Button, Input, Notice, NumberedSectionCard, Select, SkeletonTable, SkeletonText, Textarea, formatDate, linkButton } from './shared';
 import { useToast } from './toast';
 import { api, errorMessage } from '../lib/api';
 import { useAuth } from '../lib/auth';
@@ -124,7 +124,7 @@ export function CoursePanel({ selectedId, onSelect }: { selectedId: string | nul
       theme="emerald"
     >
       {list.loading ? (
-        <Spinner label="Loading courses" />
+        <SkeletonTable rows={3} cols={3} />
       ) : list.error ? (
         <Notice tone="error">{list.error}</Notice>
       ) : (
@@ -163,14 +163,14 @@ export function CoursePanel({ selectedId, onSelect }: { selectedId: string | nul
               <Input placeholder="Term (Fall 2026)" value={form.term} onChange={(e) => setForm({ ...form, term: e.target.value })} />
               <Textarea rows={2} placeholder="Description (optional)" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="md:col-span-4" />
               <div className="flex gap-2 md:col-span-4">
-                <Button type="submit" disabled={busy === 'create'}>{busy === 'create' ? 'Creating…' : 'Create course'}</Button>
+                <Button type="submit" disabled={busy === 'create'} loading={busy === 'create'}>{busy === 'create' ? 'Creating…' : 'Create course'}</Button>
                 <Button type="button" variant="ghost" onClick={() => setCreating(false)}>Cancel</Button>
               </div>
             </form>
           )}
 
           {selectedId && (detail.loading ? (
-            <Spinner label="Loading course" />
+            <SkeletonText lines={4} />
           ) : detail.error ? (
             <Notice tone="error">{detail.error}</Notice>
           ) : d ? (
@@ -243,7 +243,7 @@ export function CoursePanel({ selectedId, onSelect }: { selectedId: string | nul
                         <option value="instructor">Instructor</option>
                       </Select>
                       <Input value={section} onChange={(e) => setSection(e.target.value)} placeholder="Section (optional)" className="h-8 w-40 bg-white text-[12px]" />
-                      <Button type="button" disabled={busy === 'members' || !emails.match(EMAIL)} onClick={() => void addMembers()}>
+                      <Button type="button" disabled={busy === 'members' || !emails.match(EMAIL)} loading={busy === 'members'} onClick={() => void addMembers()}>
                         {busy === 'members' ? 'Adding…' : 'Add to course'}
                       </Button>
                     </div>

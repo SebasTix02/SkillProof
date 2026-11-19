@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Badge, SectionHeader, Spinner } from './shared';
+import { Badge, SectionHeader, PageState } from './shared';
 import { useLoad } from '../lib/useLoad';
 
 interface MyAssignment {
@@ -14,7 +14,7 @@ interface MyAssignment {
 export function MyReviewQueue() {
   const { data, loading, error } = useLoad<{ assignments: MyAssignment[] }>('/api/me/assignments');
   const list = data?.assignments ?? [];
-  if (loading) return <Spinner label="Loading your review queue" />;
+  if (loading) return <PageState loading error={null} kind="list" />;
   if (error) return null;
   return (
     <section className="space-y-3 rounded-[6px] border border-line bg-white p-5">

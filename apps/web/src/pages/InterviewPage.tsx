@@ -951,7 +951,7 @@ export function InterviewPage() {
   const toast = useToast();
   const [acting, setActing] = useState<string | null>(null);
 
-  if (!data) return <PageState loading={loading} error={error} />;
+  if (!data) return <PageState loading={loading} error={error} kind="detail" />;
   const { interview } = data;
   const activity = data.activity ?? [];
 
@@ -1044,7 +1044,7 @@ export function InterviewPage() {
             <div className="flex justify-center">
               <Button
                 variant="secondary"
-                disabled={!!acting}
+                disabled={!!acting} loading={acting === 'cancel'}
                 onClick={() => void control('cancel', 'Cancel the preparation? You can start again later; it does not use up your interview on this commit.')}
               >
                 {acting === 'cancel' ? 'Canceling…' : 'Cancel preparation'}
@@ -1071,11 +1071,11 @@ export function InterviewPage() {
           </Notice>
           {interview.is_owner && (
             <div className="flex flex-wrap gap-2">
-              <Button disabled={!!acting} onClick={() => void control('resume-report')}>
+              <Button disabled={!!acting} loading={acting === 'resume-report'} onClick={() => void control('resume-report')}>
                 {interview.status === 'report_paused' ? 'Resume the report' : 'Write the report'}
               </Button>
               {interview.status === 'report_paused' && (
-                <Button variant="secondary" disabled={!!acting} onClick={() => void control('cancel', 'Cancel the report? Your answers stay saved and you can write it later.')}>
+                <Button variant="secondary" disabled={!!acting} loading={acting === 'cancel'} onClick={() => void control('cancel', 'Cancel the report? Your answers stay saved and you can write it later.')}>
                   Cancel the report
                 </Button>
               )}
@@ -1113,8 +1113,8 @@ export function InterviewPage() {
           {interview.error && <Notice tone="warn">{interview.error}</Notice>}
           {interview.is_owner && (
             <div className="flex justify-center gap-2">
-              <Button variant="secondary" disabled={!!acting} onClick={() => void control('pause-report')}>Pause</Button>
-              <Button variant="secondary" disabled={!!acting} onClick={() => void control('cancel', 'Cancel the report? Your answers stay saved and you can write it later. This still counts as your interview on this commit.')}>
+              <Button variant="secondary" disabled={!!acting} loading={acting === 'pause-report'} onClick={() => void control('pause-report')}>Pause</Button>
+              <Button variant="secondary" disabled={!!acting} loading={acting === 'cancel'} onClick={() => void control('cancel', 'Cancel the report? Your answers stay saved and you can write it later. This still counts as your interview on this commit.')}>
                 Cancel
               </Button>
             </div>

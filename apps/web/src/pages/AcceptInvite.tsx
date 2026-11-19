@@ -42,7 +42,7 @@ export function AcceptInvite() {
       </p>
       {error && <Notice tone="error">{error}</Notice>}
       <div className="flex flex-wrap gap-3">
-        <Button onClick={() => void accept()} disabled={busy || !token}>
+        <Button onClick={() => void accept()} disabled={busy || !token} loading={busy}>
           {busy ? 'Joining…' : 'Accept invitation'}
         </Button>
         <Link to="/events" className={linkButtonSecondary}>Not now</Link>

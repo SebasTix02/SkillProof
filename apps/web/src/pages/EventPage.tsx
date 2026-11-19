@@ -83,7 +83,7 @@ export function EventPage() {
   const { data, error, loading, reload } = useLoad<EventResponse>(`/api/events/by-slug/${slug}`);
   const [activeTab, setActiveTab] = useState<'workspace' | 'rubric' | 'leaderboard'>('workspace');
 
-  if (!data) return <PageState loading={loading} error={error} />;
+  if (!data) return <PageState loading={loading} error={error} kind="detail" />;
   const { event } = data;
   const activeStep = getLifecycleStep(event, data.is_participant);
 
@@ -410,7 +410,7 @@ function Join({ event, onJoined }: { event: EventView; onJoined: () => Promise<v
           {event.visibility !== 'code' && (
             <form onSubmit={join} className="space-y-3">
               {error && <Notice tone="error">{error}</Notice>}
-              <Button type="submit" disabled={busy} className="px-6 py-2.5">
+              <Button type="submit" disabled={busy} loading={busy} className="px-6 py-2.5">
                 <span className="material-symbols-outlined text-[17px]">key</span>
                 <span>{busy ? 'Joining Event…' : 'Join Event as Candidate'}</span>
                 <span className="arrow-nudge font-mono-code text-[12px]">→</span>
@@ -491,7 +491,7 @@ function Participant({ event }: { event: EventView }) {
     `/api/events/${event.id}/results`,
     (r) => r.status === 'judging' || r.status === 'review',
   );
-  if (!mine.data) return <PageState loading={mine.loading} error={mine.error} />;
+  if (!mine.data) return <PageState loading={mine.loading} error={mine.error} kind="list" />;
   const closed = !mine.data.accepting;
   const sub = mine.data.submission;
 
@@ -764,7 +764,7 @@ function SubmissionCard({
               )}
 
               <div className="flex flex-col items-center justify-between gap-3 border-t border-line pt-4 sm:flex-row">
-                <Button type="submit" disabled={busy} className="w-full sm:w-auto">
+                <Button type="submit" disabled={busy} loading={busy} className="w-full sm:w-auto">
                   <span className="material-symbols-outlined text-[17px]">lock</span>
                   <span>
                     {busy ? 'Checking Repository…' : current ? 'Save & Send New Version' : 'Submit Project Dossier'}

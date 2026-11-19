@@ -1,6 +1,6 @@
 import type { Rubric } from '@skillproof/shared';
 import { useEffect, useRef, useState } from 'react';
-import { Badge, Button, Notice, Select, Spinner, Textarea, formatDate } from './shared';
+import { Badge, Button, Notice, Select, SkeletonCard, Textarea, formatDate } from './shared';
 import { useToast } from './toast';
 import { api, errorMessage } from '../lib/api';
 import { useLoad } from '../lib/useLoad';
@@ -92,7 +92,7 @@ export function JudgeReviewCard({ submissionId, rubric, locked }: { submissionId
   const complete = rubric.every((c) => scores[c.key]);
   const total = reviewTotal(rubric, rubric.filter((c) => scores[c.key]).map((c) => ({ criterion_key: c.key, score: scores[c.key]!, note: '' })));
 
-  if (loading) return <Spinner label="Loading your review" />;
+  if (loading) return <SkeletonCard />;
   if (error) return <Notice tone="error">{error}</Notice>;
 
   return (
@@ -153,7 +153,7 @@ export function JudgeReviewCard({ submissionId, rubric, locked }: { submissionId
           {saving ? 'Saving…' : savedAt ? `Saved ${formatDate(savedAt)}` : 'Not saved yet'}
           {total != null && <> · your total {total.toFixed(1)} / 100</>}
         </span>
-        <Button type="button" disabled={locked || saving || !complete} onClick={() => void save('submitted')}>
+        <Button type="button" disabled={locked || saving || !complete} loading={saving} onClick={() => void save('submitted')}>
           {status === 'submitted' ? 'Submit again' : 'Submit review'}
         </Button>
       </div>
@@ -165,7 +165,7 @@ export function JudgeReviewCard({ submissionId, rubric, locked }: { submissionId
 /** Every judge's review of one submission, for the organizer. */
 export function JudgeReviewsList({ submissionId, rubric }: { submissionId: string; rubric: Rubric }) {
   const { data, error, loading } = useLoad<{ reviews: ReviewRow[] }>(`/api/submissions/${submissionId}/reviews`);
-  if (loading) return <Spinner label="Loading judge reviews" />;
+  if (loading) return <SkeletonCard />;
   if (error) return <Notice tone="error">{error}</Notice>;
   const reviews = data?.reviews ?? [];
   return (

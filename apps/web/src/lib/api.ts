@@ -1,3 +1,4 @@
+import { startRequest } from './loading';
 import { supabase } from './supabase';
 
 // In production the API is served on the same domain (see vercel.json), so the default base is empty.
@@ -16,7 +17,19 @@ export class ApiError extends Error {
 }
 
 /** Calls the SkillProof API with the current Supabase session. */
-export async function api<T = unknown>(path: string, options: { method?: string; body?: unknown } = {}): Promise<T> {
+export async function api<T = unknown>(
+  path: string,
+  options: { method?: string; body?: unknown; /** Polling: no progress bar. */ quiet?: boolean } = {},
+): Promise<T> {
+  const done = options.quiet ? () => {} : startRequest();
+  try {
+    return await request<T>(path, options);
+  } finally {
+    done();
+  }
+}
+
+async function request<T>(path: string, options: { method?: string; body?: unknown }): Promise<T> {
   const { data } = await supabase.auth.getSession();
   const headers: Record<string, string> = {};
   if (data.session) headers.Authorization = `Bearer ${data.session.access_token}`;

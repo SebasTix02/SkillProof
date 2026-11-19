@@ -14,7 +14,8 @@ import {
   RoleBadge,
   RoleCapabilityGrid,
   Select,
-  Spinner,
+  SkeletonTable,
+  SkeletonText,
   ToggleSwitch,
   TopAccentKpiCard,
   formatDate,
@@ -240,8 +241,7 @@ export function OrgSettings() {
     };
     const tab = tabs[hash];
     if (!tab || !org) return;
-    setActiveTab(tab);
-    document.getElementById(hash.slice(1))?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    setActiveTab(tab); // AppShell scrolls to the section
   }, [hash, org]);
 
   function jumpToSection(tab: typeof activeTab, elementId: string) {
@@ -249,7 +249,7 @@ export function OrgSettings() {
     document.getElementById(elementId)?.scrollIntoView({ behavior: 'smooth' });
   }
 
-  if (!org) return <PageState loading error={null} />;
+  if (!org) return <PageState loading error={null} kind="sections" />;
 
   const tabClass = (tab: typeof activeTab) =>
     `font-mono-code inline-flex cursor-pointer items-center gap-2 rounded-[4px] px-3.5 py-1.5 text-[11px] font-semibold transition-colors ${
@@ -399,7 +399,7 @@ export function OrgSettings() {
                 </Select>
               </div>
               <div className="md:col-span-3">
-                <Button type="submit" className="h-10 w-full" disabled={busy === 'invite'}>
+                <Button type="submit" className="h-10 w-full" disabled={busy === 'invite'} loading={busy === 'invite'}>
                   <span className="material-symbols-outlined text-[17px]">link</span>
                   <span>{busy === 'invite' ? 'Creating…' : 'Create Invitation Link'}</span>
                 </Button>
@@ -472,7 +472,7 @@ export function OrgSettings() {
             </div>
 
             {members.loading ? (
-              <div className="py-8 text-center"><Spinner label="Loading members" /></div>
+              <SkeletonTable rows={4} cols={4} />
             ) : members.error ? (
               <Notice tone="error">{members.error}</Notice>
             ) : (
@@ -567,7 +567,7 @@ export function OrgSettings() {
           theme="amber"
         >
           {invites.loading ? (
-            <div className="py-6 text-center"><Spinner label="Loading invitations" /></div>
+            <SkeletonTable rows={2} cols={4} />
           ) : invites.error ? (
             <Notice tone="error">{invites.error}</Notice>
           ) : invitations.length === 0 ? (
@@ -629,7 +629,7 @@ export function OrgSettings() {
           theme="indigo"
         >
           {usage.loading ? (
-            <div className="py-6 text-center"><Spinner label="Loading usage" /></div>
+            <SkeletonTable rows={3} cols={4} />
           ) : usage.error ? (
             <Notice tone="error">{usage.error}</Notice>
           ) : (usage.data?.usage.length ?? 0) === 0 ? (
@@ -719,7 +719,7 @@ export function OrgSettings() {
           <div className="space-y-2">
             <div className="font-mono-code text-[11px] tracking-wider text-white/55 uppercase">Recent activity</div>
             {audit.loading ? (
-              <Spinner label="Loading audit trail" />
+              <SkeletonText lines={5} />
             ) : audit.error ? (
               <Notice tone="error">{audit.error}</Notice>
             ) : (audit.data?.entries.length ?? 0) === 0 ? (
@@ -757,7 +757,7 @@ export function OrgSettings() {
             </button>
           )}
           {canManage && (
-            <Button type="button" onClick={() => void savePolicies()} disabled={!policyDraft || busy === 'policies'}>
+            <Button type="button" onClick={() => void savePolicies()} disabled={!policyDraft || busy === 'policies'} loading={busy === 'policies'}>
               <span className="material-symbols-outlined text-[16px]">save</span>
               <span>{busy === 'policies' ? 'Saving…' : 'Save Policies'}</span>
             </Button>
