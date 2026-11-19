@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
+import { useEffect, useState, type FormEvent, type ReactNode, useCallback } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Button,
@@ -10,10 +10,13 @@ import {
   Notice,
   NumberedSectionCard,
   ToggleSwitch,
+  useConfirm,
+  TONE_CLASS,
 } from '../components/shared';
 import { api, errorMessage } from '../lib/api';
 import { useToast } from '../components/toast';
 import { useAuth } from '../lib/auth';
+import { isDirty, useUnsavedChanges } from '../lib/dirty';
 import { supabase } from '../lib/supabase';
 
 const AUTH_IMAGE =
@@ -49,7 +52,7 @@ function AuthPortalShell({
                 <span>SECURED BY SUPABASE AUTH</span>
               </div>
               <span className="font-mono-code text-[11px] tracking-wider text-muted uppercase">
-                PROTOCOL // AUTH-V1.0.4
+                SECURE SIGN-IN
               </span>
             </div>
 
@@ -652,6 +655,7 @@ export function MyAccount() {
   const [notifyResults, setNotifyResults] = useState(true);
   const [rotatedUrl, setRotatedUrl] = useState<string | null>(null);
   const toast = useToast();
+  const confirm = useConfirm();
 
   useEffect(() => {
     if (!me) return;
@@ -661,6 +665,21 @@ export function MyAccount() {
     setShowQuotes(me.public_profile?.show_quotes ?? true);
     setNotifyResults(me.profile.notify_results ?? true);
   }, [me]);
+
+  // Save and Discard only do something when the form differs from what was loaded; leaving asks first.
+  const loaded = me ? { name: me.profile.display_name, headline: me.public_profile?.headline ?? '', isPublic: me.public_profile?.is_public ?? false } : null;
+  const dirty = !!loaded && isDirty(loaded, { name, headline, isPublic });
+  const askToLeave = useCallback(
+    () =>
+      confirm({
+        title: 'Leave without saving?',
+        body: 'Your changes to the profile will be lost.',
+        confirmLabel: 'Leave',
+        cancelLabel: 'Stay',
+      }),
+    [confirm],
+  );
+  useUnsavedChanges(dirty, askToLeave);
 
   async function savePreference(field: 'show_quotes' | 'notify_results', value: boolean) {
     const set = field === 'show_quotes' ? setShowQuotes : setNotifyResults;
@@ -705,7 +724,7 @@ export function MyAccount() {
 
   /** Gives the public profile a new address, so every link shared before stops working. */
   async function revokePublicAccess() {
-    if (!window.confirm('Create a new public link? Every link you shared before will stop working.')) return;
+    if (!(await confirm({ title: 'Create a new public link?', body: 'Every link you shared before stops working.', confirmLabel: 'Create new link', undoable: false }))) return;
     setBusy(true);
     setError(null);
     setSaved(false);
@@ -742,10 +761,6 @@ export function MyAccount() {
     .slice(0, 2)
     .join('');
 
-  function scrollToSection(id: string) {
-    const el = document.getElementById(id);
-    if (el) el.scrollIntoView({ behavior: 'smooth' });
-  }
 
   return (
     <form onSubmit={submit} className="mx-auto max-w-[1160px] space-y-8">
@@ -755,20 +770,19 @@ export function MyAccount() {
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-4">
             <div className="flex flex-wrap items-center gap-2.5">
               <span className="font-mono-code rounded-[3px] border border-accent/40 bg-accent/20 px-2.5 py-1 text-[11px] tracking-wider text-accent-soft uppercase">
-                SEC-CFG // IDENTITY_V1.0.4
+                Your account
               </span>
-              <span className="text-white/30">/</span>
               <span className="font-mono-code flex items-center gap-2 rounded-[3px] border border-good/40 bg-good/20 px-2.5 py-1 text-[11px] text-good-on-dark">
                 <LiveDot tone="mint" />
-                <span>RLS SESSION ACTIVE</span>
+                <span>SIGNED IN</span>
               </span>
             </div>
-            <div className="font-mono-code flex items-center gap-2 rounded-[3px] border border-white/10 bg-dark-surface px-3 py-1 text-[11px] text-dark-muted">
-              <span>USER_ID:</span>
-              <span className="font-medium tracking-wide text-accent-soft">
-                {me.profile.id.slice(0, 8).toUpperCase()}
-              </span>
-            </div>
+            {me.email && (
+              <div className="font-mono-code flex items-center gap-2 rounded-[3px] border border-white/10 bg-dark-surface px-3 py-1 text-[11px] text-dark-muted">
+                <span>Signed in as</span>
+                <span className="font-medium tracking-wide text-accent-soft">{me.email}</span>
+              </div>
+            )}
           </div>
 
           <div className="flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
@@ -795,61 +809,6 @@ export function MyAccount() {
             )}
           </div>
 
-          {/* Segmented Navigation Rail */}
-          <nav className="flex items-center gap-2 overflow-x-auto border-t border-white/10 pt-3 text-[13px]">
-            <button
-              type="button"
-              onClick={() => scrollToSection('section-profile')}
-              className="flex shrink-0 cursor-pointer items-center gap-2 rounded-[4px] border border-white/20 bg-white/15 px-3.5 py-2 font-medium text-white"
-            >
-              <span className="material-symbols-outlined text-[17px] text-accent-soft">person_pin</span>
-              <span>General &amp; Profile</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => scrollToSection('section-visibility')}
-              className="flex shrink-0 cursor-pointer items-center gap-2 rounded-[4px] px-3.5 py-2 text-dark-muted transition-colors hover:bg-white/10 hover:text-white"
-            >
-              <span className="material-symbols-outlined text-[17px] text-good-on-dark">verified_user</span>
-              <span>Public Dossier</span>
-              <span
-                className={`font-mono-code rounded-[2px] border px-1.5 py-0.2 text-[10px] ${
-                  isPublic
-                    ? 'border-good/40 bg-good/20 text-good-on-dark'
-                    : 'border-white/15 bg-white/10 text-dark-muted'
-                }`}
-              >
-                {isPublic ? 'LIVE' : 'PRIVATE'}
-              </span>
-            </button>
-            <button
-              type="button"
-              onClick={() => scrollToSection('section-integrations')}
-              className="flex shrink-0 cursor-pointer items-center gap-2 rounded-[4px] px-3.5 py-2 text-dark-muted transition-colors hover:bg-white/10 hover:text-white"
-            >
-              <span className="material-symbols-outlined text-[17px] text-[#C4B5FD]">terminal</span>
-              <span>Verification Signals</span>
-              <span className="font-mono-code rounded-[2px] border border-[#C4B5FD]/30 bg-[#C4B5FD]/15 px-1.5 py-0.2 text-[10px] font-semibold text-[#DDD6FE]">
-                3
-              </span>
-            </button>
-            <button
-              type="button"
-              onClick={() => scrollToSection('section-privacy')}
-              className="flex shrink-0 cursor-pointer items-center gap-2 rounded-[4px] px-3.5 py-2 text-dark-muted transition-colors hover:bg-white/10 hover:text-white"
-            >
-              <span className="material-symbols-outlined text-[17px] text-warn-on-dark">tune</span>
-              <span>Privacy Controls</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => scrollToSection('section-danger')}
-              className="flex shrink-0 cursor-pointer items-center gap-2 rounded-[4px] px-3.5 py-2 text-dark-muted transition-colors hover:bg-white/10 hover:text-white"
-            >
-              <span className="material-symbols-outlined text-[17px] text-bad-on-dark">key</span>
-              <span>Security &amp; Access</span>
-            </button>
-          </nav>
         </div>
       </DarkBanner>
 
@@ -857,103 +816,14 @@ export function MyAccount() {
       <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-12">
         {/* Left Interactive Index & Proof Status Card */}
         <aside className="sticky top-20 hidden space-y-5 lg:col-span-3 lg:block">
-          <div className="space-y-3 rounded-[6px] border border-line bg-white p-4">
-            <div className="flex items-center justify-between border-b border-line pb-2.5">
-              <span className="font-mono-code text-[11px] font-semibold tracking-wider text-muted uppercase">
-                Section Index
-              </span>
-              <span className="font-mono-code rounded-[3px] border border-accent/25 bg-accent-soft px-1.5 py-0.5 text-[10px] font-semibold text-accent-ink">
-                5 MODULES
-              </span>
-            </div>
-
-            <ul className="space-y-1.5 text-[13px]">
-              <li>
-                <a
-                  href="#section-profile"
-                  className="flex items-center justify-between rounded-[4px] border border-accent/25 bg-accent-soft/60 px-2.5 py-2 font-medium text-accent-ink transition-colors"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <span className="h-2 w-2 rounded-full bg-accent" />
-                    <span>01. Profile &amp; Bio</span>
-                  </div>
-                  <span className="font-mono-code rounded-[2px] bg-white px-1.5 py-0.5 text-[10px] font-semibold text-accent">
-                    EDIT
-                  </span>
-                </a>
-              </li>
-              <li>
-                <a
-                  href="#section-visibility"
-                  className="flex items-center justify-between rounded-[4px] border border-transparent px-2.5 py-2 font-medium text-ink transition-colors hover:border-line hover:bg-paper"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <span className="h-2 w-2 rounded-full bg-[#4338CA]" />
-                    <span>02. Dossier Address</span>
-                  </div>
-                  <span
-                    className={`font-mono-code rounded-[2px] border px-1.5 py-0.5 text-[10px] font-semibold ${
-                      isPublic
-                        ? 'border-good/30 bg-good-soft text-good-ink'
-                        : 'border-line bg-paper text-muted'
-                    }`}
-                  >
-                    {isPublic ? 'ACTIVE' : 'OFF'}
-                  </span>
-                </a>
-              </li>
-              <li>
-                <a
-                  href="#section-integrations"
-                  className="flex items-center justify-between rounded-[4px] border border-transparent px-2.5 py-2 font-medium text-ink transition-colors hover:border-line hover:bg-paper"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <span className="h-2 w-2 rounded-full bg-good" />
-                    <span>03. Signal Feeds</span>
-                  </div>
-                  <span className="font-mono-code rounded-[2px] border border-line bg-paper px-1.5 py-0.5 text-[10px] text-muted">
-                    3 / 3
-                  </span>
-                </a>
-              </li>
-              <li>
-                <a
-                  href="#section-privacy"
-                  className="flex items-center justify-between rounded-[4px] border border-transparent px-2.5 py-2 font-medium text-ink transition-colors hover:border-line hover:bg-paper"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <span className="h-2 w-2 rounded-full bg-warn" />
-                    <span>04. Privacy Telemetry</span>
-                  </div>
-                  <span className="font-mono-code rounded-[2px] border border-warn/30 bg-warn-soft px-1.5 py-0.5 text-[10px] text-warn-ink">
-                    OPT
-                  </span>
-                </a>
-              </li>
-              <li>
-                <a
-                  href="#section-danger"
-                  className="flex items-center justify-between rounded-[4px] border border-transparent px-2.5 py-2 font-medium text-bad transition-colors hover:border-bad/30 hover:bg-bad-soft/40"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <span className="h-2 w-2 rounded-full bg-bad" />
-                    <span>05. Danger Zone</span>
-                  </div>
-                  <span className="font-mono-code rounded-[2px] border border-bad/30 bg-bad-soft px-1.5 py-0.5 text-[10px] font-semibold text-bad">
-                    CRIT
-                  </span>
-                </a>
-              </li>
-            </ul>
-          </div>
-
+          {/* Sections are reached from the side menu (Account → Profile, Public dossier…), not from a second index. */}
           {/* Cryptographic Seal Card */}
           <div className="space-y-3 rounded-[6px] border border-good/30 bg-good-soft/35 p-4 text-[12px]">
             <div className="font-mono-code flex items-center justify-between text-[11px]">
               <span className="font-semibold text-ink">PROFILE STATUS</span>
-              <span className="inline-flex items-center gap-1.5 rounded-[3px] border border-good/30 bg-good-soft px-2 py-0.5 font-semibold text-good-ink">
-                <span className="h-1.5 w-1.5 rounded-full bg-good" />
-                SAVED
+              <span className={`inline-flex items-center gap-1.5 rounded-[3px] border px-2 py-0.5 font-semibold ${TONE_CLASS[dirty ? 'warn' : 'good'].chip}`}>
+                <span className={`h-1.5 w-1.5 rounded-full ${TONE_CLASS[dirty ? 'warn' : 'good'].dot}`} />
+                {dirty ? 'UNSAVED' : 'SAVED'}
               </span>
             </div>
             <p className="leading-[19px] text-muted">
@@ -1072,7 +942,7 @@ export function MyAccount() {
             theme="indigo"
             title="Dossier Visibility & Public Address"
             subtitle="Configure public read-only access for your verified interview reports."
-            sectionTag="SECTION 02 // PUBLIC_URL"
+            sectionTag="SECTION 02 // PUBLIC LINK"
           >
             <div className="space-y-5">
               {/* Toggle Switch Card */}
@@ -1150,7 +1020,7 @@ export function MyAccount() {
             theme="emerald"
             title="Connected Verification Signals & Hardware"
             subtitle="Repository analysis engine, organization memberships, and oral defense microphone status."
-            sectionTag="SECTION 03 // FEEDS_SYNC"
+            sectionTag="SECTION 03 // CONNECTIONS"
           >
             <div className="space-y-4">
               {/* GitHub Repository Analyzer Card */}
@@ -1256,7 +1126,7 @@ export function MyAccount() {
             theme="amber"
             title="Privacy Controls & Verification Telemetry"
             subtitle="Visibility boundaries for interview attempts and event notifications."
-            sectionTag="SECTION 04 // AUDIT_PRIVACY"
+            sectionTag="SECTION 04 // PRIVACY"
           >
             <div className="space-y-4">
               <label className="flex cursor-pointer items-start gap-3 rounded-[4px] border border-line bg-paper/50 p-3.5">
@@ -1385,11 +1255,9 @@ export function MyAccount() {
       {/* 3. Persistent Sticky Bottom Action Bar */}
       <div className="sticky bottom-4 z-40 flex flex-col items-center justify-between gap-3 rounded-[6px] border border-line bg-white p-4 sm:flex-row sm:px-6">
         <div className="font-mono-code flex items-center gap-2 text-[12px] text-muted">
-          <span className={`h-2.5 w-2.5 rounded-full ${saved ? 'bg-good' : 'bg-accent'}`} />
-          <span>
-            {saved
-              ? 'All profile changes saved and synchronized.'
-              : `Editing profile for ${me.email}`}
+          <span className={`h-2.5 w-2.5 rounded-full ${dirty ? 'bg-warn' : saved ? 'bg-good' : 'bg-line-strong'}`} />
+          <span role="status" className={dirty ? 'font-semibold text-warn-ink' : undefined}>
+            {dirty ? 'Unsaved changes' : saved ? 'All changes saved.' : 'No changes to save.'}
           </span>
         </div>
 
@@ -1397,11 +1265,12 @@ export function MyAccount() {
           <button
             type="button"
             onClick={discardChanges}
-            className="btn-tactile h-10 cursor-pointer rounded-[4px] border border-line bg-paper px-4 text-[13px] font-medium text-muted hover:border-muted hover:text-ink"
+            disabled={!dirty || busy}
+            className="btn-tactile h-10 cursor-pointer rounded-[4px] border border-line bg-paper px-4 text-[13px] font-medium text-muted hover:border-muted hover:text-ink disabled:cursor-not-allowed disabled:opacity-50"
           >
             Discard
           </button>
-          <Button type="submit" disabled={busy} loading={busy} className="h-10 px-6">
+          <Button type="submit" disabled={!dirty || busy} loading={busy} className="h-10 px-6">
             <span className="material-symbols-outlined text-[17px]">save</span>
             <span>{busy ? 'Saving…' : 'Save Changes'}</span>
           </Button>

@@ -18,6 +18,8 @@ import {
   linkButton,
   linkButtonSecondary,
   scoreTone,
+  useConfirm,
+  questionToOptions,
 } from '../../components/shared';
 import { JudgeReviewCard, JudgeReviewsList } from '../../components/JudgeReview';
 import { SubmissionJudgingControls } from '../../components/JudgingControls';
@@ -210,6 +212,7 @@ export function SubmissionDetail() {
   const navigate = useNavigate();
   const { org, me } = useAuth();
   const toast = useToast();
+  const confirm = useConfirm();
   const [rejudging, setRejudging] = useState(false);
   const [controlKey, setControlKey] = useState<string | null>(null);
   const [queueSearch, setQueueSearch] = useState('');
@@ -280,7 +283,7 @@ export function SubmissionDetail() {
 
   /** Pause, resume, cancel or judge again, from the controls bar. */
   async function control(key: string, path: string, success: string, confirmText?: string) {
-    if (confirmText && !window.confirm(confirmText)) return;
+    if (confirmText && !(await confirm(questionToOptions(confirmText, { confirmLabel: 'Continue' })))) return;
     setRejudging(true);
     setControlKey(key);
     try {

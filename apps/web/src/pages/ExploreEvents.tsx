@@ -96,7 +96,7 @@ export function ExploreEvents() {
           eyebrow={
             <>
               <span className="font-semibold tracking-widest text-accent uppercase">
-                REGISTRY INDEX // HACKATHON &amp; COHORT DIRECTORY
+                EVENTS // HACKATHONS &amp; COURSES
               </span>
               <span className="text-line">•</span>
               <span className="flex items-center gap-1.5 font-medium text-good">
@@ -238,7 +238,7 @@ export function ExploreEvents() {
               <div className="flex h-full flex-col justify-between space-y-4">
                 <div className="space-y-3">
                   <Badge tone="accent" dot>
-                    STANDBY // DIRECTORY READY
+                    NOTHING OPEN RIGHT NOW
                   </Badge>
                   <h3 className="font-serif-heading text-[22px] font-medium text-ink">
                     No active public events right now

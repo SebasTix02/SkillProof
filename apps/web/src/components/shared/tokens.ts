@@ -25,6 +25,31 @@ export const COLOR_ROLE_GUIDE = [
   { job: 'Decoration, hairlines, illustrations', use: 'line, <tone>-200…400 (no contrast requirement)' },
 ] as const;
 
+/** Permission keys (supabase/migrations) in the user's words, for screens that show what someone can do. */
+export const PERMISSION_LABEL: Record<string, { label: string; description: string }> = {
+  'event.join': { label: 'Join events', description: 'Join open events and private ones by link.' },
+  'submission.create': { label: 'Submit repositories', description: 'Submit a GitHub repository to an event.' },
+  'interview.take': { label: 'Take voice interviews', description: 'Take a 3-minute voice interview about your code.' },
+  'profile.publish': { label: 'Publish a public profile', description: 'Share verified reports on a public page.' },
+  'event.create': { label: 'Create events', description: 'Create hackathons, assignments and capstones.' },
+  'event.manage': { label: 'Run events', description: 'Open, close and judge events, and edit their rubric.' },
+  'results.publish': { label: 'Publish results', description: 'Make final scores visible to participants.' },
+  'score.override': { label: 'Adjust scores', description: 'Change an AI score, with a reason in the audit log.' },
+  'submission.review': { label: 'Review submissions', description: 'Score the submissions assigned to you.' },
+  'integrity.decide': { label: 'Decide on integrity flags', description: 'Record a verdict on similar submissions.' },
+  'course.manage': { label: 'Manage courses', description: 'Create courses, add students and assignments.' },
+  'org.manage_members': { label: 'Manage members', description: 'Invite people, change roles and remove access.' },
+  'org.view_usage': { label: 'See AI usage', description: 'See Gemini calls, tokens and estimated cost.' },
+  'audit.read': { label: 'Read the audit log', description: 'See every sensitive change and who made it.' },
+};
+
+/** Readable names for a list of permission keys, in the order of PERMISSION_LABEL; unknown keys are kept as they are. */
+export function permissionLabels(keys: string[]): string[] {
+  const known = Object.keys(PERMISSION_LABEL).filter((k) => keys.includes(k)).map((k) => PERMISSION_LABEL[k]!.label);
+  const unknown = keys.filter((k) => !PERMISSION_LABEL[k]);
+  return [...known, ...unknown];
+}
+
 export const SKILL_LEVEL_LABEL: Record<SkillLevel, string> = {
   not_shown: 'NOT SHOWN',
   basic: 'BASIC',

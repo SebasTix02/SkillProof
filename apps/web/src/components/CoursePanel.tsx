@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
-import { Badge, Button, Input, Notice, NumberedSectionCard, Select, SkeletonTable, SkeletonText, Textarea, formatDate, linkButton } from './shared';
+import { Badge, Button, useConfirm, Input, Notice, NumberedSectionCard, Select, SkeletonTable, SkeletonText, Textarea, formatDate, linkButton } from './shared';
 import { useToast } from './toast';
 import { api, errorMessage } from '../lib/api';
 import { useAuth } from '../lib/auth';
@@ -33,6 +33,7 @@ const EMAIL = /[^\s,;<>"']+@[^\s,;<>"']+\.[^\s,;<>"']+/g;
 export function CoursePanel({ selectedId, onSelect }: { selectedId: string | null; onSelect: (id: string | null) => void }) {
   const { org } = useAuth();
   const toast = useToast();
+  const confirm = useConfirm();
   const canManage = !!org?.permissions.includes('course.manage');
   const list = useLoad<{ courses: Course[] }>(org ? `/api/orgs/${org.id}/courses` : null);
   const detail = useLoad<CourseDetail>(selectedId ? `/api/courses/${selectedId}` : null);
@@ -97,13 +98,15 @@ export function CoursePanel({ selectedId, onSelect }: { selectedId: string | nul
   }
 
   async function removeMember(userId: string, name: string) {
-    if (!selectedId || !window.confirm(`Remove ${name} from this course?`)) return;
+    if (!selectedId) return;
+    if (!(await confirm({ title: `Remove ${name} from this course?`, body: 'They lose access to its assignments. You can add them again later.', confirmLabel: 'Remove' }))) return;
     if (await run(`rm-${userId}`, () => api(`/api/courses/${selectedId}/members/${userId}`, { method: 'DELETE' }), `${name} removed.`, 'Could not remove them'))
       await Promise.all([detail.reload(), list.reload()]);
   }
 
   async function archive() {
-    if (!selectedId || !window.confirm('Archive this course? It disappears from the list; its assignments stay.')) return;
+    if (!selectedId) return;
+    if (!(await confirm({ title: 'Archive this course?', body: 'It disappears from the list; its assignments and grades stay.', confirmLabel: 'Archive' }))) return;
     if (await run('archive', () => api(`/api/courses/${selectedId}/archive`, { method: 'POST' }), 'Course archived.', 'Could not archive the course')) {
       onSelect(null);
       await list.reload();

@@ -26,6 +26,8 @@ import {
   scoreTone,
   type SimilaritySignal,
   type SubmissionPipelineStatus,
+  useConfirm,
+  questionToOptions,
 } from '../../components/shared';
 import { JudgeAssignments } from '../../components/JudgeAssignments';
 import { SubmissionJudgingControls } from '../../components/JudgingControls';
@@ -184,6 +186,7 @@ export function EventConsole() {
   const [search, setSearch] = useState('');
   const [confirmClose, setConfirmClose] = useState(false);
   const toast = useToast();
+  const confirm = useConfirm();
   const { org } = useAuth();
   const canManage = !!org?.permissions.includes('event.manage');
 
@@ -212,7 +215,7 @@ export function EventConsole() {
   const { event, submissions } = data;
 
   async function act(key: string, path: string, success: string, confirmText?: string) {
-    if (confirmText && !window.confirm(confirmText)) return;
+    if (confirmText && !(await confirm(questionToOptions(confirmText, { confirmLabel: 'Continue' })))) return;
     setBusy(key);
     try {
       await api(path, { method: 'POST' });
@@ -642,9 +645,21 @@ export function EventConsole() {
         />
 
         {filteredSubmissions.length === 0 ? (
-          <p className="py-6 text-center text-[13px] text-muted">
-            {submissions.length === 0 ? 'No submissions yet.' : 'No submissions match your search filter.'}
-          </p>
+          <div className="space-y-3 py-8 text-center">
+            <p className="text-[14px] font-semibold text-ink">{submissions.length === 0 ? 'No submissions yet' : 'No submissions match your search'}</p>
+            <p className="mx-auto max-w-md text-[13px] text-muted">
+              {submissions.length === 0
+                ? event.status === 'draft'
+                  ? 'Open the event so participants can join and submit their repositories.'
+                  : 'Share the event link: participants join and submit a GitHub repository before the deadline.'
+                : 'Clear the search to see every submission.'}
+            </p>
+            {submissions.length === 0 && event.status !== 'draft' && (
+              <div className="flex justify-center">
+                <CopyLinkButton value={link} label="Copy event link" />
+              </div>
+            )}
+          </div>
         ) : (
           <div className="overflow-x-auto rounded-[4px] border border-line">
             <table className="w-full border-collapse text-left text-[13px]">

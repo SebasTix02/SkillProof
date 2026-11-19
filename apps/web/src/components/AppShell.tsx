@@ -84,6 +84,10 @@ const focusRing = 'focus-visible:outline-2 focus-visible:outline-offset-[-2px] f
 interface Flyout {
   item: NavItem;
   top: number;
+  /** The icon it belongs to, to give focus back on Escape. */
+  trigger: HTMLElement;
+  /** Opened from the keyboard: focus moves to its first link. */
+  focus?: boolean;
 }
 
 function SidebarBody({
@@ -109,14 +113,60 @@ function SidebarBody({
 
   const [flyout, setFlyout] = useState<Flyout | null>(null);
   const hideTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
-  const showFlyout = (item: NavItem, el: HTMLElement) => {
+  const panel = useRef<HTMLDivElement>(null);
+  // After Escape, focus goes back to the icon without reopening the panel.
+  const quietFocus = useRef(false);
+  const showFlyout = (item: NavItem, el: HTMLElement, focus = false) => {
     clearTimeout(hideTimer.current);
-    setFlyout({ item, top: el.getBoundingClientRect().top });
+    if (quietFocus.current && !focus) {
+      quietFocus.current = false;
+      return;
+    }
+    setFlyout({ item, top: el.getBoundingClientRect().top, trigger: el, focus });
   };
   const hideFlyout = () => {
     hideTimer.current = setTimeout(() => setFlyout(null), 120);
   };
+  const closeFlyout = (giveFocusBack: boolean) => {
+    clearTimeout(hideTimer.current);
+    const trigger = flyout?.trigger;
+    setFlyout(null);
+    if (giveFocusBack && trigger) {
+      quietFocus.current = true;
+      trigger.focus();
+    }
+  };
   useEffect(() => setFlyout(null), [active, collapsed]);
+  // Opened from the keyboard: focus its first sub-item (or the page link when it has none).
+  useEffect(() => {
+    if (!flyout?.focus) return;
+    const links = panel.current?.querySelectorAll<HTMLElement>('a');
+    (links?.[1] ?? links?.[0])?.focus();
+  }, [flyout]);
+
+  /** Collapsed menu, on an icon: Enter or → opens the panel of a page with sections and moves focus into it. */
+  const onIconKey = (item: NavItem) => (e: React.KeyboardEvent<HTMLAnchorElement>) => {
+    if (!collapsed || !item.children?.length) return;
+    if (e.key === 'ArrowRight' || e.key === 'Enter') {
+      e.preventDefault();
+      showFlyout(item, e.currentTarget, true);
+    }
+  };
+  /** Inside the panel: ↑/↓ move, Escape or ← close and go back to the icon, leaving it with Tab closes it. */
+  const onPanelKey = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    const links = [...(panel.current?.querySelectorAll<HTMLElement>('a') ?? [])];
+    const i = links.indexOf(document.activeElement as HTMLElement);
+    if (e.key === 'Escape' || e.key === 'ArrowLeft') {
+      e.preventDefault();
+      closeFlyout(true);
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      links[(i + 1) % links.length]?.focus();
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      links[(i - 1 + links.length) % links.length]?.focus();
+    }
+  };
 
   const linkClass = (isActive: boolean, inTrail: boolean, sub = false) =>
     cx(
@@ -184,8 +234,11 @@ function SidebarBody({
                         to={item.to}
                         aria-current={isActive ? 'page' : undefined}
                         aria-label={collapsed ? item.label : undefined}
+                        aria-haspopup={collapsed && children.length > 0 ? 'menu' : undefined}
+                        aria-expanded={collapsed && children.length > 0 ? flyout?.item.key === item.key : undefined}
                         onFocus={collapsed ? (e) => showFlyout(item, e.currentTarget) : undefined}
                         onBlur={collapsed ? hideFlyout : undefined}
+                        onKeyDown={onIconKey(item)}
                         className={cx(linkClass(isActive || (collapsed && item.key === activePage), inTrail), 'min-w-0 flex-1')}
                       >
                         <Symbol name={ICON[item.icon]} className={isActive || inTrail ? 'text-accent-on-dark' : undefined} />
@@ -225,10 +278,16 @@ function SidebarBody({
 
       {flyout && collapsed && (
         <div
+          ref={panel}
           role="menu"
           aria-label={flyout.item.label}
           onMouseEnter={() => clearTimeout(hideTimer.current)}
           onMouseLeave={hideFlyout}
+          onFocus={() => clearTimeout(hideTimer.current)}
+          onBlur={(e) => {
+            if (!e.currentTarget.contains(e.relatedTarget as Node | null)) hideFlyout();
+          }}
+          onKeyDown={onPanelKey}
           className="fixed left-[60px] z-[60] min-w-[200px] rounded-[6px] border border-dark-hairline bg-dark-surface p-1.5 text-[13px] text-dark-ink"
           style={{ top: flyout.top }}
         >

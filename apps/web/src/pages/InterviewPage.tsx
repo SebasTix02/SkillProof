@@ -20,6 +20,8 @@ import {
   formatClock,
   formatDate,
   linkButtonSecondary,
+  useConfirm,
+  questionToOptions,
 } from '../components/shared';
 import { api, errorMessage } from '../lib/api';
 import { useToast } from '../components/toast';
@@ -165,6 +167,7 @@ function Room({
   onLiveChange: (active: boolean) => void;
 }) {
   const { interview, questions } = data;
+  const confirm = useConfirm();
   const [phase, setPhase] = useState<'idle' | 'connecting' | 'live' | 'sending'>('idle');
   const [error, setError] = useState<string | null>(null);
   const [left, setLeft] = useState(data.seconds);
@@ -365,8 +368,14 @@ function Room({
     }
   }
 
-  function confirmEnd() {
-    if (!window.confirm('End the interview now? Your report is written from what you said so far, and you cannot take another interview on this commit.')) return;
+  async function confirmEnd() {
+    const ok = await confirm({
+      title: 'End the interview now?',
+      body: 'Your report is written from what you said so far, and you cannot take another interview on this commit.',
+      confirmLabel: 'End interview',
+      undoable: false,
+    });
+    if (!ok) return;
     // The interviewer finishes the sentence it is saying, then the interview ends.
     wrap.current.endNow(Date.now());
     setWrapping((w) => w ?? 'end');
@@ -560,7 +569,7 @@ function Room({
         <div className="flex min-w-0 flex-wrap items-center gap-2.5">
           <span className="font-mono-code inline-flex items-center gap-1.5 rounded-[3px] border border-line bg-white px-2.5 py-1 text-[11px] font-semibold tracking-wider text-accent uppercase">
             <LiveDot tone="accent" />
-            <span>ORAL EXAMINER COCKPIT</span>
+            <span>AI INTERVIEWER</span>
           </span>
           <span className="font-mono-code truncate text-[12px] font-semibold text-ink">
             @{interview.repo.owner}/{interview.repo.name}
@@ -949,6 +958,7 @@ export function InterviewPage() {
   );
 
   const toast = useToast();
+  const confirm = useConfirm();
   const [acting, setActing] = useState<string | null>(null);
 
   if (!data) return <PageState loading={loading} error={error} kind="detail" />;
@@ -957,7 +967,7 @@ export function InterviewPage() {
 
   /** Cancel a preparation, or pause, resume or cancel the report. */
   async function control(action: 'cancel' | 'pause-report' | 'resume-report', confirmText?: string) {
-    if (confirmText && !window.confirm(confirmText)) return;
+    if (confirmText && !(await confirm(questionToOptions(confirmText, { confirmLabel: action === 'cancel' ? 'Cancel it' : 'Confirm', cancelLabel: 'Keep it' })))) return;
     setActing(action);
     try {
       await api(`/api/interviews/${interview.id}/${action}`, { method: 'POST' });
