@@ -465,7 +465,7 @@ export function CourseMode() {
               description="Shared repositories, common forks, or structural matches."
             />
             <TopAccentKpiCard
-              accent="indigo"
+              accent="neutral"
               eyebrow="Oral Defense Status"
               icon="mic"
               value={metrics.withOwnershipCount}

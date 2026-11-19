@@ -287,7 +287,7 @@ function SubmissionComparisonPane({
         {summary.ownership && (
           <div className="mt-2.5">
             <EditorialQuoteBlock
-              theme={isA ? 'emerald' : 'crimson'}
+              theme={isA ? 'accent' : 'neutral'}
               quote={`Ownership score ${summary.ownership.score}/100 (${summary.ownership.confidence} confidence).`}
             />
           </div>
@@ -596,7 +596,7 @@ export function SimilarityCompare() {
           description={`Authors: ${commitsA?.authors.length ?? '–'} (A) vs ${commitsB?.authors.length ?? '–'} (B).`}
         />
         <TopAccentKpiCard
-          accent="indigo"
+          accent="neutral"
           eyebrow="Oral Defense Match"
           icon="record_voice_over"
           value={`${subA?.ownership?.score ?? '–'}% vs ${subB?.ownership?.score ?? '–'}%`}
@@ -723,7 +723,7 @@ export function SimilarityCompare() {
         title="Auditor Decision & Sanction Protocol"
         subtitle="Record your evidentiary determination after inspecting both repositories and oral defense transcripts."
         sectionTag={latestDecision ? `LAST: ${latestDecision.verdict.toUpperCase()}` : 'FORMAL ADJUDICATION'}
-        theme="amber"
+        theme="warn"
       >
         <form onSubmit={submitVerdict} className="grid grid-cols-1 gap-6 lg:grid-cols-12">
           <div className="space-y-2.5 lg:col-span-5">
@@ -846,7 +846,7 @@ export function SimilarityCompare() {
         title="Matching Code"
         subtitle="Fragments that are the same in both repositories."
         sectionTag={`${flagMatches.length} FRAGMENTS`}
-        theme="sky"
+        theme="neutral"
       >
         {flagMatches.length === 0 ? (
           <p className="text-[13px] text-muted">

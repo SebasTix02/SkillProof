@@ -91,7 +91,7 @@ export function Report({ report }: { report: ReportView }) {
       )}
 
       {/* Executive Forensic Summary */}
-      <div className="space-y-2 rounded-[4px] border border-line border-l-[4px] border-l-warn bg-[#FFFDF5] p-5">
+      <div className="space-y-2 rounded-[4px] border border-line border-l-[4px] border-l-warn bg-warn-50 p-5">
         <div className="flex items-center gap-2">
           <span className="h-2 w-2 rounded-full bg-warn" />
           <h3 className="font-mono-code text-[11px] font-bold tracking-wider text-warn uppercase">
@@ -132,7 +132,7 @@ export function Report({ report }: { report: ReportView }) {
                   <EditorialQuoteBlock
                     quote={s.evidence_quote}
                     attribution="Verbatim Candidate Defense Quote • Evidence Verified"
-                    theme={s.level === 'strong' ? 'emerald' : s.level === 'solid' ? 'indigo' : 'cobalt'}
+                    theme={SKILL_LEVEL_TONE[s.level as SkillLevel] ?? 'neutral'}
                   />
                 )}
               </li>

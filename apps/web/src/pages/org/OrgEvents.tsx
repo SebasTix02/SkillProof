@@ -195,7 +195,7 @@ export function OrgEvents() {
               footerRight={stats.inAdjudication > 0 ? 'ACTION READY' : 'ALL CLEAR'}
             />
             <TopAccentKpiCard
-              accent="indigo"
+              accent="neutral"
               eyebrow="Voice interviews"
               icon="record_voice_over"
               value={`${stats.voiceCoveragePct}%`}

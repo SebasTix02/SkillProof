@@ -61,9 +61,7 @@ export function CopyLinkButton({
   const variantClass =
     variant === 'primary'
       ? 'border-accent bg-accent text-white hover:bg-accent-hover'
-      : variant === 'indigo'
-        ? 'border-[#4338CA] bg-[#4338CA] text-white hover:bg-[#3730A3]'
-        : variant === 'dark'
+      : variant === 'dark'
           ? 'border-white/15 bg-white/10 text-white hover:bg-white/20'
           : 'border-line bg-white text-ink hover:border-accent hover:text-accent';
 

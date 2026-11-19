@@ -124,7 +124,7 @@ function Allowlist({ eventId }: { eventId: string }) {
         </>
       }
       sectionTag="INVITE-ONLY ACCESS"
-      theme="indigo"
+      theme="accent"
     >
       <div className="space-y-4">
         <Textarea
@@ -361,7 +361,7 @@ export function EventConsole() {
           progress={progressPct}
         />
         <TopAccentKpiCard
-          accent="indigo"
+          accent="neutral"
           eyebrow="Oral Defense"
           icon="record_voice_over"
           value={event.interviews_enabled ? voiceCompleted : 'OFF'}
@@ -582,7 +582,7 @@ export function EventConsole() {
           title="Forensic Similarity & Duplicate Signals"
           subtitle="These are automated signals for human judges to inspect, not automatic disqualifications."
           sectionTag={`${data.similarity_flags.length} SIGNALS DETECTED`}
-          theme="amber"
+          theme="warn"
         >
           <ul className="space-y-2.5">
             {data.similarity_flags.map((f) => (

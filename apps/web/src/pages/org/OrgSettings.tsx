@@ -314,7 +314,7 @@ export function OrgSettings() {
           progress={Math.min(100, invitations.length * 25)}
         />
         <TopAccentKpiCard
-          accent="indigo"
+          accent="neutral"
           eyebrow="Your Permissions"
           icon="verified"
           value={perms.length}
@@ -333,7 +333,7 @@ export function OrgSettings() {
           title="Invite a Member"
           subtitle="Create a role-scoped invitation link for a co-organizer, judge or auditor."
           sectionTag="SECTION 01 // INVITE"
-          theme="cobalt"
+          theme="accent"
         >
           <div className="space-y-6">
             <form onSubmit={(e) => void handleSendInvite(e)} className="grid grid-cols-1 items-end gap-4 md:grid-cols-12">
@@ -408,7 +408,7 @@ export function OrgSettings() {
           title="Members"
           subtitle="Change roles or remove access. An organization always keeps at least one owner."
           sectionTag={`SECTION 02 // ${memberList.length} MEMBERS`}
-          theme="emerald"
+          theme="neutral"
         >
           <div className="space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-3 rounded-[4px] border border-line bg-paper p-3">
@@ -534,7 +534,7 @@ export function OrgSettings() {
           title="Pending Invitations"
           subtitle="Links not used yet. Revoke one to make its link stop working."
           sectionTag={`SECTION 03 // ${invitations.length} OPEN`}
-          theme="amber"
+          theme="warn"
         >
           {invites.loading ? (
             <SkeletonTable rows={2} cols={4} />
@@ -596,7 +596,7 @@ export function OrgSettings() {
           title="AI Usage"
           subtitle={usage.data ? `Gemini calls since ${formatDate(usage.data.since)}, by job and model.` : 'Gemini calls of the last 30 days.'}
           sectionTag="SECTION 04 // USAGE"
-          theme="indigo"
+          theme="accent"
         >
           {usage.loading ? (
             <SkeletonTable rows={3} cols={4} />

@@ -120,7 +120,7 @@ export function CreateEvent() {
         title="Event Identity & Commit-Freeze Schedule"
         subtitle="Define the public title, rules, and exact cutoff timestamp when repositories are frozen."
         sectionTag="SECTION 01 // TIMELINE"
-        theme="cobalt"
+        theme="accent"
       >
         <div className="space-y-4">
           <Field label="Event Name">
@@ -181,7 +181,7 @@ export function CreateEvent() {
           title="Cohort Access & Visibility"
           subtitle="Control who can join and submit a repository to this event."
           sectionTag="SECTION 02 // ACCESS"
-          theme="indigo"
+          theme="neutral"
         >
           <div className="space-y-4">
             <Field label="Access Mode">
@@ -228,7 +228,7 @@ export function CreateEvent() {
           title="Submission Quota & Oral Defense"
           subtitle="Configure version limits and 3-minute Gemini Live voice cross-examination."
           sectionTag="SECTION 03 // SUBMISSIONS"
-          theme="emerald"
+          theme="neutral"
         >
           <div className="space-y-4">
             <div className="flex items-start justify-between gap-4 rounded-[4px] border border-line bg-paper p-3.5">
@@ -282,7 +282,7 @@ export function CreateEvent() {
         title="Evaluation Rubric & Weight Attribution"
         subtitle={`Weights sum to ${totalWeight}. Weights are normalized relatively, so they do not strictly need to equal 100.`}
         sectionTag={`TOTAL WEIGHT: ${totalWeight}`}
-        theme="amber"
+        theme="neutral"
       >
         <div className="space-y-4">
           <ScoreBar value={Math.min(100, totalWeight)} max={100} tone="accent" heightClass="h-1.5" />

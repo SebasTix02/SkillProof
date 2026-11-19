@@ -124,7 +124,7 @@ export function CoursePanel({ selectedId, onSelect }: { selectedId: string | nul
       title="Courses"
       subtitle="Group assignments by course and keep each roster. Picking a course narrows the gradebook to its assignments."
       sectionTag={`${courses.length} COURSES`}
-      theme="emerald"
+      theme="accent"
     >
       {list.loading ? (
         <SkeletonTable rows={3} cols={3} />

@@ -64,7 +64,12 @@ export const SKILL_LEVEL_TONE: Record<SkillLevel, SemanticTone> = {
   strong: 'good',
 };
 
-export type DossierThemeKey = 'cobalt' | 'indigo' | 'sky' | 'emerald' | 'amber' | 'crimson';
+/**
+ * Section themes (NumberedSectionCard, EditorialQuoteBlock, public-profile artifacts). Only tones with a meaning:
+ * accent = the main or configuration section, good = success, warn = pending or needs attention, bad = destructive,
+ * neutral = everything else. Built from the color roles in index.css (no hex).
+ */
+export type DossierThemeKey = SemanticTone;
 
 export interface DossierAccentTheme {
   key: DossierThemeKey;
@@ -80,85 +85,70 @@ export interface DossierAccentTheme {
 }
 
 export const DOSSIER_THEMES: Record<DossierThemeKey, DossierAccentTheme> = {
-  cobalt: {
-    key: 'cobalt',
-    cardBorder: 'border-line hover:border-accent',
-    headerBg: 'bg-gradient-to-r from-accent-soft/75 via-white to-transparent border-b border-line',
-    iconBg: 'bg-accent text-white',
-    badgeBg: 'bg-accent text-white',
-    pillClass: 'border-accent/25 bg-accent-soft text-accent-ink',
-    noteBorder: 'border-l-accent bg-accent-soft/45',
-    noteTitle: 'text-accent',
-    quoteBorder: 'border-l-accent bg-accent-soft/35',
+  accent: {
+    key: 'accent',
+    cardBorder: 'border-line hover:border-accent-ui',
+    headerBg: 'bg-gradient-to-r from-accent-50 via-white to-transparent border-b border-line',
+    iconBg: 'bg-accent text-on-accent',
+    badgeBg: 'bg-accent text-on-accent',
+    pillClass: 'border-accent-200 bg-accent-soft text-accent-ink',
+    noteBorder: 'border-l-accent-ui bg-accent-50',
+    noteTitle: 'text-accent-ink',
+    quoteBorder: 'border-l-accent-ui bg-accent-50',
     icon: 'person_pin',
   },
-  indigo: {
-    key: 'indigo',
-    cardBorder: 'border-[#C7D2FE] hover:border-[#6366F1]',
-    headerBg: 'bg-gradient-to-r from-[#EEF2FF] via-white to-[#F5F3FF] border-b border-[#E0E7FF]',
-    iconBg: 'bg-[#4338CA] text-white',
-    badgeBg: 'bg-[#4338CA] text-white',
-    pillClass: 'border-[#C7D2FE] bg-[#EEF2FF] text-[#3730A3]',
-    noteBorder: 'border-l-[#4338CA] bg-[#EEF2FF]/60',
-    noteTitle: 'text-[#3730A3]',
-    quoteBorder: 'border-l-[#4338CA] bg-[#F5F3FF]/60',
-    icon: 'terminal',
-  },
-  sky: {
-    key: 'sky',
-    cardBorder: 'border-[#BAE6FD] hover:border-[#0284C7]',
-    headerBg: 'bg-gradient-to-r from-[#F0F9FF] via-white to-[#EFF6FF] border-b border-[#E0F2FE]',
-    iconBg: 'bg-[#0284C7] text-white',
-    badgeBg: 'bg-[#0284C7] text-white',
-    pillClass: 'border-[#BAE6FD] bg-[#F0F9FF] text-[#075985]',
-    noteBorder: 'border-l-[#0284C7] bg-[#F0F9FF]/70',
-    noteTitle: 'text-[#075985]',
-    quoteBorder: 'border-l-[#0284C7] bg-[#F0F9FF]/50',
+  neutral: {
+    key: 'neutral',
+    cardBorder: 'border-line hover:border-line-strong',
+    headerBg: 'bg-paper border-b border-line',
+    iconBg: 'bg-ink text-white',
+    badgeBg: 'bg-ink text-white',
+    pillClass: 'border-line bg-paper text-muted',
+    noteBorder: 'border-l-line-strong bg-paper',
+    noteTitle: 'text-ink',
+    quoteBorder: 'border-l-line-strong bg-paper',
     icon: 'layers',
   },
-  emerald: {
-    key: 'emerald',
-    cardBorder: 'border-[#A7F3D0] hover:border-[#12805C]',
-    headerBg: 'bg-gradient-to-r from-[#E7F5F0] via-white to-[#F0FDFA] border-b border-[#D1FAE5]',
-    iconBg: 'bg-good text-white',
-    badgeBg: 'bg-good text-white',
-    pillClass: 'border-good/30 bg-good-soft text-good-ink',
-    noteBorder: 'border-l-good bg-good-soft/60',
-    noteTitle: 'text-good',
-    quoteBorder: 'border-l-good bg-[#FBFDFB]',
-    icon: 'memory',
+  good: {
+    key: 'good',
+    cardBorder: 'border-good-200 hover:border-good-ui',
+    headerBg: 'bg-gradient-to-r from-good-50 via-white to-transparent border-b border-good-200',
+    iconBg: 'bg-good text-on-good',
+    badgeBg: 'bg-good text-on-good',
+    pillClass: 'border-good-200 bg-good-soft text-good-ink',
+    noteBorder: 'border-l-good-ui bg-good-50',
+    noteTitle: 'text-good-ink',
+    quoteBorder: 'border-l-good-ui bg-good-50',
+    icon: 'verified',
   },
-  amber: {
-    key: 'amber',
-    cardBorder: 'border-warn/35 hover:border-warn',
-    headerBg: 'bg-gradient-to-r from-[#FDF3E3] via-white to-transparent border-b border-line',
-    iconBg: 'bg-warn text-white',
-    badgeBg: 'bg-warn text-white',
-    pillClass: 'border-warn/30 bg-warn-soft text-warn-ink',
-    noteBorder: 'border-l-warn bg-[#FFFDF5]',
-    noteTitle: 'text-warn',
-    quoteBorder: 'border-l-warn bg-[#FFFDF5]',
-    icon: 'tune',
+  warn: {
+    key: 'warn',
+    cardBorder: 'border-warn-200 hover:border-warn-ui',
+    headerBg: 'bg-gradient-to-r from-warn-50 via-white to-transparent border-b border-warn-200',
+    iconBg: 'bg-warn text-on-warn',
+    badgeBg: 'bg-warn text-on-warn',
+    pillClass: 'border-warn-200 bg-warn-soft text-warn-ink',
+    noteBorder: 'border-l-warn-ui bg-warn-50',
+    noteTitle: 'text-warn-ink',
+    quoteBorder: 'border-l-warn-ui bg-warn-50',
+    icon: 'pending',
   },
-  crimson: {
-    key: 'crimson',
-    cardBorder: 'border-bad/40 bg-bad-soft/25',
-    headerBg: 'bg-bad-soft/65 border-b border-bad/30',
-    iconBg: 'bg-bad text-white',
-    badgeBg: 'bg-bad text-white',
-    pillClass: 'border-bad/40 bg-white text-bad',
-    noteBorder: 'border-l-bad bg-bad-soft/50',
-    noteTitle: 'text-bad',
-    quoteBorder: 'border-l-bad bg-bad-soft/35',
+  bad: {
+    key: 'bad',
+    cardBorder: 'border-bad-200 bg-bad-50',
+    headerBg: 'bg-bad-soft border-b border-bad-200',
+    iconBg: 'bg-bad text-on-bad',
+    badgeBg: 'bg-bad text-on-bad',
+    pillClass: 'border-bad-200 bg-white text-bad-ink',
+    noteBorder: 'border-l-bad-ui bg-bad-50',
+    noteTitle: 'text-bad-ink',
+    quoteBorder: 'border-l-bad-ui bg-bad-50',
     icon: 'warning',
   },
 };
 
-export const ARTIFACT_THEME_CYCLE: DossierAccentTheme[] = [
-  DOSSIER_THEMES.indigo,
-  DOSSIER_THEMES.sky,
-  DOSSIER_THEMES.emerald,
-];
+/** Public-profile artifacts alternate between the accent and the neutral theme. */
+export const ARTIFACT_THEME_CYCLE: DossierAccentTheme[] = [DOSSIER_THEMES.accent, DOSSIER_THEMES.neutral];
 
 export type OrgRoleKey = 'owner' | 'organizer' | 'judge' | 'auditor';
 
@@ -213,10 +203,10 @@ export const ORG_ROLE_SPECS: Record<OrgRoleKey, RoleCapabilitySpec> = {
     tier: 'COMPLIANCE',
     description:
       'Reads the audit log and AI usage, and records integrity decisions on flagged submissions.',
-    badgeClass: 'border-[#C7D2FE] bg-[#EEF2FF] text-[#3730A3]',
-    cardClass: 'border-[#C7D2FE] bg-[#EEF2FF]/50 text-ink',
-    pillBgClass: 'bg-[#4338CA] text-white',
-    avatarBgClass: 'bg-[#4338CA] text-white ring-2 ring-[#EEF2FF]',
+    badgeClass: 'border-accent-200 bg-accent-soft text-accent-ink',
+    cardClass: 'border-accent-200 bg-accent-soft/50 text-ink',
+    pillBgClass: 'bg-accent text-white',
+    avatarBgClass: 'bg-accent text-white ring-2 ring-accent-soft',
   },
 };
 

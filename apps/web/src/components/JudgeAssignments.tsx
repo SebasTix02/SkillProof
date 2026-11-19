@@ -66,7 +66,7 @@ export function JudgeAssignments({ eventId, submissions }: { eventId: string; su
       title="Judge Assignments"
       subtitle="Choose who reviews which submission. Judges score them in their own workspace, apart from the AI."
       sectionTag={`${assigned.data?.assignments.length ?? 0} ASSIGNMENTS`}
-      theme="indigo"
+      theme="accent"
     >
       {judges.loading || assigned.loading ? (
         <SkeletonTable rows={3} cols={3} />
