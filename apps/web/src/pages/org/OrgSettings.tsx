@@ -1,5 +1,5 @@
-import { useMemo, useState, type FormEvent } from 'react';
-import { Link } from 'react-router-dom';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import {
   Button,
   CommandConsoleHeader,
@@ -228,6 +228,21 @@ export function OrgSettings() {
     URL.revokeObjectURL(url);
     toast.success(`Audit trail exported (${entries.length} entries).`);
   }
+
+  // The side menu links to a section of this page (#section-roster, #section-usage, #section-enclave).
+  const { hash } = useLocation();
+  useEffect(() => {
+    const tabs: Record<string, typeof activeTab> = {
+      '#section-roster': 'members',
+      '#section-usage': 'telemetry',
+      '#section-dispatch-queue': 'invitations',
+      '#section-enclave': 'enclave',
+    };
+    const tab = tabs[hash];
+    if (!tab || !org) return;
+    setActiveTab(tab);
+    document.getElementById(hash.slice(1))?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [hash, org]);
 
   function jumpToSection(tab: typeof activeTab, elementId: string) {
     setActiveTab(tab);

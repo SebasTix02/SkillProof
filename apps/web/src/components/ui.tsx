@@ -1,6 +1,7 @@
 import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode, SelectHTMLAttributes, TextareaHTMLAttributes } from 'react';
-import { Link, NavLink, useLocation } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
+import { AppShell, Logo } from './AppShell';
 
 const cx = (...parts: (string | false | null | undefined)[]) => parts.filter(Boolean).join(' ');
 
@@ -129,62 +130,37 @@ export function PageState({ loading, error }: { loading: boolean; error: string 
   return null;
 }
 
+/** Pages that keep the public header even when signed in. */
+const PUBLIC_PATHS = ['/', '/login', '/signup', '/forgot-password', '/reset-password', '/auth/callback'];
+
+/**
+ * Signed in: the app shell with the side menu (AppShell). Signed out, and on the landing and sign-in pages: a simple
+ * public header.
+ */
 export function Layout({ children }: { children: ReactNode }) {
-  const { session, me, org, signOut } = useAuth();
+  const { session, signOut } = useAuth();
   const location = useLocation();
   const isLanding = location.pathname === '/';
 
-  const nav = ({ isActive }: { isActive: boolean }) =>
-    cx(
-      'rounded-[4px] px-2.5 py-1 text-[13px] transition-colors',
-      isActive ? 'bg-accent-soft font-semibold text-accent' : 'font-medium text-muted hover:bg-paper hover:text-ink',
-    );
+  if (session && !PUBLIC_PATHS.includes(location.pathname)) return <AppShell>{children}</AppShell>;
 
   return (
     <div className="min-h-screen bg-paper text-ink">
       <header className="no-print sticky top-0 z-50 h-14 border-b border-line bg-white">
         <div className="mx-auto flex h-full max-w-[1240px] items-center justify-between gap-4 px-4 sm:px-6">
           <div className="flex items-center gap-3 sm:gap-4">
-            <Link to="/" className="group flex items-center gap-2.5">
-              <div className="flex h-7 w-7 items-center justify-center rounded-[4px] border border-line bg-white transition-colors group-hover:border-accent">
-                <svg className="h-4 w-4 text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <polyline points="20 6 9 17 4 12" />
-                </svg>
-              </div>
-              <span className="font-serif-heading text-[18px] font-semibold tracking-tight text-ink">SkillProof</span>
-            </Link>
-
+            <Logo />
             <span className="hidden h-4 w-[1px] bg-line sm:inline-block" />
-
             <div className="hidden items-center gap-2 md:flex">
               <span className="status-dot-live bg-good text-good" />
               <span className="font-mono-code text-[11px] tracking-wider text-muted uppercase">
                 Commit-frozen judging // Gemini AI
               </span>
             </div>
-
-            {session && (
-              <>
-                <span className="hidden h-4 w-[1px] bg-line md:inline-block" />
-                <nav className="flex flex-wrap items-center gap-1" aria-label="Main">
-                  <NavLink to="/events" className={nav}>
-                    Events
-                  </NavLink>
-                  <NavLink to="/interview/new" className={nav}>
-                    Interviews
-                  </NavLink>
-                  {org && (
-                    <NavLink to="/org/events" className={nav}>
-                      {org.name}
-                    </NavLink>
-                  )}
-                </nav>
-              </>
-            )}
           </div>
 
           <div className="flex items-center gap-2.5 sm:gap-3">
-            {!session && isLanding && (
+            {isLanding && (
               <nav className="mr-2 hidden items-center gap-5 text-[13px] font-medium text-muted lg:flex" aria-label="Sections">
                 <a href="#specimen" className="transition-colors hover:text-accent">
                   Forensic AST
@@ -200,18 +176,10 @@ export function Layout({ children }: { children: ReactNode }) {
 
             {session ? (
               <>
-                <NavLink
-                  to="/me"
-                  className={({ isActive }) =>
-                    cx(
-                      'font-mono-code inline-flex items-center gap-1.5 rounded-[3px] border px-2.5 py-1 text-[11px] font-medium transition-colors',
-                      isActive ? 'border-accent bg-accent-soft text-accent' : 'border-line bg-paper text-ink hover:border-muted',
-                    )
-                  }
-                >
-                  <span className="h-1.5 w-1.5 rounded-full bg-good" />
-                  <span>{me?.profile.display_name || 'Account'}</span>
-                </NavLink>
+                <Link to="/events" className={cx(linkButton, 'px-3.5 py-1.5 text-[12px]')}>
+                  <span>Open app</span>
+                  <span className="arrow-nudge font-mono-code text-[11px]">→</span>
+                </Link>
                 <button
                   type="button"
                   onClick={() => void signOut()}
