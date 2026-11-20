@@ -1,4 +1,4 @@
-import { CreateInterviewSchema, FinishInterviewSchema, describeFocusEvents, INTERVIEW_SECONDS, MAX_INTERVIEW_PAUSE_MS, parseGithubUrl, type QuestionPlan } from '@skillproof/shared';
+import { CreateInterviewSchema, FinishInterviewSchema, describeFocusEvents, MAX_INTERVIEW_PAUSE_MS, parseGithubUrl, type QuestionPlan } from '@skillproof/shared';
 import type { FastifyInstance } from 'fastify';
 import { env } from '../env.js';
 import { resolveRepo, type HookSnippet } from '../engine/analyze.js';
@@ -7,20 +7,34 @@ import { badRequest, conflict, forbidden, notFound, tooMany } from '../lib/error
 import { IdParams, parse } from '../lib/http.js';
 import { getHeadSha } from '../lib/github.js';
 import { db, must } from '../lib/supabase.js';
-import { answerKey, createLiveToken, oneInterviewPerCommit, publicQuestions, type ExistingInterview, type InterviewRow } from '../services/interviews.js';
+import { INTERVIEW_SPECS, type InterviewSpecKey } from '../services/interviewSpecs.js';
+import {
+  answerKey, createLiveToken, interviewSpecFor, oneInterviewPerCommit, publicQuestions, type ExistingInterview, type InterviewRow,
+} from '../services/interviews.js';
 import { primaryModels } from '../lib/models.js';
 import { enqueue } from '../services/queue.js';
 
 const PERSONAL_PER_DAY = 5;
 // A dropped connection can be reopened for as long as the interview could still be running, pauses included.
-const TOKEN_RETRY_WINDOW_MS = INTERVIEW_SECONDS * 1000 + MAX_INTERVIEW_PAUSE_MS;
+const tokenRetryWindowMs = (seconds: number) => seconds * 1000 + MAX_INTERVIEW_PAUSE_MS;
 
-type InterviewWithRepo = InterviewRow & { repos: { owner: string; name: string; url: string } };
+type InterviewWithRepo = InterviewRow & {
+  repos: { owner: string; name: string; url: string };
+  assignment_submissions: { group_id: string | null } | null;
+};
 
 async function getInterview(id: string): Promise<InterviewWithRepo> {
-  const row = must(await db().from('interviews').select('*, repos(owner, name, url)').eq('id', id).maybeSingle()) as InterviewWithRepo | null;
+  const row = must(
+    await db().from('interviews').select('*, repos(owner, name, url), assignment_submissions(group_id)').eq('id', id).maybeSingle(),
+  ) as InterviewWithRepo | null;
   if (!row) throw notFound('Interview not found');
   return row;
+}
+
+/** Hackathon length for personal and event interviews; course specs for an assignment submission. */
+function specOf(row: InterviewWithRepo): InterviewSpecKey {
+  if (!row.assignment_submission_id) return 'hackathon';
+  return interviewSpecFor(row.assignment_submissions?.group_id ? 'group' : 'individual');
 }
 
 async function planAndHooks(row: InterviewRow): Promise<{ plan: QuestionPlan; hooks: HookSnippet[] }> {
@@ -51,6 +65,7 @@ export async function interviewRoutes(app: FastifyInstance): Promise<void> {
     let repoId: string;
     let commitSha: string;
     let submissionId: string | null = null;
+    let assignmentSubmissionId: string | null = null;
     let organizationId: string | null = null;
 
     if (input.submission_id) {
@@ -77,6 +92,39 @@ export async function interviewRoutes(app: FastifyInstance): Promise<void> {
       commitSha = sub.locked_commit_sha;
       submissionId = sub.id;
       organizationId = sub.organization_id;
+    } else if (input.assignment_submission_id) {
+      // A course assignment: the student, or each member of the group, takes their own interview.
+      const sub = must(
+        await db()
+          .from('assignment_submissions')
+          .select(
+            'id, student_id, group_id, organization_id, locked_commit_sha, course_assignments(interviews_enabled, status), ' +
+              'current_version:assignment_submission_versions!assignment_submissions_current_version_fk(repo_id)',
+          )
+          .eq('id', input.assignment_submission_id)
+          .maybeSingle(),
+      ) as unknown as {
+        id: string; student_id: string | null; group_id: string | null; organization_id: string; locked_commit_sha: string | null;
+        course_assignments: { interviews_enabled: boolean; status: string }; current_version: { repo_id: string } | null;
+      } | null;
+      if (!sub) throw notFound('Submission not found');
+      const mine = sub.student_id
+        ? sub.student_id === user.id
+        : !!must(
+            await db().from('assignment_group_members').select('user_id').eq('group_id', sub.group_id!).eq('user_id', user.id).eq('status', 'accepted').maybeSingle(),
+          );
+      if (!mine) throw notFound('Submission not found');
+      if (!sub.course_assignments.interviews_enabled) throw forbidden('Interviews are not enabled for this assignment.');
+      if (!sub.locked_commit_sha || !sub.current_version || !['review', 'published'].includes(sub.course_assignments.status))
+        throw conflict('not_ready', 'The interview opens once the assignment has been graded.');
+      const existing = must(
+        await db().from('interviews').select('id, status').eq('assignment_submission_id', sub.id).eq('user_id', user.id).neq('status', 'error').maybeSingle(),
+      ) as { id: string; status: string } | null;
+      if (existing) return { interview: existing };
+      repoId = sub.current_version.repo_id;
+      commitSha = sub.locked_commit_sha;
+      assignmentSubmissionId = sub.id;
+      organizationId = sub.organization_id;
     } else {
       const ref = parseGithubUrl(input.repo_url!);
       if (!ref) throw badRequest('invalid_repo', 'Use a public GitHub repository URL.');
@@ -86,6 +134,7 @@ export async function interviewRoutes(app: FastifyInstance): Promise<void> {
         .select('id', { count: 'exact', head: true })
         .eq('user_id', user.id)
         .is('submission_id', null)
+        .is('assignment_submission_id', null)
         .gte('created_at', since);
       if ((count ?? 0) >= PERSONAL_PER_DAY) throw tooMany(`You can start ${PERSONAL_PER_DAY} personal interviews per day.`);
       const { repo, meta } = await resolveRepo(ref.owner, ref.name);
@@ -101,7 +150,14 @@ export async function interviewRoutes(app: FastifyInstance): Promise<void> {
 
     const inserted = await db()
       .from('interviews')
-      .insert({ user_id: user.id, repo_id: repoId, commit_sha: commitSha, submission_id: submissionId, organization_id: organizationId })
+      .insert({
+        user_id: user.id,
+        repo_id: repoId,
+        commit_sha: commitSha,
+        submission_id: submissionId,
+        assignment_submission_id: assignmentSubmissionId,
+        organization_id: organizationId,
+      })
       .select('id, status')
       .single();
     if (inserted.error) {
@@ -123,7 +179,7 @@ export async function interviewRoutes(app: FastifyInstance): Promise<void> {
     const rows = must(
       await db()
         .from('interviews')
-        .select('id, status, error, submission_id, created_at, duration_s, repos(owner, name, url), interview_reports(ownership_score, confidence)')
+        .select('id, status, error, submission_id, assignment_submission_id, created_at, duration_s, repos(owner, name, url), interview_reports(ownership_score, confidence)')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(50),
@@ -153,6 +209,8 @@ export async function interviewRoutes(app: FastifyInstance): Promise<void> {
         status: row.status,
         error: row.error,
         submission_id: row.submission_id,
+        assignment_submission_id: row.assignment_submission_id ?? null,
+        spec: specOf(row),
         started_at: row.started_at,
         duration_s: row.duration_s,
         created_at: row.created_at,
@@ -166,7 +224,7 @@ export async function interviewRoutes(app: FastifyInstance): Promise<void> {
       },
       // Steps only: interview jobs never record the model's reasoning, which would reveal the answer key.
       activity: (row.activity_json ?? []).filter((a) => a.kind !== 'thought'),
-      seconds: INTERVIEW_SECONDS,
+      seconds: INTERVIEW_SPECS[specOf(row)].seconds,
       // The answer key never leaves the server.
       questions: plan ? publicQuestions(plan, hooks) : [],
       transcript: row.status === 'completed' ? row.transcript_json : null,
@@ -182,18 +240,20 @@ export async function interviewRoutes(app: FastifyInstance): Promise<void> {
     const user = await requireUser(req);
     const row = await getInterview(parse(IdParams, req.params).id);
     if (row.user_id !== user.id) throw notFound('Interview not found');
-    const retry = row.status === 'in_progress' && !!row.started_at && Date.now() - Date.parse(row.started_at) < TOKEN_RETRY_WINDOW_MS;
+    const spec = specOf(row);
+    const seconds = INTERVIEW_SPECS[spec].seconds;
+    const retry = row.status === 'in_progress' && !!row.started_at && Date.now() - Date.parse(row.started_at) < tokenRetryWindowMs(seconds);
     if (row.status !== 'ready' && !retry) throw conflict('not_ready', 'This interview cannot be started.');
 
     const { plan } = await planAndHooks(row);
-    const live = await createLiveToken(plan, `${row.repos.owner}/${row.repos.name}`);
+    const live = await createLiveToken(plan, `${row.repos.owner}/${row.repos.name}`, spec);
     if (row.status === 'ready') {
       const claimed = must(
         await db().from('interviews').update({ status: 'in_progress', started_at: new Date().toISOString() }).eq('id', row.id).eq('status', 'ready').select('id'),
       ) as { id: string }[];
       if (claimed.length === 0) throw conflict('already_started', 'This interview was already started in another tab.');
     }
-    return { ...live, seconds: INTERVIEW_SECONDS, api_version: env().LIVE_TOKEN_API_VERSION };
+    return { ...live, seconds, api_version: env().LIVE_TOKEN_API_VERSION };
   });
 
   app.post('/api/interviews/:id/finish', async (req) => {

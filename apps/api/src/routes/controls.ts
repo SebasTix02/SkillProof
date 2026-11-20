@@ -2,142 +2,57 @@ import type { ActivityEntry } from '@skillproof/shared';
 import type { FastifyInstance } from 'fastify';
 import { Activity } from '../lib/activity.js';
 import { audit } from '../lib/audit.js';
-import { requirePermission, requireUser } from '../lib/auth.js';
+import { requirePermission, requireUser, type AuthUser } from '../lib/auth.js';
 import { actorName } from '../lib/control.js';
 import { conflict, notFound } from '../lib/errors.js';
 import { clockUtc } from '../lib/gemini.js';
 import { IdParams, parse } from '../lib/http.js';
 import { db, must } from '../lib/supabase.js';
-import { settleEvent } from '../services/judge.js';
+import { ASSIGNMENT_STORE, EVENT_STORE, type ContestStore } from '../services/contest.js';
+import { settleContest } from '../services/judge.js';
 import { dispatchJudging } from '../services/judgeQueue.js';
 import { enqueue } from '../services/queue.js';
 
-type Table = 'submissions' | 'interviews';
+type Table = 'submissions' | 'assignment_submissions' | 'interviews';
 
 /** Adds one line to a row's activity history, keeping what is there. */
 async function note(table: Table, id: string, kind: ActivityEntry['kind'], text: string): Promise<void> {
   const row = must(await db().from(table).select('activity_json, models_used').eq('id', id).maybeSingle()) as { activity_json: ActivityEntry[]; models_used: string[] } | null;
-  const activity = new Activity(table, id, table === 'submissions', row?.activity_json ?? [], row?.models_used ?? []);
+  const activity = new Activity(table, id, table !== 'interviews', row?.activity_json ?? [], row?.models_used ?? []);
   await activity.add(kind, text);
 }
 
 const by = async (userId: string, verb: string) => `${verb} by ${await actorName(userId, 'the organizer')} at ${clockUtc(Date.now())}.`;
 
-interface SubRef {
-  id: string;
-  event_id: string;
-  organization_id: string;
-  status: string;
+const CANCELED = 'Judging was canceled. Use "Judge again" to start over.';
+
+/** Where the judging controls of each kind of contest live, and who may use them. */
+export interface JudgingRoutes {
+  store: ContestStore;
+  /** URL prefix of one submission and of one contest. */
+  submissionPath: string;
+  contestPath: string;
+  permission: 'event.manage' | 'course.manage';
+  /** Word used in the activity log, the audit actions and the errors. */
+  noun: 'event' | 'assignment';
+  submissionSubject: 'submission' | 'assignment_submission';
 }
 
-async function submission(id: string): Promise<SubRef> {
-  const s = must(await db().from('submissions').select('id, event_id, organization_id, status').eq('id', id).maybeSingle()) as SubRef | null;
-  if (!s) throw notFound('Submission not found');
-  return s;
-}
+export const JUDGING_ROUTES: JudgingRoutes[] = [
+  { store: EVENT_STORE, submissionPath: '/api/submissions', contestPath: '/api/events', permission: 'event.manage', noun: 'event', submissionSubject: 'submission' },
+  {
+    store: ASSIGNMENT_STORE,
+    submissionPath: '/api/assignment-submissions',
+    contestPath: '/api/assignments',
+    permission: 'course.manage',
+    noun: 'assignment',
+    submissionSubject: 'assignment_submission',
+  },
+];
 
-/** Pause, resume and cancel for judging (one submission or a whole event) and for interview jobs. */
+/** Pause, resume and cancel for judging (one submission or a whole event or assignment) and for interview jobs. */
 export async function controlRoutes(app: FastifyInstance): Promise<void> {
-  // ---- judging one submission ----
-
-  app.post('/api/submissions/:id/pause', async (req) => {
-    const user = await requireUser(req);
-    const sub = await submission(parse(IdParams, req.params).id);
-    requirePermission(user, 'event.manage', sub.organization_id);
-    const done = must(await db().from('submissions').update({ status: 'paused' }).eq('id', sub.id).in('status', ['queued', 'analyzing']).select('id')) as unknown[];
-    if (done.length === 0) throw conflict('not_running', 'Only a submission that is queued or being judged can be paused.');
-    await note('submissions', sub.id, 'retry', await by(user.id, 'Paused'));
-    await audit({ organizationId: sub.organization_id, actorId: user.id, action: 'judging.paused', subjectType: 'submission', subjectId: sub.id });
-    return { ok: true };
-  });
-
-  app.post('/api/submissions/:id/resume', async (req) => {
-    const user = await requireUser(req);
-    const sub = await submission(parse(IdParams, req.params).id);
-    requirePermission(user, 'event.manage', sub.organization_id);
-    const done = must(await db().from('submissions').update({ status: 'queued', next_attempt_at: null }).eq('id', sub.id).eq('status', 'paused').select('id')) as unknown[];
-    if (done.length === 0) throw conflict('not_paused', 'This submission is not paused.');
-    await note('submissions', sub.id, 'step', await by(user.id, 'Resumed'));
-    await audit({ organizationId: sub.organization_id, actorId: user.id, action: 'judging.resumed', subjectType: 'submission', subjectId: sub.id });
-    await dispatchJudging();
-    return { ok: true };
-  });
-
-  app.post('/api/submissions/:id/cancel', async (req) => {
-    const user = await requireUser(req);
-    const sub = await submission(parse(IdParams, req.params).id);
-    requirePermission(user, 'event.manage', sub.organization_id);
-    const done = must(
-      await db()
-        .from('submissions')
-        .update({ status: 'canceled', error: 'Judging was canceled. Use "Judge again" to start over.' })
-        .eq('id', sub.id)
-        .in('status', ['queued', 'analyzing', 'paused'])
-        .select('id'),
-    ) as unknown[];
-    if (done.length === 0) throw conflict('not_running', 'Only a submission that is queued, being judged or paused can be canceled.');
-    await note('submissions', sub.id, 'error', await by(user.id, 'Canceled'));
-    await audit({ organizationId: sub.organization_id, actorId: user.id, action: 'judging.canceled', subjectType: 'submission', subjectId: sub.id });
-    await settleEvent(sub.event_id);
-    await dispatchJudging();
-    return { ok: true };
-  });
-
-  // ---- judging a whole event ----
-
-  async function managedEvent(id: string, userId: string, grants: Parameters<typeof requirePermission>[0]) {
-    const e = must(await db().from('events').select('id, organization_id, status, judging_paused_at').eq('id', id).maybeSingle()) as
-      | { id: string; organization_id: string; status: string; judging_paused_at: string | null }
-      | null;
-    if (!e) throw notFound('Event not found');
-    requirePermission(grants, 'event.manage', e.organization_id);
-    if (e.status !== 'judging') throw conflict('not_judging', 'The event is not being judged.');
-    void userId;
-    return e;
-  }
-
-  app.post('/api/events/:id/judging/pause', async (req) => {
-    const user = await requireUser(req);
-    const e = await managedEvent(parse(IdParams, req.params).id, user.id, user);
-    must(await db().from('events').update({ judging_paused_at: new Date().toISOString(), judging_paused_by: user.id }).eq('id', e.id));
-    const paused = must(await db().from('submissions').update({ status: 'paused' }).eq('event_id', e.id).in('status', ['queued', 'analyzing']).select('id')) as { id: string }[];
-    const text = await by(user.id, 'Judging of the whole event paused');
-    for (const s of paused) await note('submissions', s.id, 'retry', text);
-    await audit({ organizationId: e.organization_id, actorId: user.id, action: 'judging.event_paused', subjectType: 'event', subjectId: e.id, detail: { submissions: paused.length } });
-    return { paused: paused.length };
-  });
-
-  app.post('/api/events/:id/judging/resume', async (req) => {
-    const user = await requireUser(req);
-    const e = await managedEvent(parse(IdParams, req.params).id, user.id, user);
-    must(await db().from('events').update({ judging_paused_at: null, judging_paused_by: null }).eq('id', e.id));
-    const resumed = must(await db().from('submissions').update({ status: 'queued', next_attempt_at: null }).eq('event_id', e.id).eq('status', 'paused').select('id')) as { id: string }[];
-    const text = await by(user.id, 'Judging of the whole event resumed');
-    for (const s of resumed) await note('submissions', s.id, 'step', text);
-    await audit({ organizationId: e.organization_id, actorId: user.id, action: 'judging.event_resumed', subjectType: 'event', subjectId: e.id, detail: { submissions: resumed.length } });
-    await dispatchJudging();
-    return { resumed: resumed.length };
-  });
-
-  /** Cancels what is not judged yet; the event moves to review, and canceled ones can be judged again later. */
-  app.post('/api/events/:id/judging/cancel', async (req) => {
-    const user = await requireUser(req);
-    const e = await managedEvent(parse(IdParams, req.params).id, user.id, user);
-    const canceled = must(
-      await db()
-        .from('submissions')
-        .update({ status: 'canceled', error: 'Judging was canceled. Use "Judge again" to start over.' })
-        .eq('event_id', e.id)
-        .in('status', ['queued', 'analyzing', 'paused'])
-        .select('id'),
-    ) as { id: string }[];
-    const text = await by(user.id, 'Judging of the whole event canceled');
-    for (const s of canceled) await note('submissions', s.id, 'error', text);
-    must(await db().from('events').update({ judging_paused_at: null, judging_paused_by: null }).eq('id', e.id));
-    await settleEvent(e.id);
-    await audit({ organizationId: e.organization_id, actorId: user.id, action: 'judging.event_canceled', subjectType: 'event', subjectId: e.id, detail: { submissions: canceled.length } });
-    return { canceled: canceled.length };
-  });
+  for (const r of JUDGING_ROUTES) judgingControls(app, r);
 
   // ---- interviews (the candidate's own) ----
 
@@ -180,5 +95,112 @@ export async function controlRoutes(app: FastifyInstance): Promise<void> {
     await note('interviews', row.id, 'step', `Writing the report again at ${clockUtc(Date.now())}.`);
     await enqueue('interview-evaluate', row.id);
     return { status: 'evaluating' };
+  });
+}
+
+/** The same six judging controls for events and for course assignments, each on its own tables and URLs. */
+function judgingControls(app: FastifyInstance, r: JudgingRoutes): void {
+  const { store } = r;
+
+  async function submission(id: string) {
+    const s = must(await db().from(store.submissions).select(`id, ${store.contestFk}, organization_id, status`).eq('id', id).maybeSingle()) as
+      | (Record<string, string> & { id: string; organization_id: string; status: string })
+      | null;
+    if (!s) throw notFound('Submission not found');
+    return { ...s, contest_id: s[store.contestFk]! };
+  }
+
+  // ---- judging one submission ----
+
+  app.post(`${r.submissionPath}/:id/pause`, async (req) => {
+    const user = await requireUser(req);
+    const sub = await submission(parse(IdParams, req.params).id);
+    requirePermission(user, r.permission, sub.organization_id);
+    const done = must(await db().from(store.submissions).update({ status: 'paused' }).eq('id', sub.id).in('status', ['queued', 'analyzing']).select('id')) as unknown[];
+    if (done.length === 0) throw conflict('not_running', 'Only a submission that is queued or being judged can be paused.');
+    await note(store.submissions, sub.id, 'retry', await by(user.id, 'Paused'));
+    await audit({ organizationId: sub.organization_id, actorId: user.id, action: 'judging.paused', subjectType: r.submissionSubject, subjectId: sub.id });
+    return { ok: true };
+  });
+
+  app.post(`${r.submissionPath}/:id/resume`, async (req) => {
+    const user = await requireUser(req);
+    const sub = await submission(parse(IdParams, req.params).id);
+    requirePermission(user, r.permission, sub.organization_id);
+    const done = must(await db().from(store.submissions).update({ status: 'queued', next_attempt_at: null }).eq('id', sub.id).eq('status', 'paused').select('id')) as unknown[];
+    if (done.length === 0) throw conflict('not_paused', 'This submission is not paused.');
+    await note(store.submissions, sub.id, 'step', await by(user.id, 'Resumed'));
+    await audit({ organizationId: sub.organization_id, actorId: user.id, action: 'judging.resumed', subjectType: r.submissionSubject, subjectId: sub.id });
+    await dispatchJudging();
+    return { ok: true };
+  });
+
+  app.post(`${r.submissionPath}/:id/cancel`, async (req) => {
+    const user = await requireUser(req);
+    const sub = await submission(parse(IdParams, req.params).id);
+    requirePermission(user, r.permission, sub.organization_id);
+    const done = must(
+      await db().from(store.submissions).update({ status: 'canceled', error: CANCELED }).eq('id', sub.id).in('status', ['queued', 'analyzing', 'paused']).select('id'),
+    ) as unknown[];
+    if (done.length === 0) throw conflict('not_running', 'Only a submission that is queued, being judged or paused can be canceled.');
+    await note(store.submissions, sub.id, 'error', await by(user.id, 'Canceled'));
+    await audit({ organizationId: sub.organization_id, actorId: user.id, action: 'judging.canceled', subjectType: r.submissionSubject, subjectId: sub.id });
+    await settleContest(store, sub.contest_id);
+    await dispatchJudging();
+    return { ok: true };
+  });
+
+  // ---- judging a whole contest ----
+
+  async function judgingContest(id: string, user: AuthUser) {
+    const c = must(await db().from(store.contests).select('id, organization_id, status, judging_paused_at').eq('id', id).maybeSingle()) as
+      | { id: string; organization_id: string; status: string; judging_paused_at: string | null }
+      | null;
+    if (!c) throw notFound(r.noun === 'event' ? 'Event not found' : 'Assignment not found');
+    requirePermission(user, r.permission, c.organization_id);
+    if (c.status !== 'judging') throw conflict('not_judging', `The ${r.noun} is not being judged.`);
+    return c;
+  }
+
+  app.post(`${r.contestPath}/:id/judging/pause`, async (req) => {
+    const user = await requireUser(req);
+    const c = await judgingContest(parse(IdParams, req.params).id, user);
+    must(await db().from(store.contests).update({ judging_paused_at: new Date().toISOString(), judging_paused_by: user.id }).eq('id', c.id));
+    const paused = must(
+      await db().from(store.submissions).update({ status: 'paused' }).eq(store.contestFk, c.id).in('status', ['queued', 'analyzing']).select('id'),
+    ) as { id: string }[];
+    const text = await by(user.id, `Judging of the whole ${r.noun} paused`);
+    for (const s of paused) await note(store.submissions, s.id, 'retry', text);
+    await audit({ organizationId: c.organization_id, actorId: user.id, action: `judging.${r.noun}_paused`, subjectType: r.noun, subjectId: c.id, detail: { submissions: paused.length } });
+    return { paused: paused.length };
+  });
+
+  app.post(`${r.contestPath}/:id/judging/resume`, async (req) => {
+    const user = await requireUser(req);
+    const c = await judgingContest(parse(IdParams, req.params).id, user);
+    must(await db().from(store.contests).update({ judging_paused_at: null, judging_paused_by: null }).eq('id', c.id));
+    const resumed = must(
+      await db().from(store.submissions).update({ status: 'queued', next_attempt_at: null }).eq(store.contestFk, c.id).eq('status', 'paused').select('id'),
+    ) as { id: string }[];
+    const text = await by(user.id, `Judging of the whole ${r.noun} resumed`);
+    for (const s of resumed) await note(store.submissions, s.id, 'step', text);
+    await audit({ organizationId: c.organization_id, actorId: user.id, action: `judging.${r.noun}_resumed`, subjectType: r.noun, subjectId: c.id, detail: { submissions: resumed.length } });
+    await dispatchJudging();
+    return { resumed: resumed.length };
+  });
+
+  /** Cancels what is not judged yet; the contest moves to review, and canceled ones can be judged again later. */
+  app.post(`${r.contestPath}/:id/judging/cancel`, async (req) => {
+    const user = await requireUser(req);
+    const c = await judgingContest(parse(IdParams, req.params).id, user);
+    const canceled = must(
+      await db().from(store.submissions).update({ status: 'canceled', error: CANCELED }).eq(store.contestFk, c.id).in('status', ['queued', 'analyzing', 'paused']).select('id'),
+    ) as { id: string }[];
+    const text = await by(user.id, `Judging of the whole ${r.noun} canceled`);
+    for (const s of canceled) await note(store.submissions, s.id, 'error', text);
+    must(await db().from(store.contests).update({ judging_paused_at: null, judging_paused_by: null }).eq('id', c.id));
+    await settleContest(store, c.id);
+    await audit({ organizationId: c.organization_id, actorId: user.id, action: `judging.${r.noun}_canceled`, subjectType: r.noun, subjectId: c.id, detail: { submissions: canceled.length } });
+    return { canceled: canceled.length };
   });
 }

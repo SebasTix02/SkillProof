@@ -37,24 +37,6 @@ export const CreateEventSchema = z
   });
 export type CreateEventInput = z.infer<typeof CreateEventSchema>;
 
-/**
- * A course assignment. Not an event: no visibility, access code or allowlist. Access is fixed to the students on the
- * course roster (synced by the database), and it is created under its course.
- */
-export const CreateAssignmentSchema = z
-  .object({
-    title: z.string().min(3).max(120),
-    instructions: z.string().max(4000).default(''),
-    opens_at: z.iso.datetime({ offset: true }),
-    due_at: z.iso.datetime({ offset: true }),
-    max_submissions: z.number().int().min(1).max(100).nullable().default(null),
-    interviews_enabled: z.boolean().default(false),
-    rubric: RubricSchema,
-    publish: z.boolean().default(true).describe('Open it to the roster right away instead of leaving it as a draft'),
-  })
-  .refine((a) => Date.parse(a.due_at) > Date.parse(a.opens_at), { message: 'The due date must be after it opens', path: ['due_at'] });
-export type CreateAssignmentInput = z.infer<typeof CreateAssignmentSchema>;
-
 export const JoinEventSchema = z.object({ access_code: z.string().max(64).optional() });
 
 export const SubmitSchema = z.object({
@@ -71,8 +53,13 @@ export const AllowlistSchema = z.object({ emails: z.array(z.email().max(254)).mi
 export const OverrideScoreSchema = z.object({ override_score: z.number().int().min(1).max(10).nullable() });
 
 export const CreateInterviewSchema = z
-  .object({ repo_url: z.string().regex(GITHUB_REPO_URL).optional(), submission_id: z.uuid().optional() })
-  .refine((v) => !!v.repo_url !== !!v.submission_id, 'Give either a repo URL or a submission');
+  .object({
+    repo_url: z.string().regex(GITHUB_REPO_URL).optional(),
+    submission_id: z.uuid().optional(),
+    /** A course assignment submission: each student (each group member) takes their own interview. */
+    assignment_submission_id: z.uuid().optional(),
+  })
+  .refine((v) => [v.repo_url, v.submission_id, v.assignment_submission_id].filter(Boolean).length === 1, 'Give a repo URL, a submission or an assignment submission');
 
 /** How many more versions a participant may send. null = unlimited. */
 export function submissionsLeft(maxSubmissions: number | null, used: number): number | null {

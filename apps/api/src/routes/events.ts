@@ -25,8 +25,7 @@ interface EventRow {
   description: string;
   starts_at: string;
   submission_deadline: string;
-  visibility: 'public' | 'code' | 'invite' | 'course';
-  course_id?: string | null;
+  visibility: 'public' | 'code' | 'invite';
   access_code_hash: string | null;
   interviews_enabled: boolean;
   max_submissions: number | null;
@@ -72,7 +71,7 @@ interface ScoreRow {
   override_score: number | null;
 }
 
-/** Submissions of an event (or course assignment) with their scores and totals, best first. */
+/** Submissions of an event with their scores and totals, best first. */
 export async function leaderboard(event: EventRow) {
   const rubric = RubricSchema.parse(event.rubric_json) as Rubric;
   const subs = must(
@@ -118,7 +117,6 @@ export async function eventRoutes(app: FastifyInstance): Promise<void> {
     const user = await requireUser(req);
     const { id: orgId } = parse(IdParams, req.params);
     requirePermission(user, 'event.create', orgId);
-    // Course assignments are created under their course (POST /api/courses/:id/assignments), never here.
     const input = parse(CreateEventSchema, req.body);
     const row = must(
       await db()
@@ -149,22 +147,19 @@ export async function eventRoutes(app: FastifyInstance): Promise<void> {
     const user = await requireUser(req);
     const { id: orgId } = parse(IdParams, req.params);
     if (!memberOf(user, orgId)) throw forbidden();
-    // Events only; ?include=assignments adds course assignments (the integrity review covers both).
-    const withAssignments = (req.query as { include?: string }).include === 'assignments';
-    let query = db()
-      .from('events')
-      .select('*, organizations(name, slug), courses(name), submissions(count), event_participants(count)')
-      .eq('organization_id', orgId);
-    if (!withAssignments) query = query.eq('kind', 'hackathon');
-    const rows = must(await query.order('created_at', { ascending: false })) as unknown as (EventRow & {
-      courses: { name: string } | null;
+    const rows = must(
+      await db()
+        .from('events')
+        .select('*, organizations(name, slug), submissions(count), event_participants(count)')
+        .eq('organization_id', orgId)
+        .order('created_at', { ascending: false }),
+    ) as unknown as (EventRow & {
       submissions: { count: number }[];
       event_participants: { count: number }[];
     })[];
     return {
-      events: rows.map(({ submissions, event_participants, courses, ...e }) => ({
+      events: rows.map(({ submissions, event_participants, ...e }) => ({
         ...publicEvent(e),
-        course_name: courses?.name ?? null,
         submission_count: submissions[0]?.count ?? 0,
         participant_count: event_participants[0]?.count ?? 0,
       })),
@@ -182,7 +177,6 @@ export async function eventRoutes(app: FastifyInstance): Promise<void> {
   app.post('/api/events/:id/allowlist', async (req) => {
     const user = await requireUser(req);
     const event = await managedEvent(parse(IdParams, req.params).id, user);
-    if (event.kind === 'assignment') throw conflict('assignment_access_is_the_roster', 'An assignment is for the students of its course. Edit the course roster instead.');
     const { emails } = parse(AllowlistSchema, req.body);
     const unique = [...new Set(emails.map((e) => e.trim().toLowerCase()))];
     must(
@@ -331,8 +325,7 @@ export async function eventRoutes(app: FastifyInstance): Promise<void> {
     const rows = must(
       await db().from('event_participants').select('joined_at, events(*, organizations(name, slug))').eq('user_id', user.id).order('joined_at', { ascending: false }),
     ) as unknown as { events: EventRow }[];
-    // Course assignments are listed under My courses, not here.
-    return { events: rows.filter((r) => r.events.kind !== 'assignment').map((r) => publicEvent(r.events)) };
+    return { events: rows.map((r) => publicEvent(r.events)) };
   });
 
   app.get('/api/events/by-slug/:slug', async (req) => {
@@ -343,8 +336,6 @@ export async function eventRoutes(app: FastifyInstance): Promise<void> {
     const manager = memberOf(user, event.organization_id);
     if (event.status === 'draft' && !manager) throw notFound('Event not found');
     const participant = await isParticipant(event.id, user.id);
-    // A course assignment exists only for its roster (participants are kept in sync with it by the database).
-    if (event.kind === 'assignment' && !manager && !participant) throw notFound('Event not found');
     // Someone holding the link to a private event sees enough to join, and nothing else.
     const full = manager || participant || event.visibility === 'public';
     const view = publicEvent(event);
@@ -360,8 +351,6 @@ export async function eventRoutes(app: FastifyInstance): Promise<void> {
     requirePermission(user, 'event.join');
     const event = await getEvent(parse(IdParams, req.params).id);
     const { access_code } = parse(JoinEventSchema, req.body);
-    if (event.kind === 'assignment')
-      throw forbidden('This assignment is only for the students of its course. Ask your instructor to add you to the roster.');
     if (event.status !== 'open' || Date.parse(event.submission_deadline) <= Date.now())
       throw conflict('event_closed', 'This event is not accepting participants.');
     if (await isParticipant(event.id, user.id)) return { joined: true };
