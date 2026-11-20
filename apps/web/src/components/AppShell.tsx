@@ -16,6 +16,8 @@ const ICON: Record<NavIcon, string> = {
   review: 'fact_check',
   plus: 'add_box',
   courses: 'school',
+  integrity: 'policy',
+  myCourses: 'local_library',
   members: 'group',
   usage: 'monitoring',
   audit: 'receipt_long',

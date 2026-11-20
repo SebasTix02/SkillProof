@@ -1,6 +1,6 @@
 import { StrictMode, type ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import { BrowserRouter, Navigate, Route, Routes, useLocation, useParams } from 'react-router-dom';
 import { ConfirmProvider } from './components/shared/ConfirmDialog';
 import { ToastProvider } from './components/toast';
 import { Layout, Notice, PageState } from './components/ui';
@@ -14,7 +14,10 @@ import { ExploreEvents } from './pages/ExploreEvents';
 import { InterviewHome } from './pages/InterviewHome';
 import { InterviewPage } from './pages/InterviewPage';
 import { Landing } from './pages/Landing';
-import { CourseMode } from './pages/org/CourseMode';
+import { IntegrityReview } from './pages/org/CourseMode';
+import { AssignmentConsole, AssignmentSubmissionPage } from './pages/org/AssignmentConsole';
+import { CoursePage, CoursesHome, NewAssignment } from './pages/org/Courses';
+import { MyAssignmentPage, MyCourse, MyCourses } from './pages/MyCourses';
 import { CreateEvent } from './pages/org/CreateEvent';
 import { EventConsole } from './pages/org/EventConsole';
 import { OrgEvents } from './pages/org/OrgEvents';
@@ -30,6 +33,12 @@ function Private({ children, organizer = false }: { children: ReactNode; organiz
   if (!session) return <Navigate to={`/login?next=${encodeURIComponent(location.pathname + location.search)}`} replace />;
   if (organizer && !org) return <Notice tone="error">This area is for organizers. Create an organizer account to run events.</Notice>;
   return <>{children}</>;
+}
+
+/** Old links to the per-event gradebook now open the integrity review of that event. */
+function GradebookRedirect() {
+  const { id } = useParams();
+  return <Navigate to={`/org/integrity/${id}`} replace />;
 }
 
 function App() {
@@ -52,12 +61,22 @@ function App() {
         <Route path="/interview/new" element={<Private><InterviewHome /></Private>} />
         <Route path="/interview/:id" element={<Private><InterviewPage /></Private>} />
         <Route path="/org/events" element={<Private organizer><OrgEvents /></Private>} />
-        <Route path="/org/courses" element={<Private organizer><CourseMode /></Private>} />
+        <Route path="/courses" element={<Private><MyCourses /></Private>} />
+        <Route path="/courses/:id" element={<Private><MyCourse /></Private>} />
+        <Route path="/courses/:id/a/:aid" element={<Private><MyAssignmentPage /></Private>} />
+        <Route path="/org/courses" element={<Private organizer><CoursesHome /></Private>} />
+        <Route path="/org/courses/:courseId" element={<Private organizer><CoursePage /></Private>} />
+        <Route path="/org/courses/:courseId/assignments/new" element={<Private organizer><NewAssignment /></Private>} />
+        <Route path="/org/courses/:courseId/assignments/:id" element={<Private organizer><AssignmentConsole /></Private>} />
+        <Route path="/org/courses/:courseId/assignments/:id/s/:sid" element={<Private organizer><AssignmentSubmissionPage /></Private>} />
+        <Route path="/org/courses/:courseId/:tab" element={<Private organizer><CoursePage /></Private>} />
+        <Route path="/org/integrity" element={<Private organizer><IntegrityReview /></Private>} />
+        <Route path="/org/integrity/:id" element={<Private organizer><IntegrityReview /></Private>} />
         <Route path="/org/settings" element={<Private organizer><OrgSettings /></Private>} />
         <Route path="/org/events/new" element={<Private organizer><CreateEvent /></Private>} />
         <Route path="/org/events/:id" element={<Private organizer><EventConsole /></Private>} />
         <Route path="/org/events/:id/compare" element={<Private organizer><SimilarityCompare /></Private>} />
-        <Route path="/org/events/:id/gradebook" element={<Private organizer><CourseMode /></Private>} />
+        <Route path="/org/events/:id/gradebook" element={<Private organizer><GradebookRedirect /></Private>} />
         <Route path="/org/events/:id/s/:sid" element={<Private organizer><SubmissionDetail /></Private>} />
         <Route path="*" element={<Notice tone="error">Page not found.</Notice>} />
       </Routes>

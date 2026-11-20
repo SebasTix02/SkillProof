@@ -57,6 +57,8 @@ export const CommitProfileSchema = z.object({
   first_commit_at: z.string().nullable(),
   last_commit_at: z.string().nullable(),
   commits_before_start: z.number().int().nullable(),
+  /** Commits per author (GitHub login or name), for group assignments. Missing in analyses made before it existed. */
+  author_commits: z.record(z.string(), z.number().int()).optional(),
 });
 export type CommitProfile = z.infer<typeof CommitProfileSchema>;
 

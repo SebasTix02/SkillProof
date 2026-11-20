@@ -17,3 +17,11 @@ export const ScoreResultSchema = z.object({
   }),
 });
 export type ScoreResult = z.infer<typeof ScoreResultSchema>;
+
+/** Course grading adds formative next steps: what to study or practise next. */
+export const CourseScoreResultSchema = ScoreResultSchema.extend({
+  feedback: ScoreResultSchema.shape.feedback.extend({
+    next_steps: z.array(z.string()).max(3).default([]),
+  }),
+});
+export type CourseScoreResult = z.infer<typeof CourseScoreResultSchema>;

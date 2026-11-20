@@ -41,6 +41,8 @@ interface InterviewResponse {
     status: 'preparing' | 'ready' | 'in_progress' | 'evaluating' | 'completed' | 'error' | 'canceled' | 'report_paused' | 'report_canceled';
     error: string | null;
     submission_id: string | null;
+    /** Set when the interview is about a course assignment submission. */
+    assignment?: { id: string; course_id: string; title: string } | null;
     created_at?: string;
     duration_s?: number | null;
     repo: { owner: string; name: string; url: string };
@@ -565,7 +567,7 @@ function Room({
       onContextMenu={(e) => phase === 'live' && e.preventDefault()}
     >
       {/* Cobalt & Cyan Live Cockpit Header */}
-      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-line bg-[#F0F6FF] px-5 py-3">
+      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-line bg-accent-50 px-5 py-3">
         <div className="flex min-w-0 flex-wrap items-center gap-2.5">
           <span className="font-mono-code inline-flex items-center gap-1.5 rounded-[3px] border border-line bg-white px-2.5 py-1 text-[11px] font-semibold tracking-wider text-accent uppercase">
             <LiveDot tone="accent" />
@@ -617,7 +619,7 @@ function Room({
       <div className="border-b border-line bg-paper/45 p-5">
         <div className="grid grid-cols-1 items-center gap-5 lg:grid-cols-12">
           <div className="overflow-hidden rounded-[4px] border border-line bg-white lg:col-span-8">
-            <div className="font-mono-code flex h-8 items-center justify-between border-b border-line bg-[#F0F6FF] px-4 text-[11px] text-muted">
+            <div className="font-mono-code flex h-8 items-center justify-between border-b border-line bg-accent-50 px-4 text-[11px] text-muted">
               <div className="flex items-center gap-2">
                 <span className="h-2 w-2 rounded-full bg-accent" />
                 <span className="font-semibold text-ink uppercase">
@@ -669,9 +671,9 @@ function Room({
       {/* The interview stage: the only part that goes full screen (code, conversation, clock and controls). */}
       <div ref={stageRef} id="interview-stage" className="interview-stage relative flex flex-col bg-white">
       {(phase === 'live' || phase === 'connecting') && (
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line bg-[#F0F6FF] px-4 py-2">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line bg-accent-50 px-4 py-2">
           <div className="font-mono-code flex items-center gap-3 text-[12px]">
-            <span className="font-bold text-[#4338CA] uppercase">Question {activeIdx + 1} of {Math.max(1, questions.length)}</span>
+            <span className="font-bold text-accent uppercase">Question {activeIdx + 1} of {Math.max(1, questions.length)}</span>
             <span className="font-bold text-ink" aria-label="Time left">{formatClock(left)}</span>
             {paused && <span className="rounded-[3px] bg-warn px-2 py-0.5 text-[10px] font-bold text-white uppercase">Paused</span>}
             {wrapping && (
@@ -733,11 +735,11 @@ function Room({
       )}
       <div className="interview-stage-body grid min-h-[460px] flex-1 grid-cols-1 lg:grid-cols-12">
         {/* Left Pane: Code & AST Inspector (7 cols) */}
-        <div className="flex flex-col border-b border-line bg-[#FAFAFC] lg:col-span-7 lg:border-r lg:border-b-0">
+        <div className="flex flex-col border-b border-line bg-paper lg:col-span-7 lg:border-r lg:border-b-0">
           {/* File Navigation Subheader */}
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line bg-white px-5 py-2.5 text-muted">
             <div className="font-mono-code flex items-center gap-2 text-[12px]">
-              <span className="material-symbols-outlined text-[16px] text-[#4338CA]">code</span>
+              <span className="material-symbols-outlined text-[16px] text-accent">code</span>
               <span className="font-semibold text-ink">
                 {activeQuestion ? activeQuestion.path : `${interview.repo.owner}/${interview.repo.name}`}
               </span>
@@ -760,7 +762,7 @@ function Room({
                     onClick={() => setQuestion(q)}
                     className={`font-mono-code cursor-pointer rounded-[3px] border px-2 py-0.5 text-[10px] font-semibold transition-colors ${
                       activeQuestion?.id === q.id
-                        ? 'border-[#4338CA] bg-[#EEF2FF] text-[#4338CA]'
+                        ? 'border-accent bg-accent-soft text-accent'
                         : 'border-line bg-paper text-muted hover:text-ink'
                     }`}
                   >
@@ -772,15 +774,15 @@ function Room({
           </div>
 
           {/* Scrollable Code Box */}
-          <div className={`interview-code font-mono-code max-h-[45vh] flex-1 overflow-x-auto overflow-y-auto bg-[#FAFAFC] p-4 text-[12px] leading-[20px] text-ink select-none lg:max-h-[60vh] ${phase === 'live' && (away || paused) ? 'invisible' : ''}`}>
+          <div className={`interview-code font-mono-code max-h-[45vh] flex-1 overflow-x-auto overflow-y-auto bg-paper p-4 text-[12px] leading-[20px] text-ink select-none lg:max-h-[60vh] ${phase === 'live' && (away || paused) ? 'invisible' : ''}`}>
             {activeQuestion ? (
               <table className="w-full border-collapse">
                 <tbody>
                   {snippetLines.map((line, i) => {
                     const lineNo = activeQuestion.start_line + i;
                     return (
-                      <tr key={lineNo} className="border-l-[3px] border-[#4338CA] bg-[#EEF2FF]/45">
-                        <td className="w-10 pr-4 text-right text-[11px] font-medium text-[#4338CA] select-none">
+                      <tr key={lineNo} className="border-l-[3px] border-accent bg-accent-soft/45">
+                        <td className="w-10 pr-4 text-right text-[11px] font-medium text-accent select-none">
                           {lineNo}
                         </td>
                         <td className="whitespace-pre text-ink">{line || ' '}</td>
@@ -799,7 +801,7 @@ function Room({
           {/* Code Inspector Baseline Status */}
           <footer className="font-mono-code flex items-center justify-between border-t border-line bg-white px-5 py-2.5 text-[11px] text-muted">
             <div className="flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-[#4338CA]" />
+              <span className="h-2 w-2 rounded-full bg-accent" />
               <span className="font-medium text-ink">
                 {activeQuestion
                   ? `Target Citation: ${activeQuestion.path} (${activeQuestion.start_line}–${activeQuestion.end_line})`
@@ -862,10 +864,10 @@ function Room({
                       {MAX_INTERVIEW_PAUSES} times ({MAX_INTERVIEW_PAUSE_MS / 60_000} minutes in total) and use &ldquo;Next question&rdquo; to move on.
                     </span>
                   </li>
-                  {interview.submission_id && (
+                  {(interview.submission_id || interview.assignment) && (
                     <li className="flex items-start gap-2">
                       <span className="font-mono-code mt-0.5 text-[11px] font-bold text-accent">05</span>
-                      <span>The event organizer can inspect the transcript and ownership report.</span>
+                      <span>{interview.assignment ? 'Your instructors' : 'The event organizer'} can inspect the transcript and ownership report.</span>
                     </li>
                   )}
                 </ul>
@@ -890,10 +892,10 @@ function Room({
             <div className="flex min-h-0 flex-1 flex-col space-y-4">
               {/* Question Stage Header */}
               <div className="flex items-center justify-between border-b border-line pb-2">
-                <span className="font-mono-code text-[11px] font-bold tracking-wider text-[#4338CA] uppercase">
+                <span className="font-mono-code text-[11px] font-bold tracking-wider text-accent uppercase">
                   QUESTION {activeIdx + 1} OF {Math.max(1, questions.length)} • ORAL DEFENSE
                 </span>
-                <span className="font-mono-code rounded-[3px] border border-[#DDD6FE] bg-[#EEF2FF] px-2 py-0.5 text-[10px] font-semibold text-[#4338CA]">
+                <span className="font-mono-code rounded-[3px] border border-accent-200 bg-accent-soft px-2 py-0.5 text-[10px] font-semibold text-accent">
                   {phase === 'connecting' ? 'HANDSHAKE…' : 'LIVE AUDIO'}
                 </span>
               </div>
@@ -905,10 +907,10 @@ function Room({
               )}
 
               {/* Examiner Audio Question Box */}
-              <div className="space-y-2 rounded-[4px] border border-[#DDD6FE] bg-[#F5F3FF] p-4">
+              <div className="space-y-2 rounded-[4px] border border-accent-200 bg-accent-50 p-4">
                 <div className="flex items-center justify-between">
-                  <div className="font-mono-code flex items-center gap-1.5 text-[11px] font-bold text-[#4338CA] uppercase">
-                    <span className="status-dot-live bg-[#4338CA] text-[#4338CA]" />
+                  <div className="font-mono-code flex items-center gap-1.5 text-[11px] font-bold text-accent uppercase">
+                    <span className="status-dot-live bg-accent text-accent" />
                     <span>AI Technical Examiner</span>
                   </div>
                   <span className="font-mono-code rounded-[2px] border border-line bg-white px-1.5 py-0.5 text-[10px] text-muted">
@@ -1011,9 +1013,22 @@ export function InterviewPage() {
       <DossierPageHeader
         eyebrow={
           <div className="flex flex-wrap items-center gap-2">
-            <Link to="/interview/new" className="text-accent hover:underline">
-              ← MY INTERVIEWS
-            </Link>
+            {interview.assignment ? (
+              <Link
+                to={
+                  interview.is_owner
+                    ? `/courses/${interview.assignment.course_id}/a/${interview.assignment.id}`
+                    : `/org/courses/${interview.assignment.course_id}/assignments/${interview.assignment.id}`
+                }
+                className="text-accent hover:underline"
+              >
+                ← {interview.assignment.title.toUpperCase()}
+              </Link>
+            ) : (
+              <Link to="/interview/new" className="text-accent hover:underline">
+                ← MY INTERVIEWS
+              </Link>
+            )}
             <span>•</span>
             <span>DOSSIER #{interview.id.slice(0, 8).toUpperCase()}</span>
             {interview.commit_sha && (
@@ -1201,7 +1216,7 @@ export function InterviewPage() {
             </div>
 
             {/* Attestation Footer Action Bar */}
-            <footer className="flex flex-col justify-between gap-4 border-t border-line bg-[#FBFDFB] p-6 md:flex-row md:items-center">
+            <footer className="flex flex-col justify-between gap-4 border-t border-line bg-good-50 p-6 md:flex-row md:items-center">
               <div className="flex flex-wrap items-center gap-3">
                 {interview.is_owner && profile && (
                   <Link

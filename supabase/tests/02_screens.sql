@@ -44,7 +44,11 @@ select '40000000-0000-0000-0000-000000000001', id, 'Algorithms', 'CS-201' from p
 insert into public.course_members (course_id, user_id, organization_id, role)
 select '40000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-00000000000c', organization_id, 'student'
 from public.courses where id = '40000000-0000-0000-0000-000000000001';
-update public.events set course_id = '40000000-0000-0000-0000-000000000001', kind = 'assignment' where slug = 'echo-hack';
+-- A course assignment: its own table, not an event (20261120000001).
+insert into public.course_assignments (id, organization_id, course_id, title, opens_at, due_at, rubric_json, status)
+select '50000000-0000-0000-0000-000000000001', organization_id, id, 'Sorting lab',
+  now() - interval '1 day', now() + interval '7 days', '[]', 'open'
+from public.courses where id = '40000000-0000-0000-0000-000000000001';
 
 select pg_temp.check_eq('auditor role exists with audit.read', (
   select count(*) from public.role_permissions rp join public.roles r on r.id = rp.role_id join public.permissions p on p.id = rp.permission_id
@@ -65,7 +69,7 @@ select pg_temp.check_eq('owner reads the audit trail', (select count(*) from pub
 select pg_temp.check_eq('owner sees every judge review', (select count(*) from public.judge_reviews), 2);
 select pg_temp.check_eq('owner sees integrity decisions', (select count(*) from public.integrity_decisions), 1);
 select pg_temp.check_eq('owner sees her course and roster', (select count(*) from public.course_members), 1);
-select pg_temp.check_eq('events expose their course', (select count(*) from public.events where course_id is not null), 1);
+select pg_temp.check_eq('owner sees the course assignment', (select count(*) from public.course_assignments), 1);
 select pg_temp.check_raises('browser cannot write reviews', $$update public.judge_reviews set note = 'x'$$, 'permission denied');
 
 select pg_temp.act_as('00000000-0000-0000-0000-00000000000d'); -- Di, judge in Echo

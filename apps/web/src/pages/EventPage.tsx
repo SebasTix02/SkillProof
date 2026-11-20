@@ -302,7 +302,11 @@ export function EventPage() {
 
       {/* 4. Active Workspace Content */}
       <div id="workspaceSection" className="space-y-8">
-        {!data.is_participant ? <Join event={event} onJoined={reload} /> : <Participant event={event} />}
+        {data.is_participant ? (
+          <Participant event={event} />
+        ) : (
+          <Join event={event} onJoined={reload} />
+        )}
       </div>
 
       {/* 5. Rubric Specification Card */}

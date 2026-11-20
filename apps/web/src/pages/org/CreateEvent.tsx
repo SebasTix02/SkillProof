@@ -1,6 +1,6 @@
 import { CreateEventSchema, DEFAULT_RUBRIC, type Rubric } from '@skillproof/shared';
 import { useState, type FormEvent } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   Button,
   CommandConsoleHeader,
@@ -14,6 +14,7 @@ import {
   ToggleSwitch,
   linkButtonSecondary,
 } from '../../components/shared';
+import { RubricEditor, keyFromName } from '../../components/RubricEditor';
 import { api, errorMessage } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
 import type { EventView } from '../../lib/types';
@@ -24,19 +25,10 @@ function localInput(date: Date): string {
   return shifted.toISOString().slice(0, 16);
 }
 
-const keyFromName = (name: string) =>
-  name
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '_')
-    .replace(/^[^a-z]+|_+$/g, '')
-    .slice(0, 40);
 
 export function CreateEvent() {
   const { org } = useAuth();
   const navigate = useNavigate();
-  // Opened from a course ("New assignment"): the event is created as an assignment of that course.
-  const [params] = useSearchParams();
-  const courseId = params.get('course');
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [startsAt, setStartsAt] = useState(() => localInput(new Date()));
@@ -51,8 +43,6 @@ export function CreateEvent() {
   const [error, setError] = useState<string | null>(null);
 
   const totalWeight = rubric.reduce((sum, c) => sum + (Number.isFinite(c.weight) ? c.weight : 0), 0);
-  const patch = (i: number, change: Partial<Rubric[number]>) =>
-    setRubric((r) => r.map((c, j) => (j === i ? { ...c, ...change } : c)));
 
   async function submit(e: FormEvent, publish: boolean) {
     e.preventDefault();
@@ -69,7 +59,6 @@ export function CreateEvent() {
       interviews_enabled: interviews,
       rubric: rubric.map((c) => ({ ...c, key: c.key || keyFromName(c.name) })),
       publish,
-      ...(courseId ? { kind: 'assignment', course_id: courseId } : {}),
     });
     if (!parsed.success) {
       const issue = parsed.error.issues[0];
@@ -79,7 +68,7 @@ export function CreateEvent() {
     setBusy(true);
     try {
       const res = await api<{ event: EventView }>(`/api/orgs/${org.id}/events`, { body: parsed.data });
-      navigate(courseId ? `/org/events/${res.event.id}/gradebook` : `/org/events/${res.event.id}`);
+      navigate(`/org/events/${res.event.id}`);
     } catch (err) {
       setError(errorMessage(err));
       setBusy(false);
@@ -104,7 +93,7 @@ export function CreateEvent() {
           </span>
         }
         eyebrowBadge="NEW EVENT // SETUP"
-        title={courseId ? "New Course Assignment" : "Draft New Hackathon or Capstone Event"}
+        title="New Hackathon or Capstone Event"
         subtitle="Configure the event schedule, cohort access control, submission limits, 3-minute voice defense option, and weighted evaluation rubric."
         actions={
           <Link to="/org/events" className={`${linkButtonSecondary} border-white/15 bg-white/10 text-white hover:bg-white/20`}>
@@ -120,7 +109,7 @@ export function CreateEvent() {
         title="Event Identity & Commit-Freeze Schedule"
         subtitle="Define the public title, rules, and exact cutoff timestamp when repositories are frozen."
         sectionTag="SECTION 01 // TIMELINE"
-        theme="cobalt"
+        theme="accent"
       >
         <div className="space-y-4">
           <Field label="Event Name">
@@ -181,7 +170,7 @@ export function CreateEvent() {
           title="Cohort Access & Visibility"
           subtitle="Control who can join and submit a repository to this event."
           sectionTag="SECTION 02 // ACCESS"
-          theme="indigo"
+          theme="neutral"
         >
           <div className="space-y-4">
             <Field label="Access Mode">
@@ -228,7 +217,7 @@ export function CreateEvent() {
           title="Submission Quota & Oral Defense"
           subtitle="Configure version limits and 3-minute Gemini Live voice cross-examination."
           sectionTag="SECTION 03 // SUBMISSIONS"
-          theme="emerald"
+          theme="neutral"
         >
           <div className="space-y-4">
             <div className="flex items-start justify-between gap-4 rounded-[4px] border border-line bg-paper p-3.5">
@@ -282,97 +271,9 @@ export function CreateEvent() {
         title="Evaluation Rubric & Weight Attribution"
         subtitle={`Weights sum to ${totalWeight}. Weights are normalized relatively, so they do not strictly need to equal 100.`}
         sectionTag={`TOTAL WEIGHT: ${totalWeight}`}
-        theme="amber"
+        theme="neutral"
       >
-        <div className="space-y-4">
-          <ScoreBar value={Math.min(100, totalWeight)} max={100} tone="accent" heightClass="h-1.5" />
-
-          <ul className="space-y-3">
-            {rubric.map((c, i) => (
-              <li
-                key={i}
-                className="space-y-3 rounded-[4px] border border-line bg-paper/55 p-4 transition-colors hover:border-muted/60"
-              >
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="font-mono-code text-[11px] font-bold text-accent uppercase">
-                    Criterion {String(i + 1).padStart(2, '0')} // {c.key || keyFromName(c.name) || 'custom_key'}
-                  </span>
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    disabled={rubric.length === 1}
-                    onClick={() => setRubric((r) => r.filter((_, j) => j !== i))}
-                    className="px-2.5 py-1 text-[11px]"
-                  >
-                    Remove
-                  </Button>
-                </div>
-
-                <div className="grid gap-3 sm:grid-cols-[1fr_8rem]">
-                  <Field label="Criterion Name">
-                    <Input
-                      aria-label="Criterion name"
-                      required
-                      maxLength={60}
-                      placeholder="Architecture & Code Quality"
-                      value={c.name}
-                      onChange={(e) => patch(i, { name: e.target.value, key: keyFromName(e.target.value) })}
-                    />
-                  </Field>
-                  <Field label="Weight">
-                    <Input
-                      aria-label="Weight"
-                      type="number"
-                      min={1}
-                      max={100}
-                      required
-                      className="font-mono-code"
-                      value={c.weight}
-                      onChange={(e) => patch(i, { weight: Number(e.target.value) })}
-                    />
-                  </Field>
-                </div>
-
-                <Field label="What This Criterion Measures">
-                  <Textarea
-                    aria-label="What this criterion measures"
-                    rows={2}
-                    maxLength={500}
-                    value={c.description}
-                    onChange={(e) => patch(i, { description: e.target.value })}
-                    placeholder="What the AI evaluator and human judges should look for in the repository..."
-                  />
-                </Field>
-              </li>
-            ))}
-          </ul>
-
-          <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
-            <Button
-              type="button"
-              variant="secondary"
-              disabled={rubric.length >= 12}
-              onClick={() =>
-                setRubric((r) => [
-                  ...r,
-                  {
-                    key: '',
-                    name: '',
-                    description: '',
-                    weight: 15,
-                    anchors: { low: 'Weak.', mid: 'Acceptable.', high: 'Excellent.' },
-                  },
-                ])
-              }
-            >
-              <span className="material-symbols-outlined text-[16px]">add</span>
-              <span>Add Rubric Criterion ({rubric.length}/12)</span>
-            </Button>
-            <span className="font-mono-code text-[11px] text-muted">
-              Up to 12 weighted criteria per assessment
-            </span>
-          </div>
-        </div>
+        <RubricEditor rubric={rubric} setRubric={setRubric} />
       </NumberedSectionCard>
 
       {error && <Notice tone="error">{error}</Notice>}

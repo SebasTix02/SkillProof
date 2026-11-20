@@ -82,7 +82,7 @@ export function KpiCell({
   tinted?: boolean;
 }) {
   return (
-    <div className={`flex flex-col justify-between space-y-2.5 p-5 ${tinted ? 'bg-[#FBFDFB]' : ''}`}>
+    <div className={`flex flex-col justify-between space-y-2.5 p-5 ${tinted ? 'bg-good-50' : ''}`}>
       <div className="flex items-center justify-between gap-2">
         <span className="font-mono-code text-[11px] font-semibold tracking-wider text-muted uppercase">{label}</span>
         {badge ?? (icon ? <span className="material-symbols-outlined text-[18px] text-accent">{icon}</span> : null)}
@@ -126,7 +126,7 @@ export function TopAccentKpiCard({
   footerLeft,
   footerRight,
 }: {
-  accent?: 'cobalt' | 'emerald' | 'amber' | 'indigo';
+  accent?: 'cobalt' | 'emerald' | 'amber' | 'neutral';
   eyebrow: string;
   icon: string;
   value: ReactNode;
@@ -158,11 +158,11 @@ export function TopAccentKpiCard({
       iconPill: 'bg-warn-soft text-warn-ink',
       scoreTone: 'warn' as const,
     },
-    indigo: {
-      border: 'border-[#C7D2FE]',
-      bar: 'bg-[#4338CA]',
-      label: 'text-[#4338CA]',
-      iconPill: 'bg-[#EEF2FF] text-[#4338CA]',
+    neutral: {
+      border: 'border-line',
+      bar: 'bg-ink',
+      label: 'text-muted',
+      iconPill: 'bg-paper text-ink',
       scoreTone: 'accent' as const,
     },
   }[accent];
@@ -231,7 +231,7 @@ export function WaveformVisualizer({
   return (
     <div
       aria-label="Microphone Amplitude Visualizer"
-      className="flex h-8 items-end justify-between gap-1 rounded-[3px] border border-line bg-[#F0F6FF] p-1"
+      className="flex h-8 items-end justify-between gap-1 rounded-[3px] border border-line bg-accent-50 p-1"
     >
       {bars.map((h, i) => (
         <span

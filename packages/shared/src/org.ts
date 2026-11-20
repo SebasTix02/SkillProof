@@ -46,6 +46,9 @@ export const SUBMISSION_VERDICTS = ['clear', 'live_defense', 'code_of_conduct'] 
 export const IntegrityDecisionSchema = z.union([
   z.object({ flag_id: z.uuid(), verdict: z.enum(PAIR_VERDICTS), note: z.string().max(4000).default('') }),
   z.object({ submission_id: z.uuid(), verdict: z.enum(SUBMISSION_VERDICTS), note: z.string().max(4000).default('') }),
+  // Course assignments
+  z.object({ assignment_flag_id: z.uuid(), verdict: z.enum(PAIR_VERDICTS), note: z.string().max(4000).default('') }),
+  z.object({ assignment_submission_id: z.uuid(), verdict: z.enum(SUBMISSION_VERDICTS), note: z.string().max(4000).default('') }),
 ]);
 
 export const CreateCourseSchema = z.object({

@@ -2,7 +2,7 @@ import { AsyncLocalStorage } from 'node:async_hooks';
 import { MAX_ACTIVITY_ENTRIES, type ActivityEntry, type ActivityKind } from '@skillproof/shared';
 import { db } from './supabase.js';
 
-type Subject = 'submissions' | 'interviews';
+type Subject = 'submissions' | 'assignment_submissions' | 'interviews';
 
 /**
  * The timeline of one background job (judging a submission, preparing or evaluating an interview).

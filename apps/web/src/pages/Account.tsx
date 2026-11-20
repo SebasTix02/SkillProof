@@ -852,7 +852,7 @@ export function MyAccount() {
           <NumberedSectionCard
             id="section-profile"
             number="01"
-            theme="cobalt"
+            theme="accent"
             title="Public Identity & Recruiter Persona"
             subtitle="Identity and engineering headline displayed on your public recruiter dossier."
             sectionTag="SECTION 01 // IDENTITY"
@@ -939,14 +939,14 @@ export function MyAccount() {
           <NumberedSectionCard
             id="section-visibility"
             number="02"
-            theme="indigo"
+            theme="accent"
             title="Dossier Visibility & Public Address"
             subtitle="Configure public read-only access for your verified interview reports."
             sectionTag="SECTION 02 // PUBLIC LINK"
           >
             <div className="space-y-5">
               {/* Toggle Switch Card */}
-              <div className="flex items-start justify-between gap-4 rounded-[4px] border border-[#C7D2FE] bg-[#EEF2FF]/45 p-4">
+              <div className="flex items-start justify-between gap-4 rounded-[4px] border border-accent-200 bg-accent-soft/45 p-4">
                 <div className="space-y-1 pr-3">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="text-[14px] font-semibold text-ink">Enable Public Recruiter Dossier</span>
@@ -970,7 +970,7 @@ export function MyAccount() {
                 <ToggleSwitch
                   checked={isPublic}
                   onChange={setIsPublic}
-                  activeColorClass="peer-checked:bg-[#4338CA]"
+                  activeColorClass="peer-checked:bg-accent"
                 />
               </div>
 
@@ -984,7 +984,7 @@ export function MyAccount() {
                     >
                       Your Canonical Public Dossier URL
                     </label>
-                    <span className="font-mono-code rounded-[3px] border border-[#C7D2FE] bg-[#EEF2FF] px-2 py-0.5 text-[10px] text-[#3730A3]">
+                    <span className="font-mono-code rounded-[3px] border border-accent-200 bg-accent-soft px-2 py-0.5 text-[10px] text-accent-ink">
                       SLUG: {slug}
                     </span>
                   </div>
@@ -1004,7 +1004,7 @@ export function MyAccount() {
                     </div>
                     <CopyLinkButton
                       value={url}
-                      variant="indigo"
+                      variant="primary"
                       className="h-10 shrink-0 px-4 text-[12px]"
                     />
                   </div>
@@ -1017,7 +1017,7 @@ export function MyAccount() {
           <NumberedSectionCard
             id="section-integrations"
             number="03"
-            theme="emerald"
+            theme="neutral"
             title="Connected Verification Signals & Hardware"
             subtitle="Repository analysis engine, organization memberships, and oral defense microphone status."
             sectionTag="SECTION 03 // CONNECTIONS"
@@ -1123,7 +1123,7 @@ export function MyAccount() {
           <NumberedSectionCard
             id="section-privacy"
             number="04"
-            theme="amber"
+            theme="neutral"
             title="Privacy Controls & Verification Telemetry"
             subtitle="Visibility boundaries for interview attempts and event notifications."
             sectionTag="SECTION 04 // PRIVACY"
@@ -1186,7 +1186,7 @@ export function MyAccount() {
           <NumberedSectionCard
             id="section-danger"
             icon="warning"
-            theme="crimson"
+            theme="bad"
             title="Danger Zone & Access Revocation"
             subtitle="Immediate public link revocation and passphrase rotation routines."
             sectionTag="SECURITY CONTROLS"

@@ -104,7 +104,10 @@ export async function getCommitProfile(owner: string, name: string, sha: string,
   const res = await gh(`/repos/${enc(owner)}/${enc(name)}/commits?sha=${sha}&per_page=100`);
   const items = (await res.json()) as CommitItem[];
   const dates = items.map((c) => c.commit.author?.date).filter((d): d is string => !!d).sort();
-  const authors = [...new Set(items.map((c) => c.author?.login ?? c.commit.author?.name ?? 'unknown'))];
+  const who = (c: CommitItem) => c.author?.login ?? c.commit.author?.name ?? 'unknown';
+  const authors = [...new Set(items.map(who))];
+  const authorCommits: Record<string, number> = {};
+  for (const c of items) authorCommits[who(c)] = (authorCommits[who(c)] ?? 0) + 1;
   const start = eventStart ? Date.parse(eventStart) : null;
   return {
     total_commits: items.length,
@@ -112,7 +115,15 @@ export async function getCommitProfile(owner: string, name: string, sha: string,
     first_commit_at: dates[0] ?? null,
     last_commit_at: dates.at(-1) ?? null,
     commits_before_start: start == null ? null : dates.filter((d) => Date.parse(d) < start).length,
+    author_commits: authorCommits,
   };
+}
+
+/** Who committed to one file (GitHub logins, else names), most recent commits first. For group interviews. */
+export async function getFileAuthors(owner: string, name: string, sha: string, path: string): Promise<string[]> {
+  const res = await gh(`/repos/${enc(owner)}/${enc(name)}/commits?sha=${sha}&path=${encodeURIComponent(path)}&per_page=30`);
+  const items = (await res.json()) as CommitItem[];
+  return [...new Set(items.map((c) => (c.author?.login ?? c.commit.author?.name ?? '').toLowerCase()).filter(Boolean))];
 }
 
 /** Above this many files worth reading, one zip download is faster than fetching files one by one. */

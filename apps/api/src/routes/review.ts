@@ -183,34 +183,59 @@ export async function reviewRoutes(app: FastifyInstance): Promise<void> {
     return { decisions: must(decisions), matches: must(matches) };
   });
 
+  /** Integrity review of a course assignment: its similarity flags and the decisions taken. */
+  app.get('/api/assignments/:id/integrity', async (req) => {
+    const user = await requireUser(req);
+    const { id } = parse(IdParams, req.params);
+    const a = must(await db().from('course_assignments').select('organization_id').eq('id', id).maybeSingle()) as { organization_id: string } | null;
+    if (!a) throw notFound('Assignment not found');
+    if (!canDo(user.grants, 'integrity.decide', a.organization_id) && !canDo(user.grants, 'course.manage', a.organization_id)) throw forbidden();
+    const [flags, decisions] = await Promise.all([
+      db().from('assignment_similarity_flags').select('*').eq('assignment_id', id).order('score', { ascending: false }),
+      db().from('integrity_decisions').select('*, profiles!integrity_decisions_decided_by_fkey(display_name)').eq('assignment_id', id).order('created_at', { ascending: false }),
+    ]);
+    return { flags: must(flags), decisions: must(decisions) };
+  });
+
+  /** A verdict on an event pair or submission, or on a course assignment pair or submission. */
   app.post('/api/integrity-decisions', async (req) => {
     const user = await requireUser(req);
     const input = parse(IntegrityDecisionSchema, req.body);
-    let target: { event_id: string; organization_id: string };
+    let scope: Record<string, string | null>;
+    let organizationId: string;
     if ('flag_id' in input) {
-      const flag = must(await db().from('similarity_flags').select('event_id, organization_id').eq('id', input.flag_id).maybeSingle()) as typeof target | null;
+      const flag = must(await db().from('similarity_flags').select('event_id, organization_id').eq('id', input.flag_id).maybeSingle()) as { event_id: string; organization_id: string } | null;
       if (!flag) throw notFound('Flag not found');
-      target = flag;
+      organizationId = flag.organization_id;
+      scope = { event_id: flag.event_id, flag_id: input.flag_id };
+    } else if ('submission_id' in input) {
+      const sub = await submissionRef(input.submission_id);
+      organizationId = sub.organization_id;
+      scope = { event_id: sub.event_id, submission_id: input.submission_id };
+    } else if ('assignment_flag_id' in input) {
+      const flag = must(await db().from('assignment_similarity_flags').select('assignment_id, organization_id').eq('id', input.assignment_flag_id).maybeSingle()) as
+        | { assignment_id: string; organization_id: string }
+        | null;
+      if (!flag) throw notFound('Flag not found');
+      organizationId = flag.organization_id;
+      scope = { assignment_id: flag.assignment_id, assignment_flag_id: input.assignment_flag_id };
     } else {
-      target = await submissionRef(input.submission_id);
+      const sub = must(await db().from('assignment_submissions').select('assignment_id, organization_id').eq('id', input.assignment_submission_id).maybeSingle()) as
+        | { assignment_id: string; organization_id: string }
+        | null;
+      if (!sub) throw notFound('Submission not found');
+      organizationId = sub.organization_id;
+      scope = { assignment_id: sub.assignment_id, assignment_submission_id: input.assignment_submission_id };
     }
-    requirePermission(user, 'integrity.decide', target.organization_id);
+    requirePermission(user, 'integrity.decide', organizationId);
     const decision = must(
       await db()
         .from('integrity_decisions')
-        .insert({
-          organization_id: target.organization_id,
-          event_id: target.event_id,
-          flag_id: 'flag_id' in input ? input.flag_id : null,
-          submission_id: 'submission_id' in input ? input.submission_id : null,
-          verdict: input.verdict,
-          note: input.note,
-          decided_by: user.id,
-        })
+        .insert({ organization_id: organizationId, ...scope, verdict: input.verdict, note: input.note, decided_by: user.id })
         .select('*')
         .single(),
     ) as { id: string };
-    await audit({ organizationId: target.organization_id, actorId: user.id, action: 'integrity.decided', subjectType: 'integrity_decision', subjectId: decision.id, detail: { verdict: input.verdict } });
+    await audit({ organizationId, actorId: user.id, action: 'integrity.decided', subjectType: 'integrity_decision', subjectId: decision.id, detail: { verdict: input.verdict } });
     return { decision };
   });
 }

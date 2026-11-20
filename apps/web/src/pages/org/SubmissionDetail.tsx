@@ -80,7 +80,7 @@ interface AssignmentRow {
   my_review: { status: 'draft' | 'submitted'; updated_at: string } | null;
 }
 
-function ScoreCalibrationRow({
+export function ScoreCalibrationRow({
   index,
   score,
   criterion,
@@ -88,6 +88,7 @@ function ScoreCalibrationRow({
   sha,
   canOverride,
   onSaved,
+  scorePath = '/api/scores',
 }: {
   index: number;
   score: ScoreView;
@@ -96,6 +97,8 @@ function ScoreCalibrationRow({
   sha: string | null;
   canOverride: boolean;
   onSaved: () => void;
+  /** /api/scores for events, /api/assignment-scores for course assignments. */
+  scorePath?: string;
 }) {
   const [busy, setBusy] = useState(false);
   const toast = useToast();
@@ -105,7 +108,7 @@ function ScoreCalibrationRow({
   async function save(value: string) {
     setBusy(true);
     try {
-      await api(`/api/scores/${score.id}`, {
+      await api(`${scorePath}/${score.id}`, {
         method: 'PATCH',
         body: { override_score: value === '' ? null : Number(value) },
       });
@@ -725,7 +728,7 @@ export function SubmissionDetail() {
                 </span>
               </div>
 
-              <div className="space-y-3 bg-[#0D1117] p-4 text-[12px] text-white/85">
+              <div className="space-y-3 bg-dark-canvas p-4 text-[12px] text-white/85">
                 <p className="leading-relaxed text-white/90">
                   {activeScore?.justification || 'No justification recorded for this criterion.'}
                 </p>
@@ -765,9 +768,9 @@ export function SubmissionDetail() {
 
           {/* Oral Verification Evidence Card */}
           {data.interview && (
-            <div className="space-y-3 rounded-[6px] border border-[#C7D2FE] bg-[#EEF2FF]/60 p-5">
+            <div className="space-y-3 rounded-[6px] border border-accent-200 bg-accent-soft/60 p-5">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="font-mono-code flex items-center gap-2 text-[11px] font-bold text-[#3730A3] uppercase">
+                <div className="font-mono-code flex items-center gap-2 text-[11px] font-bold text-accent-ink uppercase">
                   <span className="material-symbols-outlined text-[18px] text-accent">record_voice_over</span>
                   <span>Oral Verification Defense</span>
                 </div>

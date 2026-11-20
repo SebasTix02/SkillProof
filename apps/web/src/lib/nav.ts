@@ -16,6 +16,8 @@ export type NavIcon =
   | 'review'
   | 'plus'
   | 'courses'
+  | 'integrity'
+  | 'myCourses'
   | 'members'
   | 'usage'
   | 'audit'
@@ -59,6 +61,7 @@ export function navSections(me: Me | null, org: Organization | null): NavSection
   ];
   const slug = me?.public_profile?.slug;
   if (slug && me?.public_profile?.is_public) personal.push({ key: 'profile', label: 'Public profile', to: `/p/${slug}`, icon: 'profile' });
+  if ((me?.enrolled_courses ?? 0) > 0) personal.push({ key: 'my-courses', label: 'My courses', to: '/courses', icon: 'myCourses', owns: ['/courses', '/courses/*', '/courses/*/a/*'] });
   personal.push({
     key: 'account',
     label: 'Account',
@@ -83,8 +86,10 @@ export function navSections(me: Me | null, org: Organization | null): NavSection
     items.push({ key: 'org-events', label: 'Review queue', to: '/org/events', icon: 'review', owns: ['/org/events'] });
   else items.push({ key: 'org-events', label: 'Event console', to: '/org/events', icon: 'console', owns: ['/org/events'] });
   if (can('event.create')) items.push({ key: 'org-new', label: 'New event', to: '/org/events/new', icon: 'plus' });
-  if (can('course.manage') || can('integrity.decide'))
-    items.push({ key: 'org-courses', label: 'Courses & integrity', to: '/org/courses', icon: 'courses', owns: ['/org/courses', '/org/events/*/gradebook'] });
+  // Courses and integrity are separate screens: a course is not an event, and integrity covers events and assignments.
+  if (can('course.manage')) items.push({ key: 'org-courses', label: 'Courses', to: '/org/courses', icon: 'courses' });
+  if (can('integrity.decide') || can('event.manage'))
+    items.push({ key: 'org-integrity', label: 'Integrity', to: '/org/integrity', icon: 'integrity', owns: ['/org/integrity', '/org/events/*/compare'] });
   // Organization settings is one page; its sections are sub-items, each one shown only with its permission.
   const settings: NavItem[] = [];
   if (can('org.manage_members')) {

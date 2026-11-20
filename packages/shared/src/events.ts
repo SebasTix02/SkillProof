@@ -18,9 +18,6 @@ export const CreateEventSchema = z
   .object({
     name: z.string().min(3).max(120),
     description: z.string().max(4000).default(''),
-    kind: z.enum(['hackathon', 'assignment']).default('hackathon'),
-    /** Course of an assignment, in course mode. */
-    course_id: z.uuid().nullable().default(null),
     starts_at: z.iso.datetime({ offset: true }),
     submission_deadline: z.iso.datetime({ offset: true }),
     visibility: z.enum(EVENT_VISIBILITY),
@@ -56,8 +53,13 @@ export const AllowlistSchema = z.object({ emails: z.array(z.email().max(254)).mi
 export const OverrideScoreSchema = z.object({ override_score: z.number().int().min(1).max(10).nullable() });
 
 export const CreateInterviewSchema = z
-  .object({ repo_url: z.string().regex(GITHUB_REPO_URL).optional(), submission_id: z.uuid().optional() })
-  .refine((v) => !!v.repo_url !== !!v.submission_id, 'Give either a repo URL or a submission');
+  .object({
+    repo_url: z.string().regex(GITHUB_REPO_URL).optional(),
+    submission_id: z.uuid().optional(),
+    /** A course assignment submission: each student (each group member) takes their own interview. */
+    assignment_submission_id: z.uuid().optional(),
+  })
+  .refine((v) => [v.repo_url, v.submission_id, v.assignment_submission_id].filter(Boolean).length === 1, 'Give a repo URL, a submission or an assignment submission');
 
 /** How many more versions a participant may send. null = unlimited. */
 export function submissionsLeft(maxSubmissions: number | null, used: number): number | null {

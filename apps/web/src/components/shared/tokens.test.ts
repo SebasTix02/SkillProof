@@ -1,7 +1,7 @@
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { PERMISSION_LABEL, permissionLabels } from './tokens';
+import { DOSSIER_THEMES, PERMISSION_LABEL, permissionLabels } from './tokens';
 
 describe('permission labels', () => {
   it('names every permission the database defines', () => {
@@ -17,5 +17,26 @@ describe('permission labels', () => {
   it('shows readable names in a stable order and keeps unknown keys', () => {
     expect(permissionLabels(['audit.read', 'event.manage', 'new.thing'])).toEqual(['Run events', 'Read the audit log', 'new.thing']);
     expect(permissionLabels([])).toEqual([]);
+  });
+});
+
+describe('colors come from the design system', () => {
+  it('section themes are the semantic tones only', () => {
+    expect(Object.keys(DOSSIER_THEMES).sort()).toEqual(['accent', 'bad', 'good', 'neutral', 'warn']);
+    for (const theme of Object.values(DOSSIER_THEMES)) expect(JSON.stringify(theme)).not.toMatch(/#[0-9a-f]{3,8}/i);
+  });
+
+  it('no component uses a loose hex color', () => {
+    const root = join(__dirname, '../..');
+    const files: string[] = [];
+    const walk = (dir: string) => {
+      for (const e of readdirSync(dir, { withFileTypes: true })) {
+        if (e.isDirectory()) walk(join(dir, e.name));
+        else if (/\.(tsx?)$/.test(e.name) && !/\.test\./.test(e.name)) files.push(join(dir, e.name));
+      }
+    };
+    walk(root);
+    const offenders = files.filter((f) => /\[#[0-9a-fA-F]{3,8}\]|['"`]#[0-9a-fA-F]{3,8}['"`]/.test(readFileSync(f, 'utf8')));
+    expect(offenders).toEqual([]);
   });
 });

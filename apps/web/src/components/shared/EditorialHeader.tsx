@@ -83,7 +83,7 @@ export function NumberedSectionCard({
   title,
   subtitle,
   sectionTag,
-  theme = 'cobalt',
+  theme = 'accent',
   children,
 }: {
   id?: string;

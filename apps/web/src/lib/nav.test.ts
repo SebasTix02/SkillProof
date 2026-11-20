@@ -30,14 +30,14 @@ describe('side menu by role', () => {
 
   it('an owner sees every organization screen', () => {
     const o = org('org_owner');
-    expect(labels(me([o]), o)[1]).toEqual(['Test1', ['Event console', 'New event', 'Courses & integrity', 'Organization settings']]);
+    expect(labels(me([o]), o)[1]).toEqual(['Test1', ['Event console', 'New event', 'Courses', 'Integrity', 'Organization settings']]);
     expect(subs(o)).toEqual(['Members', 'Invitations', 'AI usage', 'Audit log & policies']);
     expect(roleLabel(o)).toBe('Owner');
   });
 
   it('an organizer runs events and courses but does not manage members or read the audit log', () => {
     const o = org('organizer');
-    expect(labels(me([o]), o)[1]![1]).toEqual(['Event console', 'New event', 'Courses & integrity', 'Organization settings']);
+    expect(labels(me([o]), o)[1]![1]).toEqual(['Event console', 'New event', 'Courses', 'Integrity', 'Organization settings']);
     expect(subs(o)).toEqual(['AI usage']);
   });
 
@@ -50,7 +50,7 @@ describe('side menu by role', () => {
 
   it('an auditor sees integrity, usage and the audit log', () => {
     const o = org('auditor');
-    expect(labels(me([o]), o)[1]![1]).toEqual(['Event console', 'Courses & integrity', 'Organization settings']);
+    expect(labels(me([o]), o)[1]![1]).toEqual(['Event console', 'Integrity', 'Organization settings']);
     expect(subs(o)).toEqual(['AI usage', 'Audit log']);
     expect(roleLabel(null)).toBe('Candidate');
   });
@@ -66,12 +66,15 @@ describe('highlighted item', () => {
     expect(activeItem(sections, '/interview/new')).toBe('interviews');
     expect(activeItem(sections, '/org/events/abc')).toBe('org-events');
     expect(activeItem(sections, '/org/events/abc/s/def')).toBe('org-events');
-    expect(activeItem(sections, '/org/events/abc/compare')).toBe('org-events');
+    expect(activeItem(sections, '/org/events/abc/compare')).toBe('org-integrity');
   });
 
   it('picks the most specific item', () => {
     expect(activeItem(sections, '/org/events/new')).toBe('org-new');
-    expect(activeItem(sections, '/org/events/abc/gradebook')).toBe('org-courses');
+    expect(activeItem(sections, '/org/courses/c1/roster')).toBe('org-courses');
+    expect(activeItem(sections, '/org/courses/c1/assignments/a1')).toBe('org-courses');
+    expect(activeItem(sections, '/org/courses/c1/assignments/a1/s/s1')).toBe('org-courses');
+    expect(activeItem(sections, '/org/integrity/e1')).toBe('org-integrity');
     expect(activeItem(sections, '/p/ana-1')).toBe('profile');
   });
 
@@ -89,5 +92,16 @@ describe('highlighted item', () => {
   it('highlights nothing for screens outside the menu', () => {
     expect(activeItem(sections, '/invite/tok')).toBeNull();
     expect(activeItem(sections, '/eventsx')).toBeNull();
+  });
+});
+
+describe('courses for students', () => {
+  it('shows My courses only to people on a course roster', () => {
+    const student = (n: number) => ({ ...me([]), enrolled_courses: n });
+    expect(labels(student(0), null)[0]![1]).not.toContain('My courses');
+    expect(labels(student(2), null)[0]![1]).toEqual(['Events', 'Interviews', 'My courses', 'Account']);
+    expect(activeItem(navSections(student(2), null), '/courses')).toBe('my-courses');
+    expect(activeItem(navSections(student(2), null), '/courses/c1')).toBe('my-courses');
+    expect(activeItem(navSections(student(2), null), '/courses/c1/a/a1')).toBe('my-courses');
   });
 });

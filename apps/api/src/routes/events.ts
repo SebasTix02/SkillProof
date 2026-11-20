@@ -44,7 +44,7 @@ function publicEvent(e: EventRow) {
   return { ...rest, organization: organizations ?? null };
 }
 
-async function getEvent(id: string): Promise<EventRow> {
+export async function getEvent(id: string): Promise<EventRow> {
   const e = must(await db().from('events').select('*, organizations(name, slug)').eq('id', id).maybeSingle()) as EventRow | null;
   if (!e) throw notFound('Event not found');
   return e;
@@ -72,7 +72,7 @@ interface ScoreRow {
 }
 
 /** Submissions of an event with their scores and totals, best first. */
-async function leaderboard(event: EventRow) {
+export async function leaderboard(event: EventRow) {
   const rubric = RubricSchema.parse(event.rubric_json) as Rubric;
   const subs = must(
     await db()
@@ -118,17 +118,12 @@ export async function eventRoutes(app: FastifyInstance): Promise<void> {
     const { id: orgId } = parse(IdParams, req.params);
     requirePermission(user, 'event.create', orgId);
     const input = parse(CreateEventSchema, req.body);
-    if (input.course_id) {
-      const course = must(await db().from('courses').select('organization_id').eq('id', input.course_id).maybeSingle()) as { organization_id: string } | null;
-      if (!course || course.organization_id !== orgId) throw badRequest('unknown_course', 'That course is not part of this organization.');
-    }
     const row = must(
       await db()
         .from('events')
         .insert({
           organization_id: orgId,
-          kind: input.course_id ? 'assignment' : input.kind,
-          course_id: input.course_id,
+          kind: 'hackathon',
           name: input.name,
           slug: uniqueSlug(input.name),
           description: input.description,
@@ -153,8 +148,15 @@ export async function eventRoutes(app: FastifyInstance): Promise<void> {
     const { id: orgId } = parse(IdParams, req.params);
     if (!memberOf(user, orgId)) throw forbidden();
     const rows = must(
-      await db().from('events').select('*, organizations(name, slug), submissions(count), event_participants(count)').eq('organization_id', orgId).order('created_at', { ascending: false }),
-    ) as unknown as (EventRow & { submissions: { count: number }[]; event_participants: { count: number }[] })[];
+      await db()
+        .from('events')
+        .select('*, organizations(name, slug), submissions(count), event_participants(count)')
+        .eq('organization_id', orgId)
+        .order('created_at', { ascending: false }),
+    ) as unknown as (EventRow & {
+      submissions: { count: number }[];
+      event_participants: { count: number }[];
+    })[];
     return {
       events: rows.map(({ submissions, event_participants, ...e }) => ({
         ...publicEvent(e),

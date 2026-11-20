@@ -37,7 +37,7 @@ export function LiveChat({ messages, questions, className = '' }: { messages: Tr
         role="log"
         aria-live="polite"
         aria-label="Interview conversation"
-        className="min-h-0 flex-1 space-y-2.5 overflow-y-auto rounded-[4px] border border-line bg-[#FAFAFC] p-3.5"
+        className="min-h-0 flex-1 space-y-2.5 overflow-y-auto rounded-[4px] border border-line bg-paper p-3.5"
       >
         {messages.length === 0 && <p className="font-mono-code text-[11px] text-muted">The conversation appears here as you talk.</p>}
         {messages.map((m, i) => {
@@ -61,10 +61,10 @@ export function LiveChat({ messages, questions, className = '' }: { messages: Tr
                 <div className={`flex ${m.role === 'candidate' ? 'justify-end' : 'justify-start'}`}>
                   <div
                     className={`max-w-[88%] rounded-[6px] border px-3 py-2 text-[13px] leading-[20px] break-words whitespace-pre-wrap ${
-                      m.role === 'candidate' ? 'border-good/30 bg-good-soft text-ink' : 'border-[#DDD6FE] bg-white text-ink'
+                      m.role === 'candidate' ? 'border-good/30 bg-good-soft text-ink' : 'border-accent-200 bg-white text-ink'
                     }`}
                   >
-                    <span className={`font-mono-code mb-0.5 block text-[10px] font-bold uppercase ${m.role === 'candidate' ? 'text-good' : 'text-[#4338CA]'}`}>
+                    <span className={`font-mono-code mb-0.5 block text-[10px] font-bold uppercase ${m.role === 'candidate' ? 'text-good' : 'text-accent'}`}>
                       {m.role === 'candidate' ? 'You' : 'Interviewer'}
                     </span>
                     {m.text}

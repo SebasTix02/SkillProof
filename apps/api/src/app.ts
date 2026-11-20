@@ -11,7 +11,7 @@ import { reviewRoutes } from './routes/review.js';
 import { interviewRoutes } from './routes/interviews.js';
 import { profileRoutes } from './routes/profiles.js';
 import { evaluateInterview, prepareInterview } from './services/interviews.js';
-import { judgeSubmission } from './services/judge.js';
+import { judgeAssignmentSubmission, judgeSubmission } from './services/judge.js';
 import { onVercel, registerJob } from './services/queue.js';
 import { maybeTick } from './services/scheduler.js';
 
@@ -36,6 +36,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   });
 
   registerJob('judge', judgeSubmission);
+  registerJob('judge-assignment', judgeAssignmentSubmission);
   registerJob('interview-prepare', prepareInterview);
   registerJob('interview-evaluate', evaluateInterview);
 

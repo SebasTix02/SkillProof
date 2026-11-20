@@ -124,7 +124,7 @@ function Allowlist({ eventId }: { eventId: string }) {
         </>
       }
       sectionTag="INVITE-ONLY ACCESS"
-      theme="indigo"
+      theme="accent"
     >
       <div className="space-y-4">
         <Textarea
@@ -325,11 +325,11 @@ export function EventConsole() {
               </Link>
             )}
             <Link
-              to={`/org/events/${event.id}/gradebook`}
+              to={`/org/integrity/${event.id}`}
               className="btn-tactile font-mono-code inline-flex items-center gap-1.5 rounded-[4px] border border-white/15 bg-white/10 px-3.5 py-1.5 text-[11px] font-semibold text-white hover:bg-white/20"
             >
-              <span className="material-symbols-outlined text-[15px]">school</span>
-              <span>Course Gradebook</span>
+              <span className="material-symbols-outlined text-[15px]">policy</span>
+              <span>Integrity review</span>
             </Link>
           </>
         }
@@ -361,7 +361,7 @@ export function EventConsole() {
           progress={progressPct}
         />
         <TopAccentKpiCard
-          accent="indigo"
+          accent="neutral"
           eyebrow="Oral Defense"
           icon="record_voice_over"
           value={event.interviews_enabled ? voiceCompleted : 'OFF'}
@@ -582,7 +582,7 @@ export function EventConsole() {
           title="Forensic Similarity & Duplicate Signals"
           subtitle="These are automated signals for human judges to inspect, not automatic disqualifications."
           sectionTag={`${data.similarity_flags.length} SIGNALS DETECTED`}
-          theme="amber"
+          theme="warn"
         >
           <ul className="space-y-2.5">
             {data.similarity_flags.map((f) => (

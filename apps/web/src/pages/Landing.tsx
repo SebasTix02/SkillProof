@@ -280,7 +280,7 @@ export function Landing() {
 
               <EditorialQuoteBlock
                 size="md"
-                theme="cobalt"
+                theme="accent"
                 quote="We spawned non-blocking Tokio tasks per follower inside the broadcast loop so a partitioned peer cannot stall quorum tallying before the election timer expires."
                 attribution="— Candidate Defense Transcript • Matched to lines 176–181"
               />
@@ -573,7 +573,7 @@ export function Landing() {
                     <div className="text-accent">{d.citedLine}</div>
                   </div>
 
-                  {expanded && <EditorialQuoteBlock quote={d.quote} theme="cobalt" />}
+                  {expanded && <EditorialQuoteBlock quote={d.quote} theme="accent" />}
                 </div>
 
                 <div className="flex items-center justify-between border-t border-line pt-3">
@@ -619,7 +619,7 @@ export function Landing() {
             </Link>
             <Link
               to={secondaryHref}
-              className="btn-tactile inline-flex items-center justify-center gap-2 rounded-[4px] border border-dark-hairline bg-dark-surface px-6 py-3 text-[14px] font-medium text-dark-ink hover:border-dark-muted hover:bg-[#1E222B]"
+              className="btn-tactile inline-flex items-center justify-center gap-2 rounded-[4px] border border-dark-hairline bg-dark-surface px-6 py-3 text-[14px] font-medium text-dark-ink hover:border-dark-muted hover:bg-dark-hairline"
             >
               <span>{secondaryLabel}</span>
             </Link>

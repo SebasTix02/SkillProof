@@ -1,34 +1,31 @@
-import { ScoreResultSchema, type Rubric, type ScoreResult } from '@skillproof/shared';
+import { CourseScoreResultSchema, ScoreResultSchema, type CourseScoreResult, type Rubric } from '@skillproof/shared';
 import type { Part } from '@google/genai';
 import type { AnalysisRow } from '../engine/analyze.js';
 import { currentActivity } from '../lib/activity.js';
-import { AiUnavailableError, UNTRUSTED_NOTICE, generateJson, isTransientAiError, type UsageContext } from '../lib/gemini.js';
+import { AiUnavailableError, generateJson, isTransientAiError, type UsageContext } from '../lib/gemini.js';
 import { analysisModel, summariesModel } from '../lib/models.js';
 import { db, must } from '../lib/supabase.js';
+import { HACKATHON_SYSTEM, scoringSystem, subjectBlock, type CourseContext, type ScoringSpecKey } from './scoringSpecs.js';
 
-const SCORE_SYSTEM = `You are a strict, fair hackathon judge. You score one project against a rubric.
-
-Rules:
-- Score every criterion from 1 to 10 using the anchors given for 2, 5 and 8. Most projects land between 3 and 7.
-- Judge only what the evidence shows. The repository map was produced from the code and is your main evidence.
-- justification: exactly two sentences, specific to this project, naming what you saw.
-- evidence: file paths from the repository map, or video timestamps as mm:ss. Never cite a file that is not in the map.
-- Criteria about the demo or the pitch are judged from the video. If there is no video, give score null for them
-  and say so in the justification. Do not guess.
-- A claim in the description or the video that the code does not support counts against the project.
-- feedback: up to 4 strengths and up to 3 improvements, each improvement naming where and a concrete next step.
-
-${UNTRUSTED_NOTICE}`;
+/** The hackathon prompt (kept as SCORE_SYSTEM for the events code and its snapshot test). */
+export const SCORE_SYSTEM = HACKATHON_SYSTEM;
 
 export interface ScoreInput {
   submissionId: string;
   organizationId: string;
   rubric: Rubric;
   analysis: AnalysisRow;
+  /** Hackathon: the team name. Courses: the student's or the group's name. */
   teamName: string;
   description: string;
   videoUrl: string | null;
   usage: UsageContext;
+  /** Which prompt grades it. Default: hackathon. */
+  spec?: ScoringSpecKey;
+  /** The assignment, for course specs. */
+  course?: CourseContext;
+  /** Where scores and feedback are stored. Default: the event tables. */
+  store?: { scores: 'scores' | 'assignment_scores'; feedback: 'feedback' | 'assignment_feedback' };
 }
 
 /**
@@ -46,7 +43,7 @@ export function compactEvidence(analysis: Pick<AnalysisRow, 'map_json' | 'commit
   };
 }
 
-function buildParts(input: ScoreInput, withVideo: boolean): Part[] {
+export function buildParts(input: ScoreInput, withVideo: boolean): Part[] {
   const rubric = input.rubric
     .map(
       (c) =>
@@ -58,7 +55,7 @@ ${rubric}
 
 Return one entry in "scores" for each of these criterion keys, in this order: ${input.rubric.map((c) => c.key).join(', ')}.
 
-Team: ${input.teamName}
+${subjectBlock(input.spec ?? 'hackathon', input.teamName, input.course)}
 
 <description>
 ${input.description || '(none given)'}
@@ -74,22 +71,24 @@ Video: ${withVideo ? 'attached. It contains the demo and the pitch.' : 'none ava
   return parts;
 }
 
-async function runScoring(input: ScoreInput, withVideo: boolean): Promise<ScoreResult> {
+async function runScoring(input: ScoreInput, withVideo: boolean): Promise<CourseScoreResult> {
+  const spec = input.spec ?? 'hackathon';
   await currentActivity()?.step(
     `Scoring ${input.rubric.length} criteria against the rubric${withVideo ? ', watching the demo video for demo and pitch' : ''}.`,
     analysisModel(),
   );
   const { data } = await generateJson({
     model: analysisModel(),
-    schema: ScoreResultSchema,
-    system: SCORE_SYSTEM,
+    // Course specs also return next_steps; the hackathon result is the original schema.
+    schema: spec === 'hackathon' ? ScoreResultSchema : CourseScoreResultSchema,
+    system: scoringSystem(spec),
     parts: buildParts(input, withVideo),
     usage: { ...input.usage, kind: withVideo ? 'score_with_video' : 'score' },
     temperature: 0.1,
     maxOutputTokens: 6_000,
     effort: 'medium',
   });
-  return data;
+  return { ...data, feedback: { next_steps: [], ...data.feedback } };
 }
 
 /**
@@ -97,7 +96,8 @@ async function runScoring(input: ScoreInput, withVideo: boolean): Promise<ScoreR
  * Returns a note when the video could not be used, so the organizer knows why demo and pitch are empty.
  */
 export async function scoreSubmission(input: ScoreInput): Promise<{ note: string | null }> {
-  let result: ScoreResult;
+  let result: CourseScoreResult;
+  const store = input.store ?? { scores: 'scores', feedback: 'feedback' };
   let note: string | null = null;
   if (input.videoUrl) {
     try {
@@ -129,14 +129,15 @@ export async function scoreSubmission(input: ScoreInput): Promise<{ note: string
     };
   });
   // Upsert only the AI columns, so a judge's override survives a re-run.
-  must(await db().from('scores').upsert(rows, { onConflict: 'submission_id,criterion_key' }));
+  must(await db().from(store.scores).upsert(rows, { onConflict: 'submission_id,criterion_key' }));
   must(
-    await db().from('feedback').upsert(
+    await db().from(store.feedback).upsert(
       {
         submission_id: input.submissionId,
         organization_id: input.organizationId,
         strengths_json: result.feedback.strengths,
         improvements_json: result.feedback.improvements,
+        ...(store.feedback === 'assignment_feedback' ? { next_steps_json: result.feedback.next_steps } : {}),
       },
       { onConflict: 'submission_id' },
     ),

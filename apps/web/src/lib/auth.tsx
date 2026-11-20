@@ -17,6 +17,8 @@ export interface Me {
   email: string | null;
   public_profile: { slug: string; is_public: boolean; headline: string; show_quotes?: boolean } | null;
   organizations: Organization[];
+  /** Courses the user takes as a student (shows "My courses"). */
+  enrolled_courses?: number;
 }
 
 interface AuthState {

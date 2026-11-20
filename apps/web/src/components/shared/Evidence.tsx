@@ -4,7 +4,7 @@ import { DOSSIER_THEMES, ORG_ROLE_SPECS, normalizeOrgRole, type DossierThemeKey,
 export function EditorialQuoteBlock({
   quote,
   attribution,
-  theme = 'cobalt',
+  theme = 'accent',
   size = 'sm',
   className = '',
 }: {
