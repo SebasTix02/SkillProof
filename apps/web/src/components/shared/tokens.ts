@@ -31,7 +31,7 @@ export const PERMISSION_LABEL: Record<string, { label: string; description: stri
   'submission.create': { label: 'Submit repositories', description: 'Submit a GitHub repository to an event.' },
   'interview.take': { label: 'Take voice interviews', description: 'Take a 3-minute voice interview about your code.' },
   'profile.publish': { label: 'Publish a public profile', description: 'Share verified reports on a public page.' },
-  'event.create': { label: 'Create events', description: 'Create hackathons, assignments and capstones.' },
+  'event.create': { label: 'Create events', description: 'Create hackathons and capstones.' },
   'event.manage': { label: 'Run events', description: 'Open, close and judge events, and edit their rubric.' },
   'results.publish': { label: 'Publish results', description: 'Make final scores visible to participants.' },
   'score.override': { label: 'Adjust scores', description: 'Change an AI score, with a reason in the audit log.' },

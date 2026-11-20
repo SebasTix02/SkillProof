@@ -270,6 +270,29 @@ again while the first one has not started returns that same interview; once it h
 answers 409 `interview_exists_for_commit` with its id, and taking another interview needs new commits. An interview
 that failed before it started does not count and can be retried. Event interviews use the commit frozen at the
 deadline, so a personal interview on that commit also counts.
+## Courses
+
+Courses are their own product, apart from events (`20261119000001_courses_domain`).
+
+- A course has a roster (instructors, TAs, students by section). Its assignments have no visibility, access code,
+  allowlist or "join": only the students on the roster see them and submit. Students find them in My courses
+  (`/courses`, `/courses/:id`, `/courses/:id/a/:aid`) and submit a repository with no team name.
+- An assignment is individual or group. In a group assignment students create a group and invite classmates from
+  the roster who have no group; invitations are accepted or declined in My courses. Size limits (2 to 4 by default)
+  are enforced by the database. Groups close at the due date or at an earlier time the teacher sets, and a group
+  also closes at its first submission. Staff can create groups and move or place students at any time.
+- Every member of a group gets the group grade; staff can set another total for one student (gradebook or
+  submission page). Students see it once results are published.
+- Grading and voice interviews use the same engines as events with their own prompts: the grader works against the
+  assignment's instructions and learning goals and adds next steps, never a ranking; a group submission also lists
+  the members and their commits. Interviews: 4 or 5 questions for an individual assignment, and for group work one
+  short interview per member (up to 2 questions, about 90 seconds) about the files they committed to.
+- Every group and submission rule runs inside database functions called by the API (`submit_assignment_version`,
+  `create_assignment_group`, `invite_to_group`, `respond_to_group_invite`, `leave_group`, `staff_place_in_group`);
+  browsers can read their own rows through RLS and write nothing.
+- Staff screens: Courses (overview, roster, assignments, gradebook), the assignment console (submissions, groups,
+  missing students, similarity, grading controls), the submission page and Integrity (Events / Courses).
+
 ## Known limits
 
 - **Not yet tested against live services.** The unit tests, database checks, typecheck and build pass. No run
@@ -282,13 +305,6 @@ deadline, so a personal interview on that commit also counts.
 - Only public GitHub repositories are supported.
 - The Vercel setup has not been deployed yet. Background jobs on Vercel in particular need a first real run.
 - Not built yet: sign in with GitHub, installable PWA.
-- Courses are separate from events (`20261119000001_course_assignments`). A course has a roster (instructors, TAs,
-  students by section) and assignments created under it (`POST /api/courses/:id/assignments`) with no visibility,
-  access code or allowlist: only the students on the roster see an assignment and can submit, and the database keeps
-  that in sync when the roster changes. Assignments reuse the judging engine (they are stored as `events` rows with
-  `kind = 'assignment'`, `visibility = 'course'` and a course, enforced by a check constraint and triggers; read them
-  through the `course_assignments` view). Screens: Courses (overview, roster, assignments, gradebook), Integrity
-  (similarity and verdicts for events and assignments) and, for students, My courses.
 - Organizer suite, judge workspace, similarity forensics and course mode have their data model and API
   (`20261117000004_screens`): members and invitations, usage, audit trail, judge assignments and reviews,
   integrity decisions, courses and rosters. Some of these screens still show sample data until they are wired
