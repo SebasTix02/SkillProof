@@ -41,6 +41,8 @@ interface InterviewResponse {
     status: 'preparing' | 'ready' | 'in_progress' | 'evaluating' | 'completed' | 'error' | 'canceled' | 'report_paused' | 'report_canceled';
     error: string | null;
     submission_id: string | null;
+    /** Set when the interview is about a course assignment submission. */
+    assignment?: { id: string; course_id: string; title: string } | null;
     created_at?: string;
     duration_s?: number | null;
     repo: { owner: string; name: string; url: string };
@@ -862,10 +864,10 @@ function Room({
                       {MAX_INTERVIEW_PAUSES} times ({MAX_INTERVIEW_PAUSE_MS / 60_000} minutes in total) and use &ldquo;Next question&rdquo; to move on.
                     </span>
                   </li>
-                  {interview.submission_id && (
+                  {(interview.submission_id || interview.assignment) && (
                     <li className="flex items-start gap-2">
                       <span className="font-mono-code mt-0.5 text-[11px] font-bold text-accent">05</span>
-                      <span>The event organizer can inspect the transcript and ownership report.</span>
+                      <span>{interview.assignment ? 'Your instructors' : 'The event organizer'} can inspect the transcript and ownership report.</span>
                     </li>
                   )}
                 </ul>
@@ -1011,9 +1013,22 @@ export function InterviewPage() {
       <DossierPageHeader
         eyebrow={
           <div className="flex flex-wrap items-center gap-2">
-            <Link to="/interview/new" className="text-accent hover:underline">
-              ← MY INTERVIEWS
-            </Link>
+            {interview.assignment ? (
+              <Link
+                to={
+                  interview.is_owner
+                    ? `/courses/${interview.assignment.course_id}/a/${interview.assignment.id}`
+                    : `/org/courses/${interview.assignment.course_id}/assignments/${interview.assignment.id}`
+                }
+                className="text-accent hover:underline"
+              >
+                ← {interview.assignment.title.toUpperCase()}
+              </Link>
+            ) : (
+              <Link to="/interview/new" className="text-accent hover:underline">
+                ← MY INTERVIEWS
+              </Link>
+            )}
             <span>•</span>
             <span>DOSSIER #{interview.id.slice(0, 8).toUpperCase()}</span>
             {interview.commit_sha && (

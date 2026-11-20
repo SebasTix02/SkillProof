@@ -61,7 +61,7 @@ export function navSections(me: Me | null, org: Organization | null): NavSection
   ];
   const slug = me?.public_profile?.slug;
   if (slug && me?.public_profile?.is_public) personal.push({ key: 'profile', label: 'Public profile', to: `/p/${slug}`, icon: 'profile' });
-  if ((me?.enrolled_courses ?? 0) > 0) personal.push({ key: 'my-courses', label: 'My courses', to: '/courses', icon: 'myCourses' });
+  if ((me?.enrolled_courses ?? 0) > 0) personal.push({ key: 'my-courses', label: 'My courses', to: '/courses', icon: 'myCourses', owns: ['/courses', '/courses/*', '/courses/*/a/*'] });
   personal.push({
     key: 'account',
     label: 'Account',

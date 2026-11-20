@@ -73,6 +73,7 @@ describe('highlighted item', () => {
     expect(activeItem(sections, '/org/events/new')).toBe('org-new');
     expect(activeItem(sections, '/org/courses/c1/roster')).toBe('org-courses');
     expect(activeItem(sections, '/org/courses/c1/assignments/a1')).toBe('org-courses');
+    expect(activeItem(sections, '/org/courses/c1/assignments/a1/s/s1')).toBe('org-courses');
     expect(activeItem(sections, '/org/integrity/e1')).toBe('org-integrity');
     expect(activeItem(sections, '/p/ana-1')).toBe('profile');
   });
@@ -100,5 +101,7 @@ describe('courses for students', () => {
     expect(labels(student(0), null)[0]![1]).not.toContain('My courses');
     expect(labels(student(2), null)[0]![1]).toEqual(['Events', 'Interviews', 'My courses', 'Account']);
     expect(activeItem(navSections(student(2), null), '/courses')).toBe('my-courses');
+    expect(activeItem(navSections(student(2), null), '/courses/c1')).toBe('my-courses');
+    expect(activeItem(navSections(student(2), null), '/courses/c1/a/a1')).toBe('my-courses');
   });
 });

@@ -17,7 +17,7 @@ import { Landing } from './pages/Landing';
 import { IntegrityReview } from './pages/org/CourseMode';
 import { AssignmentConsole, AssignmentSubmissionPage } from './pages/org/AssignmentConsole';
 import { CoursePage, CoursesHome, NewAssignment } from './pages/org/Courses';
-import { MyCourses } from './pages/MyCourses';
+import { MyAssignmentPage, MyCourse, MyCourses } from './pages/MyCourses';
 import { CreateEvent } from './pages/org/CreateEvent';
 import { EventConsole } from './pages/org/EventConsole';
 import { OrgEvents } from './pages/org/OrgEvents';
@@ -62,6 +62,8 @@ function App() {
         <Route path="/interview/:id" element={<Private><InterviewPage /></Private>} />
         <Route path="/org/events" element={<Private organizer><OrgEvents /></Private>} />
         <Route path="/courses" element={<Private><MyCourses /></Private>} />
+        <Route path="/courses/:id" element={<Private><MyCourse /></Private>} />
+        <Route path="/courses/:id/a/:aid" element={<Private><MyAssignmentPage /></Private>} />
         <Route path="/org/courses" element={<Private organizer><CoursesHome /></Private>} />
         <Route path="/org/courses/:courseId" element={<Private organizer><CoursePage /></Private>} />
         <Route path="/org/courses/:courseId/assignments/new" element={<Private organizer><NewAssignment /></Private>} />

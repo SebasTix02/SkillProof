@@ -20,12 +20,12 @@ const tokenRetryWindowMs = (seconds: number) => seconds * 1000 + MAX_INTERVIEW_P
 
 type InterviewWithRepo = InterviewRow & {
   repos: { owner: string; name: string; url: string };
-  assignment_submissions: { group_id: string | null } | null;
+  assignment_submissions: { group_id: string | null; assignment_id: string; course_assignments: { course_id: string; title: string } | null } | null;
 };
 
 async function getInterview(id: string): Promise<InterviewWithRepo> {
   const row = must(
-    await db().from('interviews').select('*, repos(owner, name, url), assignment_submissions(group_id)').eq('id', id).maybeSingle(),
+    await db().from('interviews').select('*, repos(owner, name, url), assignment_submissions(group_id, assignment_id, course_assignments(course_id, title))').eq('id', id).maybeSingle(),
   ) as InterviewWithRepo | null;
   if (!row) throw notFound('Interview not found');
   return row;
@@ -211,6 +211,10 @@ export async function interviewRoutes(app: FastifyInstance): Promise<void> {
         submission_id: row.submission_id,
         assignment_submission_id: row.assignment_submission_id ?? null,
         spec: specOf(row),
+        // Where the candidate came from: their course assignment (for the way back).
+        assignment: row.assignment_submissions?.course_assignments
+          ? { id: row.assignment_submissions.assignment_id, course_id: row.assignment_submissions.course_assignments.course_id, title: row.assignment_submissions.course_assignments.title }
+          : null,
         started_at: row.started_at,
         duration_s: row.duration_s,
         created_at: row.created_at,
