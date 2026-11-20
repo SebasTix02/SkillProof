@@ -1,6 +1,6 @@
 import type { ActivityEntry, CommitProfile, RepoMap, Rubric } from '@skillproof/shared';
 import { useMemo, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { one } from '../../components/Report';
 import {
   Badge,
@@ -28,6 +28,7 @@ import { useToast } from '../../components/toast';
 import { api, errorMessage } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
 import { STATUS_LABEL, type EventView, type RepoRef, type ScoreView } from '../../lib/types';
+import type { AssignmentConsoleResponse, AssignmentView } from '../../lib/courses';
 import { useLoad } from '../../lib/useLoad';
 
 type OrgEvent = EventView & { submission_count: number; participant_count: number };
@@ -92,28 +93,76 @@ const VERDICT_LABEL: Record<string, string> = {
 type RosterFilter = 'all' | 'flagged' | 'incomplete_defense' | 'scored';
 type SortKey = 'risk' | 'lowest_ownership' | 'highest_grade' | 'name';
 
+type Source = 'events' | 'courses';
+type OrgAssignment = AssignmentView & { course_name: string; course_code: string };
+
+/** What the screen needs about the event or assignment under review, whichever it is. */
+interface Target {
+  kind: 'event' | 'assignment';
+  id: string;
+  name: string;
+  tag: string;
+  status: EventView['status'];
+  deadline: string;
+  interviews_enabled: boolean;
+  rubric: Rubric;
+  consoleLink: string;
+  submissionLink: (sid: string) => string;
+  compareLink: ((a: string, b: string, flag: string) => string) | null;
+}
+
+/** An assignment console, shaped like the event console the screen was built for. */
+function fromAssignment(d: AssignmentConsoleResponse): ConsoleResponse {
+  return {
+    event: null as unknown as EventView,
+    participant_count: d.assignment.student_count,
+    similarity_flags: d.similarity_flags,
+    submissions: d.submissions.map((r) => ({
+      id: r.id,
+      team_name: r.label,
+      submitted_by_name: r.members ? r.members.map((m) => m.display_name).join(', ') : r.label,
+      status: r.status,
+      error: r.error,
+      activity: r.activity,
+      step_count: r.activity.length,
+      models_used: r.models_used,
+      versions_used: r.versions_used,
+      locked_commit_sha: r.locked_commit_sha,
+      current_version: r.current_version?.repos ? { repos: r.current_version.repos } : null,
+      scores: r.scores,
+      total: r.total,
+      ownership: r.ownership,
+    })),
+  };
+}
+
 /**
- * Integrity review: similarity signals, oral defense and verdicts per submission, for any event or course assignment.
- * (Courses have their own screens in Courses.tsx.)
+ * Integrity review: similarity signals, oral defense and verdicts per submission, for one event or one course
+ * assignment at a time (a selector switches between events and courses).
  */
 export function IntegrityReview() {
   const { id: routeEventId } = useParams();
+  const [search0] = useSearchParams();
+  const routeAssignmentId = search0.get('assignment');
   const { org, me } = useAuth();
   const toast = useToast();
 
-  // Events and course assignments: integrity covers both.
-  const orgEvents = useLoad<{ events: (OrgEvent & { course_name?: string | null })[] }>(org ? `/api/orgs/${org.id}/events?include=assignments` : null);
+  const [source, setSource] = useState<Source>(routeAssignmentId ? 'courses' : 'events');
+  const orgEvents = useLoad<{ events: OrgEvent[] }>(org ? `/api/orgs/${org.id}/events` : null);
+  const orgAssignments = useLoad<{ assignments: OrgAssignment[] }>(org ? `/api/orgs/${org.id}/assignments` : null);
   const events = orgEvents.data?.events ?? [];
+  const assignments = orgAssignments.data?.assignments ?? [];
 
   const [selectedEventId, setSelectedEventId] = useState<string | null>(routeEventId ?? null);
-  const activeEventId =
-    selectedEventId ??
-    routeEventId ??
-    events.find((e) => e.kind === 'assignment')?.id ??
-    events[0]?.id ??
-    null;
+  const [selectedAssignmentId, setSelectedAssignmentId] = useState<string | null>(routeAssignmentId);
+  const activeEventId = source === 'events' ? (selectedEventId ?? events[0]?.id ?? null) : null;
+  const activeAssignmentId = source === 'courses' ? (selectedAssignmentId ?? assignments[0]?.id ?? null) : null;
 
-  const consoleData = useLoad<ConsoleResponse>(activeEventId ? `/api/events/${activeEventId}/console` : null);
+  const eventConsole = useLoad<ConsoleResponse>(activeEventId ? `/api/events/${activeEventId}/console` : null);
+  const assignmentConsole = useLoad<AssignmentConsoleResponse>(activeAssignmentId ? `/api/assignments/${activeAssignmentId}/console` : null);
+  const consoleData = source === 'events'
+    ? eventConsole
+    : { ...assignmentConsole, data: assignmentConsole.data ? fromAssignment(assignmentConsole.data) : null };
 
   const [activeTab, setActiveTab] = useState<CourseTab>('roster');
   const [search, setSearch] = useState('');
@@ -125,8 +174,13 @@ export function IntegrityReview() {
   const [busyScoreId, setBusyScoreId] = useState<string | null>(null);
   const [savingVerdict, setSavingVerdict] = useState(false);
   const canDecide = !!org?.permissions.includes('integrity.decide');
-  const integrity = useLoad<{ decisions: { id: string; submission_id: string | null; verdict: string; note: string; created_at: string; profiles?: { display_name: string } | null }[] }>(
-    activeEventId && (canDecide || org?.permissions.includes('event.manage')) ? `/api/events/${activeEventId}/integrity` : null,
+  type Decision = { id: string; submission_id?: string | null; assignment_submission_id?: string | null; verdict: string; note: string; created_at: string; profiles?: { display_name: string } | null };
+  const integrity = useLoad<{ decisions: Decision[] }>(
+    activeEventId && (canDecide || org?.permissions.includes('event.manage'))
+      ? `/api/events/${activeEventId}/integrity`
+      : activeAssignmentId && (canDecide || org?.permissions.includes('course.manage'))
+        ? `/api/assignments/${activeAssignmentId}/integrity`
+        : null,
   );
 
   const submissions = consoleData.data?.submissions ?? [];
@@ -194,16 +248,53 @@ export function IntegrityReview() {
       : (filteredRows[0]?.id ?? submissions[0]?.id ?? null);
 
   const selectedSummary = submissions.find((s) => s.id === effectiveSelectedId) ?? null;
-  const selectedDetail = useLoad<DetailResponse>(
-    effectiveSelectedId ? `/api/submissions/${effectiveSelectedId}` : null,
+  const rawDetail = useLoad<DetailResponse & { interviews?: { id: string; status: string }[] }>(
+    effectiveSelectedId ? (source === 'events' ? `/api/submissions/${effectiveSelectedId}` : `/api/assignment-submissions/${effectiveSelectedId}`) : null,
   );
+  const selectedDetail = {
+    ...rawDetail,
+    data: rawDetail.data ? { ...rawDetail.data, interview: rawDetail.data.interview ?? rawDetail.data.interviews?.[0] ?? null } : null,
+  };
 
-  if (orgEvents.loading && !orgEvents.data) return <PageState loading error={null} kind="console" />;
-  if (orgEvents.error) return <PageState loading={false} error={orgEvents.error} />;
+  const lists = source === 'events' ? orgEvents : orgAssignments;
+  if (lists.loading && !lists.data) return <PageState loading error={null} kind="console" />;
+  if (lists.error) return <PageState loading={false} error={lists.error} />;
 
-  const event = consoleData.data?.event ?? events.find((e) => e.id === activeEventId) ?? null;
+  const ev = source === 'events' ? (eventConsole.data?.event ?? events.find((e) => e.id === activeEventId) ?? null) : null;
+  const asg = source === 'courses' ? (assignmentConsole.data?.assignment ?? assignments.find((x) => x.id === activeAssignmentId) ?? null) : null;
+  const event: Target | null = ev
+    ? {
+        kind: 'event',
+        id: ev.id,
+        name: ev.name,
+        tag: `/e/${ev.slug}`,
+        status: ev.status,
+        deadline: ev.submission_deadline,
+        interviews_enabled: ev.interviews_enabled,
+        rubric: ev.rubric_json,
+        consoleLink: `/org/events/${ev.id}`,
+        submissionLink: (sid) => `/org/events/${ev.id}/s/${sid}`,
+        compareLink: (x, y, flag) => `/org/events/${ev.id}/compare?a=${x}&b=${y}&flag=${flag}`,
+      }
+    : asg
+      ? {
+          kind: 'assignment',
+          id: asg.id,
+          name: asg.title,
+          tag: assignments.find((x) => x.id === asg.id)?.course_name ?? assignmentConsole.data?.course.name ?? 'Course',
+          status: asg.status,
+          deadline: asg.due_at,
+          interviews_enabled: asg.interviews_enabled,
+          rubric: asg.rubric_json,
+          consoleLink: `/org/courses/${asg.course_id}/assignments/${asg.id}`,
+          submissionLink: (sid) => `/org/courses/${asg.course_id}/assignments/${asg.id}/s/${sid}`,
+          compareLink: null,
+        }
+      : null;
   const canOverride =
-    !!org?.permissions.includes('score.override') && event?.status === 'review';
+    event?.status === 'review' &&
+    (event.kind === 'event' ? !!org?.permissions.includes('score.override') : !!org?.permissions.includes('course.manage'));
+  const empty = source === 'events' ? events.length === 0 : assignments.length === 0;
 
   function exportCanvasCsv() {
     if (!event || submissions.length === 0) {
@@ -235,7 +326,7 @@ export function IntegrityReview() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${event.slug}-integrity.csv`;
+    a.download = `${event.name.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-integrity.csv`;
     a.click();
     URL.revokeObjectURL(url);
     toast.success('Exported as CSV.');
@@ -246,7 +337,11 @@ export function IntegrityReview() {
     setSavingVerdict(true);
     try {
       await api('/api/integrity-decisions', {
-        body: { submission_id: submissionId, verdict: verdictChoice === 'cod' ? 'code_of_conduct' : verdictChoice, note: docketNote },
+        body: {
+          [event?.kind === 'assignment' ? 'assignment_submission_id' : 'submission_id']: submissionId,
+          verdict: verdictChoice === 'cod' ? 'code_of_conduct' : verdictChoice,
+          note: docketNote,
+        },
       });
       toast.success(`Determination saved for ${who}.`);
       setDocketNote('');
@@ -261,7 +356,7 @@ export function IntegrityReview() {
   async function overrideScore(scoreId: string, value: number) {
     setBusyScoreId(scoreId);
     try {
-      await api(`/api/scores/${scoreId}`, { method: 'PATCH', body: { override_score: value } });
+      await api(`${event?.kind === 'assignment' ? '/api/assignment-scores' : '/api/scores'}/${scoreId}`, { method: 'PATCH', body: { override_score: value } });
       toast.success(`Criterion updated to ${value}/10.`);
       await Promise.all([consoleData.reload(), selectedDetail.reload()]);
     } catch (err) {
@@ -273,7 +368,7 @@ export function IntegrityReview() {
 
   const selectedAnalysis = selectedDetail.data ? one(selectedDetail.data.submission.repo_analyses) : null;
   const selectedScores = selectedDetail.data?.scores ?? selectedSummary?.scores ?? [];
-  const selectedRubric: Rubric = event?.rubric_json ?? [];
+  const selectedRubric: Rubric = event?.rubric ?? [];
 
   return (
     <div className="space-y-6">
@@ -290,16 +385,33 @@ export function IntegrityReview() {
             <>
               <span className="text-line">•</span>
               <span className="rounded-[3px] border border-line bg-paper px-2 py-0.5 font-bold text-ink">
-                /e/{event.slug}
+                {event.tag}
               </span>
             </>
           )}
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          {events.length > 0 && (
+          <div role="tablist" aria-label="Review events or courses" className="font-mono-code flex overflow-hidden rounded-[4px] border border-line text-[11px]">
+            {(['events', 'courses'] as const).map((k) => (
+              <button
+                key={k}
+                type="button"
+                role="tab"
+                aria-selected={source === k}
+                onClick={() => {
+                  setSource(k);
+                  setSelectedSubId(null);
+                }}
+                className={`cursor-pointer px-3 py-1.5 ${source === k ? 'bg-accent-soft font-bold text-accent-ink' : 'bg-white text-muted hover:text-ink'}`}
+              >
+                {k === 'events' ? 'Events' : 'Courses'}
+              </button>
+            ))}
+          </div>
+          {source === 'events' && events.length > 0 && (
             <Select
-              aria-label="Event or assignment"
+              aria-label="Event"
               value={activeEventId ?? ''}
               onChange={(e) => {
                 setSelectedEventId(e.target.value);
@@ -307,10 +419,26 @@ export function IntegrityReview() {
               }}
               className="font-mono-code h-8 w-56 bg-paper text-[11px]"
             >
-              {events.map((ev) => (
-                <option key={ev.id} value={ev.id}>
-                  {ev.course_name ? `${ev.course_name} · ` : ''}
-                  {ev.name} ({STATUS_LABEL[ev.status]})
+              {events.map((x) => (
+                <option key={x.id} value={x.id}>
+                  {x.name} ({STATUS_LABEL[x.status]})
+                </option>
+              ))}
+            </Select>
+          )}
+          {source === 'courses' && assignments.length > 0 && (
+            <Select
+              aria-label="Course assignment"
+              value={activeAssignmentId ?? ''}
+              onChange={(e) => {
+                setSelectedAssignmentId(e.target.value);
+                setSelectedSubId(null);
+              }}
+              className="font-mono-code h-8 w-64 bg-paper text-[11px]"
+            >
+              {assignments.map((x) => (
+                <option key={x.id} value={x.id}>
+                  {x.course_name} · {x.title} ({STATUS_LABEL[x.status]})
                 </option>
               ))}
             </Select>
@@ -348,10 +476,7 @@ export function IntegrityReview() {
                 <span>Export CSV</span>
               </button>
               {event && (
-                <Link
-                  to={event.kind === 'assignment' && event.course_id ? `/org/courses/${event.course_id}/assignments/${event.id}` : `/org/events/${event.id}`}
-                  className={linkButton}
-                >
+                <Link to={event.consoleLink} className={linkButton}>
                   <span className="material-symbols-outlined text-[16px]">gavel</span>
                   <span>{event.kind === 'assignment' ? 'Assignment console' : 'Event console'}</span>
                 </Link>
@@ -385,7 +510,7 @@ export function IntegrityReview() {
             </div>
             <div>
               <span className="block text-[10px] text-muted uppercase">Deadline</span>
-              <span className="font-semibold text-good">{formatDate(event.submission_deadline)}</span>
+              <span className="font-semibold text-good">{formatDate(event.deadline)}</span>
             </div>
           </div>
         )}
@@ -422,17 +547,25 @@ export function IntegrityReview() {
         />
       </section>
 
-      {events.length === 0 ? (
+      {empty ? (
         <Notice tone="info">
-          Nothing to review yet: integrity covers the submissions of events and course assignments.{' '}
-          <Link to="/org/events/new" className="font-semibold text-accent-ink underline">
-            Create an event
-          </Link>{' '}
-          or{' '}
-          <Link to="/org/courses" className="font-semibold text-accent-ink underline">
-            an assignment in a course
-          </Link>
-          .
+          {source === 'events' ? (
+            <>
+              No events to review yet.{' '}
+              <Link to="/org/events/new" className="font-semibold text-accent-ink underline">
+                Create an event
+              </Link>
+              .
+            </>
+          ) : (
+            <>
+              No course assignments to review yet.{' '}
+              <Link to="/org/courses" className="font-semibold text-accent-ink underline">
+                Open a course
+              </Link>{' '}
+              to create one.
+            </>
+          )}
         </Notice>
       ) : (
         <>
@@ -511,11 +644,8 @@ export function IntegrityReview() {
                     Inspect flagged submission pairs side-by-side in the Forensic Comparison Console.
                   </p>
                 </div>
-                {event && flags[0] && (
-                  <Link
-                    to={`/org/events/${event.id}/compare?a=${flags[0].submission_a}&b=${flags[0].submission_b}&flag=${flags[0].id}`}
-                    className={linkButton}
-                  >
+                {event?.compareLink && flags[0] && (
+                  <Link to={event.compareLink(flags[0].submission_a, flags[0].submission_b, flags[0].id)} className={linkButton}>
                     Open Forensic Comparison →
                   </Link>
                 )}
@@ -540,9 +670,9 @@ export function IntegrityReview() {
                           <strong className="text-ink">{nameB}</strong>
                           {f.explanation && <span className="font-mono-code text-[12px] text-muted">· {f.explanation}</span>}
                         </div>
-                        {event && (
+                        {event?.compareLink && (
                           <Link
-                            to={`/org/events/${event.id}/compare?a=${f.submission_a}&b=${f.submission_b}&flag=${f.id}`}
+                            to={event.compareLink(f.submission_a, f.submission_b, f.id)}
                             className="font-mono-code text-[11px] font-semibold text-accent hover:underline"
                           >
                             Compare Side-by-Side →
@@ -718,7 +848,7 @@ export function IntegrityReview() {
                           <td className="px-4 py-3 text-right">
                             {event && (
                               <Link
-                                to={`/org/events/${event.id}/s/${s.id}`}
+                                to={event.submissionLink(s.id)}
                                 onClick={(e) => e.stopPropagation()}
                                 className="btn-tactile font-mono-code inline-flex items-center gap-1 rounded-[3px] border border-line bg-white px-2.5 py-1 text-[11px] font-semibold text-accent hover:border-accent"
                               >
@@ -867,7 +997,7 @@ export function IntegrityReview() {
                           </Select>
                           {event && (
                             <Link
-                              to={`/org/events/${event.id}/s/${selectedSummary.id}`}
+                              to={event.submissionLink(selectedSummary.id)}
                               className="font-mono-code shrink-0 text-[11px] font-semibold text-accent hover:underline"
                             >
                               All Criteria →
@@ -945,14 +1075,14 @@ export function IntegrityReview() {
                       {savingVerdict ? 'Saving…' : 'Save Determination'}
                     </Button>
                     {event && (
-                      <Link to={`/org/events/${event.id}/s/${selectedSummary.id}`} className={linkButtonSecondary}>
+                      <Link to={event.submissionLink(selectedSummary.id)} className={linkButtonSecondary}>
                         Full Judge View
                       </Link>
                     )}
                   </div>
                   {!canDecide && <p className="text-[11px] text-muted">Your role cannot record integrity determinations.</p>}
                   {(() => {
-                    const history = (integrity.data?.decisions ?? []).filter((d) => d.submission_id === selectedSummary.id);
+                    const history = (integrity.data?.decisions ?? []).filter((d) => (d.submission_id ?? d.assignment_submission_id) === selectedSummary.id);
                     if (history.length === 0) return <p className="text-[11px] text-muted">No determination recorded for this student yet.</p>;
                     return (
                       <ul className="space-y-1 border-t border-line pt-3 text-[11px]">

@@ -14,6 +14,7 @@ export function SubmissionJudgingControls({
   busy,
   act,
   compact = false,
+  basePath = '/api/submissions',
 }: {
   id: string;
   name: string;
@@ -22,18 +23,20 @@ export function SubmissionJudgingControls({
   busy: string | null;
   act: (key: string, path: string, success: string, confirm?: string) => void;
   compact?: boolean;
+  /** /api/submissions for events, /api/assignment-submissions for course assignments. */
+  basePath?: string;
 }) {
   const cls = compact ? 'px-2.5 py-1 text-[11px]' : '';
   const running = status === 'queued' || status === 'analyzing';
   return (
     <>
       {running && (
-        <Button variant="secondary" className={cls} disabled={!!busy} loading={busy === `pause-${id}`} onClick={() => act(`pause-${id}`, `/api/submissions/${id}/pause`, `Judging of ${name} paused. It stops at the next checkpoint.`)}>
+        <Button variant="secondary" className={cls} disabled={!!busy} loading={busy === `pause-${id}`} onClick={() => act(`pause-${id}`, `${basePath}/${id}/pause`, `Judging of ${name} paused. It stops at the next checkpoint.`)}>
           {busy === `pause-${id}` ? 'Pausing…' : 'Pause'}
         </Button>
       )}
       {status === 'paused' && (
-        <Button className={cls} disabled={!!busy} loading={busy === `resume-${id}`} onClick={() => act(`resume-${id}`, `/api/submissions/${id}/resume`, `Judging of ${name} resumed.`)}>
+        <Button className={cls} disabled={!!busy} loading={busy === `resume-${id}`} onClick={() => act(`resume-${id}`, `${basePath}/${id}/resume`, `Judging of ${name} resumed.`)}>
           {busy === `resume-${id}` ? 'Resuming…' : 'Resume'}
         </Button>
       )}
@@ -43,14 +46,14 @@ export function SubmissionJudgingControls({
           className={cls}
           disabled={!!busy} loading={busy === `cancel-${id}`}
           onClick={() =>
-            act(`cancel-${id}`, `/api/submissions/${id}/cancel`, `Judging of ${name} canceled.`, `Cancel judging ${name}? No new scores are written. You can start over with "Judge again".`)
+            act(`cancel-${id}`, `${basePath}/${id}/cancel`, `Judging of ${name} canceled.`, `Cancel judging ${name}? No new scores are written. You can start over with "Judge again".`)
           }
         >
           {busy === `cancel-${id}` ? 'Canceling…' : 'Cancel'}
         </Button>
       )}
       {(status === 'error' || status === 'canceled') && frozen && (
-        <Button variant="secondary" className={cls} disabled={!!busy} loading={busy === `re-${id}`} onClick={() => act(`re-${id}`, `/api/submissions/${id}/rejudge`, `Judging ${name} again.`)}>
+        <Button variant="secondary" className={cls} disabled={!!busy} loading={busy === `re-${id}`} onClick={() => act(`re-${id}`, `${basePath}/${id}/rejudge`, `Judging ${name} again.`)}>
           {busy === `re-${id}` ? 'Queuing…' : 'Judge again'}
         </Button>
       )}

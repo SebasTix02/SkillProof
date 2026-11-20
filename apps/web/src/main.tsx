@@ -15,6 +15,7 @@ import { InterviewHome } from './pages/InterviewHome';
 import { InterviewPage } from './pages/InterviewPage';
 import { Landing } from './pages/Landing';
 import { IntegrityReview } from './pages/org/CourseMode';
+import { AssignmentConsole, AssignmentSubmissionPage } from './pages/org/AssignmentConsole';
 import { CoursePage, CoursesHome, NewAssignment } from './pages/org/Courses';
 import { MyCourses } from './pages/MyCourses';
 import { CreateEvent } from './pages/org/CreateEvent';
@@ -34,7 +35,7 @@ function Private({ children, organizer = false }: { children: ReactNode; organiz
   return <>{children}</>;
 }
 
-/** Old links to the per-event gradebook now open the integrity review of that event or assignment. */
+/** Old links to the per-event gradebook now open the integrity review of that event. */
 function GradebookRedirect() {
   const { id } = useParams();
   return <Navigate to={`/org/integrity/${id}`} replace />;
@@ -64,7 +65,8 @@ function App() {
         <Route path="/org/courses" element={<Private organizer><CoursesHome /></Private>} />
         <Route path="/org/courses/:courseId" element={<Private organizer><CoursePage /></Private>} />
         <Route path="/org/courses/:courseId/assignments/new" element={<Private organizer><NewAssignment /></Private>} />
-        <Route path="/org/courses/:courseId/assignments/:id" element={<Private organizer><EventConsole /></Private>} />
+        <Route path="/org/courses/:courseId/assignments/:id" element={<Private organizer><AssignmentConsole /></Private>} />
+        <Route path="/org/courses/:courseId/assignments/:id/s/:sid" element={<Private organizer><AssignmentSubmissionPage /></Private>} />
         <Route path="/org/courses/:courseId/:tab" element={<Private organizer><CoursePage /></Private>} />
         <Route path="/org/integrity" element={<Private organizer><IntegrityReview /></Private>} />
         <Route path="/org/integrity/:id" element={<Private organizer><IntegrityReview /></Private>} />

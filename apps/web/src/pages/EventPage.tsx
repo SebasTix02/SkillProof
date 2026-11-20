@@ -304,9 +304,6 @@ export function EventPage() {
       <div id="workspaceSection" className="space-y-8">
         {data.is_participant ? (
           <Participant event={event} />
-        ) : event.kind === 'assignment' ? (
-          // A course assignment has no join: its participants are the students on the course roster.
-          <Notice tone="info">This is a course assignment. The students on the course roster submit here; nobody joins it.</Notice>
         ) : (
           <Join event={event} onJoined={reload} />
         )}

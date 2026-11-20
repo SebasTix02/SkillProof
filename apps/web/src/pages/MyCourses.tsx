@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Badge, DossierPageHeader, PageState, formatDate, linkButton } from '../components/shared';
 import { STATUS_LABEL, type EventView } from '../lib/types';
 import { useLoad } from '../lib/useLoad';
-import type { AssignmentView } from './org/Courses';
+import type { AssignmentView } from '../lib/courses';
 
 interface MyCourse {
   id: string;
@@ -67,7 +67,7 @@ export function MyCourses() {
                       </div>
                       <div className="flex items-center gap-3">
                         <Badge tone={step.tone}>{step.label}</Badge>
-                        <Link to={`/e/${a.slug}`} className={linkButton}>
+                        <Link to={`/courses/${c.id}/a/${a.id}`} className={linkButton}>
                           {step.label === 'To do' ? 'Submit' : 'Open'}
                         </Link>
                       </div>

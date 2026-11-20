@@ -165,6 +165,24 @@ interface ScoreRow {
   override_score: number | null;
 }
 
+interface InterviewSummary {
+  id: string;
+  user_id: string;
+  status: string;
+  assignment_submission_id: string;
+  interview_reports: { ownership_score: number; confidence: string } | { ownership_score: number; confidence: string }[] | null;
+}
+
+const reportOf = (i: InterviewSummary) => (Array.isArray(i.interview_reports) ? i.interview_reports[0] : i.interview_reports) ?? null;
+
+/** The ownership signal of a submission: the lowest among its completed interviews (one weak member shows). */
+export function lowestOwnership(interviews: InterviewSummary[]): { score: number; confidence: string } | null {
+  const reports = interviews.map(reportOf).filter((r): r is { ownership_score: number; confidence: string } => !!r);
+  if (!reports.length) return null;
+  const low = reports.reduce((a, b) => (b.ownership_score < a.ownership_score ? b : a));
+  return { score: low.ownership_score, confidence: low.confidence };
+}
+
 /** Every submission of an assignment with its scores, total and who it belongs to. */
 export async function assignmentBoard(a: AssignmentRow) {
   const rubric = RubricSchema.parse(a.rubric_json) as Rubric;
@@ -173,8 +191,15 @@ export async function assignmentBoard(a: AssignmentRow) {
   const scores = ids.length ? (must(await db().from('assignment_scores').select('*').in('submission_id', ids)) as ScoreRow[]) : [];
   const groups = a.mode === 'group' ? await groupsOf(a.id) : [];
   const people = await names(subs.map((s) => s.student_id).concat(subs.map((s) => s.submitted_by)));
+  // Voice interviews about each submission (one per student, or per group member) with their ownership scores.
+  const interviews = ids.length
+    ? (must(
+        await db().from('interviews').select('id, user_id, status, assignment_submission_id, interview_reports(ownership_score, confidence)').in('assignment_submission_id', ids).neq('status', 'error'),
+      ) as unknown as InterviewSummary[])
+    : [];
   const rows = subs.map((s) => {
     const mine = scores.filter((x) => x.submission_id === s.id);
+    const theirs = interviews.filter((i) => i.assignment_submission_id === s.id);
     const group = groups.find((g) => g.id === s.group_id);
     return {
       ...s,
@@ -185,6 +210,8 @@ export async function assignmentBoard(a: AssignmentRow) {
       submitted_by_name: people.get(s.submitted_by ?? '')?.display_name ?? '',
       scores: mine,
       total: weightedTotal(rubric, mine),
+      interviews: theirs.map((i) => ({ id: i.id, user_id: i.user_id, status: i.status, ownership: reportOf(i)?.ownership_score ?? null })),
+      ownership: lowestOwnership(theirs),
     };
   });
   rows.sort((x, y) => x.label.localeCompare(y.label));
@@ -228,6 +255,28 @@ export async function courseRoutes(app: FastifyInstance): Promise<void> {
   // ===================================================================================================================
   // Courses and roster
   // ===================================================================================================================
+
+  /** Every assignment of the organization's active courses, newest first (the integrity review picks from them). */
+  app.get('/api/orgs/:id/assignments', async (req) => {
+    const user = await requireUser(req);
+    const { id } = parse(IdParams, req.params);
+    if (!memberOf(user, id)) throw forbidden();
+    const rows = must(
+      await db()
+        .from('course_assignments')
+        .select('*, courses!inner(name, code, archived_at), assignment_submissions(count)')
+        .eq('organization_id', id)
+        .is('courses.archived_at', null)
+        .order('due_at', { ascending: false }),
+    ) as unknown as (AssignmentRow & { courses: { name: string; code: string }; assignment_submissions: { count: number }[] })[];
+    return {
+      assignments: rows.map(({ courses, assignment_submissions, ...a }) => ({
+        ...publicAssignment(a, { submissions: assignment_submissions[0]?.count }),
+        course_name: courses.name,
+        course_code: courses.code,
+      })),
+    };
+  });
 
   app.get('/api/orgs/:id/courses', async (req) => {
     const user = await requireUser(req);
@@ -464,7 +513,7 @@ export async function courseRoutes(app: FastifyInstance): Promise<void> {
     const sub = must(
       await db()
         .from('assignment_submissions')
-        .select('*, course_assignments(id, course_id, title, rubric_json, status, mode), repo_analyses(commit_sha, model, map_json, commit_profile_json, file_count), assignment_submission_versions!assignment_submission_versions_submission_id_fkey(id, version_no, description, video_url, created_at, submitted_by, repos(owner, name, url))')
+        .select('*, course_assignments(id, course_id, title, rubric_json, status, mode, due_at, interviews_enabled, courses(name, code)), repo_analyses(commit_sha, model, map_json, commit_profile_json, file_count), assignment_submission_versions!assignment_submission_versions_submission_id_fkey(id, version_no, description, video_url, created_at, submitted_by, repos(owner, name, url))')
         .eq('id', id)
         .maybeSingle(),
     ) as (Record<string, unknown> & { organization_id: string; group_id: string | null; student_id: string | null; assignment_id: string }) | null;
@@ -478,7 +527,22 @@ export async function courseRoutes(app: FastifyInstance): Promise<void> {
     ]);
     const group = sub.group_id ? (await groupsOf(sub.assignment_id)).find((g) => g.id === sub.group_id) ?? null : null;
     const student = sub.student_id ? (await names([sub.student_id])).get(sub.student_id) ?? null : null;
-    return { submission: sub, group, student, scores: must(scores), feedback: must(feedback), interviews: must(interviews), decisions: must(decisions), primary_models: primaryModels() };
+    const adjustments = group
+      ? must(
+          await db().from('assignment_grade_adjustments').select('user_id, adjusted_total, note, adjusted_at').eq('assignment_id', sub.assignment_id).in('user_id', group.members.map((m) => m.user_id)),
+        )
+      : [];
+    return {
+      submission: sub,
+      group,
+      student,
+      scores: must(scores),
+      feedback: must(feedback),
+      interviews: must(interviews),
+      decisions: must(decisions),
+      adjustments,
+      primary_models: primaryModels(),
+    };
   });
 
   app.patch('/api/assignment-scores/:id', async (req) => {

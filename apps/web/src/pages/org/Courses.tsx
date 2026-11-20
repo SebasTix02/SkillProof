@@ -6,9 +6,9 @@
  *   /org/courses/:courseId/roster              who is in the course
  *   /org/courses/:courseId/assignments         assignments (+ /new)
  *   /org/courses/:courseId/gradebook           students × assignments
- * The console of one assignment reuses the event console (/org/courses/:courseId/assignments/:id).
+ * The console of one assignment is AssignmentConsole.tsx (/org/courses/:courseId/assignments/:id).
  */
-import { CreateAssignmentSchema, DEFAULT_RUBRIC, type Rubric } from '@skillproof/shared';
+import { CreateAssignmentSchema, DEFAULT_GROUP_MAX, DEFAULT_GROUP_MIN, DEFAULT_RUBRIC, type Rubric } from '@skillproof/shared';
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
@@ -33,7 +33,8 @@ import { RubricEditor, keyFromName } from '../../components/RubricEditor';
 import { useToast } from '../../components/toast';
 import { api, errorMessage } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
-import { STATUS_LABEL, type EventView } from '../../lib/types';
+import { COURSE_STATUS_TONE, groupSizeLabel, localInput, type AssignmentMode, type AssignmentView } from '../../lib/courses';
+import { STATUS_LABEL } from '../../lib/types';
 import { useLoad } from '../../lib/useLoad';
 
 interface CourseSummary {
@@ -45,20 +46,6 @@ interface CourseSummary {
   member_count: number;
   assignment_count: number;
   archived_at: string | null;
-}
-
-export interface AssignmentView {
-  id: string;
-  title: string;
-  slug: string;
-  instructions: string;
-  status: EventView['status'];
-  opens_at: string;
-  due_at: string;
-  interviews_enabled: boolean;
-  max_submissions: number | null;
-  submission_count: number;
-  student_count: number;
 }
 
 interface Member {
@@ -79,18 +66,6 @@ interface CourseDetail {
 const ROLE_LABEL: Record<Member['role'], string> = { instructor: 'Instructor', ta: 'TA', student: 'Student' };
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-export const STATUS_TONE: Record<EventView['status'], 'neutral' | 'good' | 'warn' | 'accent'> = {
-  draft: 'neutral',
-  open: 'good',
-  judging: 'warn',
-  review: 'warn',
-  published: 'accent',
-};
-
-function localInput(date: Date): string {
-  const shifted = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
-  return shifted.toISOString().slice(0, 16);
-}
 
 // ---------------------------------------------------------------------------------------------------------------------
 // /org/courses
@@ -275,7 +250,7 @@ export function CoursePage() {
       {active === 'overview' && <Overview detail={detail.data} />}
       {active === 'roster' && <Roster detail={detail.data} onChanged={() => void detail.reload()} canManage={canManage} />}
       {active === 'assignments' && <Assignments courseId={course.id} assignments={assignments} canManage={canManage} />}
-      {active === 'gradebook' && <Gradebook courseId={course.id} />}
+      {active === 'gradebook' && <Gradebook courseId={course.id} canManage={canManage} />}
     </div>
   );
 }
@@ -526,6 +501,7 @@ function Assignments({ courseId, assignments, canManage }: { courseId: string; a
           <tr>
             <th className="px-5 py-2.5 font-semibold">Assignment</th>
             <th className="px-5 py-2.5 font-semibold">Status</th>
+            <th className="px-5 py-2.5 font-semibold">Work</th>
             <th className="px-5 py-2.5 font-semibold">Opens</th>
             <th className="px-5 py-2.5 font-semibold">Due</th>
             <th className="px-5 py-2.5 font-semibold">Submitted</th>
@@ -542,8 +518,9 @@ function Assignments({ courseId, assignments, canManage }: { courseId: string; a
                 {a.interviews_enabled && <span className="ml-2 text-[11px] text-muted">· voice interview</span>}
               </td>
               <td className="px-5 py-3">
-                <Badge tone={STATUS_TONE[a.status]}>{STATUS_LABEL[a.status]}</Badge>
+                <Badge tone={COURSE_STATUS_TONE[a.status]}>{STATUS_LABEL[a.status]}</Badge>
               </td>
+              <td className="px-5 py-3 text-muted">{groupSizeLabel(a)}</td>
               <td className="px-5 py-3 text-muted">{formatDate(a.opens_at)}</td>
               <td className="px-5 py-3 text-muted">{formatDate(a.due_at)}</td>
               <td className="font-mono-code px-5 py-3 text-ink">
@@ -562,19 +539,33 @@ function Assignments({ courseId, assignments, canManage }: { courseId: string; a
   );
 }
 
-interface GradebookResponse {
-  assignments: AssignmentView[];
-  students: { user_id: string; display_name: string; github_login: string | null; section: string; grades: Record<string, { submission_id: string; status: string; total: number | null }> }[];
+interface GradeCell {
+  submission_id: string;
+  status: string;
+  total: number | null;
+  grade: number | null;
+  adjusted: boolean;
+  group: string | null;
 }
 
-function Gradebook({ courseId }: { courseId: string }) {
+interface GradebookResponse {
+  assignments: AssignmentView[];
+  students: { user_id: string; display_name: string; github_login: string | null; section: string; grades: Record<string, GradeCell> }[];
+}
+
+/**
+ * Students × assignments. In a group assignment every member gets the group total; staff can set another total for
+ * one student (the change is marked, and "Use the group grade" removes it).
+ */
+function Gradebook({ courseId, canManage }: { courseId: string; canManage: boolean }) {
   const book = useLoad<GradebookResponse>(`/api/courses/${courseId}/gradebook`);
+  const [editing, setEditing] = useState<{ assignmentId: string; userId: string } | null>(null);
   if (!book.data) return <PageState loading={book.loading} error={book.error} kind="table" />;
   const { assignments, students } = book.data;
 
   function exportCsv() {
     const header = ['student', 'section', ...assignments.map((a) => a.title)];
-    const lines = students.map((s) => [s.display_name, s.section, ...assignments.map((a) => s.grades[a.id]?.total?.toFixed(1) ?? '')]);
+    const lines = students.map((s) => [s.display_name, s.section, ...assignments.map((a) => s.grades[a.id]?.grade?.toFixed(1) ?? '')]);
     const csv = [header, ...lines].map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
     const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
     const link = document.createElement('a');
@@ -592,8 +583,10 @@ function Gradebook({ courseId }: { courseId: string }) {
     );
   return (
     <section className="rounded-[6px] border border-line bg-white">
-      <div className="flex items-center justify-between border-b border-line px-5 py-3">
-        <p className="text-[13px] text-muted">Total score out of 10 per assignment. Empty: no submission.</p>
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-3">
+        <p className="text-[13px] text-muted">
+          Grade out of 10 per assignment. Group work: each member gets the group grade unless you adjust it (<span className="font-mono-code text-accent-ink">adj.</span>). Empty: no submission.
+        </p>
         <Button type="button" variant="secondary" onClick={exportCsv}>
           <span className="material-symbols-outlined text-[16px]">file_download</span>
           <span>Export CSV</span>
@@ -608,6 +601,7 @@ function Gradebook({ courseId }: { courseId: string }) {
               {assignments.map((a) => (
                 <th key={a.id} className="px-3 py-2.5 font-semibold whitespace-nowrap">
                   {a.title}
+                  {a.mode === 'group' && <span className="ml-1 font-normal normal-case">· group</span>}
                 </th>
               ))}
             </tr>
@@ -619,18 +613,43 @@ function Gradebook({ courseId }: { courseId: string }) {
                 <td className="px-3 py-2.5 text-muted">{s.section || '—'}</td>
                 {assignments.map((a) => {
                   const g = s.grades[a.id];
+                  const open = editing?.assignmentId === a.id && editing.userId === s.user_id;
                   return (
-                    <td key={a.id} className="px-3 py-2.5">
-                      {g ? (
-                        <Link to={`/org/events/${a.id}/s/${g.submission_id}`} className="hover:underline">
-                          {g.total != null ? (
-                            <Badge tone={scoreTone(g.total)}>{g.total.toFixed(1)}</Badge>
-                          ) : (
-                            <span className="text-[12px] text-muted">{g.status}</span>
-                          )}
-                        </Link>
-                      ) : (
+                    <td key={a.id} className="px-3 py-2.5 align-top">
+                      {!g ? (
                         <span className="text-faint">—</span>
+                      ) : open ? (
+                        <AdjustGrade
+                          assignmentId={a.id}
+                          userId={s.user_id}
+                          student={s.display_name}
+                          cell={g}
+                          onDone={() => {
+                            setEditing(null);
+                            void book.reload();
+                          }}
+                        />
+                      ) : (
+                        <div className="flex items-center gap-1.5">
+                          <Link to={`/org/courses/${courseId}/assignments/${a.id}/s/${g.submission_id}`} className="hover:underline" title={g.group ? `Group: ${g.group}` : undefined}>
+                            {g.grade != null ? (
+                              <Badge tone={scoreTone(g.grade)}>{g.grade.toFixed(1)}</Badge>
+                            ) : (
+                              <span className="text-[12px] text-muted">{g.status}</span>
+                            )}
+                          </Link>
+                          {g.adjusted && <span className="font-mono-code text-[10px] text-accent-ink" title={`Group grade ${g.total?.toFixed(1) ?? '—'}`}>adj.</span>}
+                          {canManage && a.mode === 'group' && g.total != null && (
+                            <button
+                              type="button"
+                              onClick={() => setEditing({ assignmentId: a.id, userId: s.user_id })}
+                              aria-label={`Adjust the grade of ${s.display_name} on ${a.title}`}
+                              className="cursor-pointer rounded-[3px] p-0.5 text-muted hover:bg-well hover:text-ink"
+                            >
+                              <span className="material-symbols-outlined text-[15px]" aria-hidden="true">edit</span>
+                            </button>
+                          )}
+                        </div>
                       )}
                     </td>
                   );
@@ -644,6 +663,59 @@ function Gradebook({ courseId }: { courseId: string }) {
   );
 }
 
+/** Sets or removes one student's own total on a group assignment. */
+export function AdjustGrade({ assignmentId, userId, student, cell, onDone }: { assignmentId: string; userId: string; student: string; cell: Pick<GradeCell, 'total' | 'grade' | 'adjusted'>; onDone: () => void }) {
+  const toast = useToast();
+  const [value, setValue] = useState(String(cell.grade ?? cell.total ?? ''));
+  const [note, setNote] = useState('');
+  const [busy, setBusy] = useState(false);
+  const target = userId;
+
+  async function save(e: FormEvent) {
+    e.preventDefault();
+    if (!target) return;
+    setBusy(true);
+    try {
+      await api(`/api/assignments/${assignmentId}/adjustments/${target}`, { method: 'PUT', body: { adjusted_total: Number(value), note } });
+      toast.success(`Grade of ${student} set to ${Number(value).toFixed(1)}.`);
+      onDone();
+    } catch (err) {
+      toast.error(`The grade was not saved. ${errorMessage(err)}`);
+      setBusy(false);
+    }
+  }
+
+  async function reset() {
+    if (!target) return;
+    setBusy(true);
+    try {
+      await api(`/api/assignments/${assignmentId}/adjustments/${target}`, { method: 'DELETE' });
+      toast.success(`${student} has the group grade again.`);
+      onDone();
+    } catch (err) {
+      toast.error(errorMessage(err));
+      setBusy(false);
+    }
+  }
+
+  return (
+    <form onSubmit={(e) => void save(e)} className="w-56 space-y-2 rounded-[4px] border border-line bg-paper p-2.5">
+      <p className="text-[11px] text-muted">Group grade: {cell.total?.toFixed(1) ?? '—'}</p>
+      <Input type="number" min={0} max={10} step={0.1} required aria-label={`Grade for ${student}`} value={value} onChange={(e) => setValue(e.target.value)} />
+      <Input aria-label="Reason" placeholder="Reason (optional)" maxLength={2000} value={note} onChange={(e) => setNote(e.target.value)} />
+      <div className="flex flex-wrap gap-1.5">
+        <Button type="submit" loading={busy} className="px-2.5 py-1 text-[12px]">Save</Button>
+        {cell.adjusted && (
+          <Button type="button" variant="secondary" disabled={busy} onClick={() => void reset()} className="px-2.5 py-1 text-[12px]">
+            Use the group grade
+          </Button>
+        )}
+        <Button type="button" variant="ghost" disabled={busy} onClick={onDone} className="px-2.5 py-1 text-[12px]">Cancel</Button>
+      </div>
+    </form>
+  );
+}
+
 // ---------------------------------------------------------------------------------------------------------------------
 // /org/courses/:courseId/assignments/new
 // ---------------------------------------------------------------------------------------------------------------------
@@ -654,6 +726,12 @@ export function NewAssignment() {
   const detail = useLoad<CourseDetail>(`/api/courses/${courseId}`);
   const [title, setTitle] = useState('');
   const [instructions, setInstructions] = useState('');
+  const [learningGoals, setLearningGoals] = useState('');
+  const [mode, setMode] = useState<AssignmentMode>('individual');
+  const [groupMin, setGroupMin] = useState(DEFAULT_GROUP_MIN);
+  const [groupMax, setGroupMax] = useState(DEFAULT_GROUP_MAX);
+  const [lockEarly, setLockEarly] = useState(false);
+  const [groupLockAt, setGroupLockAt] = useState(() => localInput(new Date(Date.now() + 3 * 24 * 3600_000)));
   const [opensAt, setOpensAt] = useState(() => localInput(new Date()));
   const [dueAt, setDueAt] = useState(() => localInput(new Date(Date.now() + 7 * 24 * 3600_000)));
   const [unlimited, setUnlimited] = useState(true);
@@ -673,6 +751,11 @@ export function NewAssignment() {
     const parsed = CreateAssignmentSchema.safeParse({
       title: title.trim(),
       instructions,
+      learning_goals: learningGoals,
+      mode,
+      group_min: mode === 'group' ? groupMin : null,
+      group_max: mode === 'group' ? groupMax : null,
+      group_lock_at: mode === 'group' && lockEarly ? new Date(groupLockAt).toISOString() : null,
       opens_at: new Date(opensAt).toISOString(),
       due_at: new Date(dueAt).toISOString(),
       max_submissions: unlimited ? null : maxSubmissions,
@@ -715,6 +798,9 @@ export function NewAssignment() {
           <Field label="Instructions" hint="Shown to the students of the course.">
             <Textarea rows={4} maxLength={4000} value={instructions} onChange={(e) => setInstructions(e.target.value)} placeholder="What to build, what to include in the README, how it is graded…" />
           </Field>
+          <Field label="Learning goals" hint="What students should show they understand. The grader and the voice interview look for it.">
+            <Textarea rows={2} maxLength={2000} value={learningGoals} onChange={(e) => setLearningGoals(e.target.value)} placeholder="Divide and conquer; time complexity; tests for edge cases" />
+          </Field>
           <div className="grid gap-4 md:grid-cols-2">
             <Field label="Opens">
               <Input type="datetime-local" required value={opensAt} onChange={(e) => setOpensAt(e.target.value)} />
@@ -726,31 +812,82 @@ export function NewAssignment() {
         </div>
       </NumberedSectionCard>
 
-      <NumberedSectionCard number="02" icon="tune" title="Submissions" subtitle="Who can submit is the course roster; nothing to configure here." theme="neutral">
+      <NumberedSectionCard number="02" icon="groups" title="Individual or group" subtitle="Who can submit is the course roster. In a group assignment students form groups by inviting classmates." theme="neutral">
+        <div className="space-y-4">
+          <div role="radiogroup" aria-label="Kind of work" className="grid gap-3 md:grid-cols-2">
+            {(
+              [
+                { key: 'individual', title: 'Individual', desc: 'Each student submits their own repository.', icon: 'person' },
+                { key: 'group', title: 'Group', desc: 'One repository per group. Each member gets the group grade; you can adjust one student.', icon: 'groups' },
+              ] as const
+            ).map((o) => (
+              <label
+                key={o.key}
+                className={`flex cursor-pointer items-start gap-3 rounded-[4px] border p-4 ${mode === o.key ? 'border-accent-ui bg-accent-soft' : 'border-line bg-paper'}`}
+              >
+                <input type="radio" name="mode" className="mt-1 accent-accent" checked={mode === o.key} onChange={() => setMode(o.key)} />
+                <span>
+                  <span className="flex items-center gap-1.5 text-[13px] font-semibold text-ink">
+                    <span className="material-symbols-outlined text-[18px]" aria-hidden="true">{o.icon}</span>
+                    {o.title}
+                  </span>
+                  <span className="block text-[12px] text-muted">{o.desc}</span>
+                </span>
+              </label>
+            ))}
+          </div>
+          {mode === 'group' && (
+            <div className="grid gap-4 rounded-[4px] border border-line bg-paper p-4 md:grid-cols-3">
+              <Field label="Smallest group" hint="A group can submit once it has this many members.">
+                <Input type="number" min={1} max={20} value={groupMin} onChange={(e) => { const v = Number(e.target.value); setGroupMin(v); if (v > groupMax) setGroupMax(v); }} />
+              </Field>
+              <Field label="Largest group">
+                <Input type="number" min={groupMin} max={20} value={groupMax} onChange={(e) => setGroupMax(Number(e.target.value))} />
+              </Field>
+              <div className="space-y-2">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-[13px] font-semibold text-ink">Close groups before the due date</p>
+                    <p className="text-[12px] text-muted">Otherwise groups can change until it is due. A group also closes when it first submits.</p>
+                  </div>
+                  <ToggleSwitch checked={lockEarly} onChange={setLockEarly} />
+                </div>
+                {lockEarly && <Input type="datetime-local" aria-label="Groups close" value={groupLockAt} onChange={(e) => setGroupLockAt(e.target.value)} />}
+              </div>
+            </div>
+          )}
+        </div>
+      </NumberedSectionCard>
+
+      <NumberedSectionCard number="03" icon="tune" title="Submissions" subtitle="Versions and voice interviews." theme="neutral">
         <div className="space-y-4">
           <div className="flex items-start justify-between gap-4 rounded-[4px] border border-line bg-paper p-4">
             <div>
               <p className="text-[13px] font-semibold text-ink">Unlimited versions until the due date</p>
-              <p className="text-[12px] text-muted">Students can update their submission; only the latest version is graded.</p>
+              <p className="text-[12px] text-muted">{mode === 'group' ? 'Any member can update the group submission' : 'Students can update their submission'}; only the latest version is graded.</p>
             </div>
             <ToggleSwitch checked={unlimited} onChange={setUnlimited} />
           </div>
           {!unlimited && (
-            <Field label="Versions per student">
+            <Field label={mode === 'group' ? 'Versions per group' : 'Versions per student'}>
               <Input type="number" min={1} max={100} value={maxSubmissions} onChange={(e) => setMaxSubmissions(Number(e.target.value))} className="w-32" />
             </Field>
           )}
           <div className="flex items-start justify-between gap-4 rounded-[4px] border border-line bg-paper p-4">
             <div>
-              <p className="text-[13px] font-semibold text-ink">3-minute voice interview</p>
-              <p className="text-[12px] text-muted">Each student can be asked about their own code after grading.</p>
+              <p className="text-[13px] font-semibold text-ink">{mode === 'group' ? 'Short voice interview for each member' : '3-minute voice interview'}</p>
+              <p className="text-[12px] text-muted">
+                {mode === 'group'
+                  ? 'After grading, each member answers up to 2 questions (about 90 seconds) on the files they wrote.'
+                  : 'After grading, each student answers 4 or 5 questions about their own code.'}
+              </p>
             </div>
             <ToggleSwitch checked={interviews} onChange={setInterviews} />
           </div>
         </div>
       </NumberedSectionCard>
 
-      <NumberedSectionCard number="03" icon="fact_check" title="Rubric" subtitle="How each submission is graded." theme="neutral">
+      <NumberedSectionCard number="04" icon="fact_check" title="Rubric" subtitle="How each submission is graded." theme="neutral">
         <RubricEditor rubric={rubric} setRubric={setRubric} />
       </NumberedSectionCard>
 

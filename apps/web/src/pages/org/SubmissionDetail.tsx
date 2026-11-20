@@ -80,7 +80,7 @@ interface AssignmentRow {
   my_review: { status: 'draft' | 'submitted'; updated_at: string } | null;
 }
 
-function ScoreCalibrationRow({
+export function ScoreCalibrationRow({
   index,
   score,
   criterion,
@@ -88,6 +88,7 @@ function ScoreCalibrationRow({
   sha,
   canOverride,
   onSaved,
+  scorePath = '/api/scores',
 }: {
   index: number;
   score: ScoreView;
@@ -96,6 +97,8 @@ function ScoreCalibrationRow({
   sha: string | null;
   canOverride: boolean;
   onSaved: () => void;
+  /** /api/scores for events, /api/assignment-scores for course assignments. */
+  scorePath?: string;
 }) {
   const [busy, setBusy] = useState(false);
   const toast = useToast();
@@ -105,7 +108,7 @@ function ScoreCalibrationRow({
   async function save(value: string) {
     setBusy(true);
     try {
-      await api(`/api/scores/${score.id}`, {
+      await api(`${scorePath}/${score.id}`, {
         method: 'PATCH',
         body: { override_score: value === '' ? null : Number(value) },
       });
