@@ -44,7 +44,7 @@ select '40000000-0000-0000-0000-000000000001', id, 'Algorithms', 'CS-201' from p
 insert into public.course_members (course_id, user_id, organization_id, role)
 select '40000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-00000000000c', organization_id, 'student'
 from public.courses where id = '40000000-0000-0000-0000-000000000001';
--- A course assignment: its own table, not an event (20261119000001).
+-- A course assignment: its own table, not an event (20261120000001).
 insert into public.course_assignments (id, organization_id, course_id, title, opens_at, due_at, rubric_json, status)
 select '50000000-0000-0000-0000-000000000001', organization_id, id, 'Sorting lab',
   now() - interval '1 day', now() + interval '7 days', '[]', 'open'

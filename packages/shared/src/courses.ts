@@ -3,7 +3,7 @@ import { GITHUB_REPO_URL, YOUTUBE_URL } from './events.js';
 import { RubricSchema } from './rubric.js';
 
 /**
- * Course assignments (20261119000001): their own product, apart from events. Access is the course roster; an
+ * Course assignments (20261120000001): their own product, apart from events. Access is the course roster; an
  * assignment is individual or group (students form groups by inviting classmates; staff can move people).
  */
 

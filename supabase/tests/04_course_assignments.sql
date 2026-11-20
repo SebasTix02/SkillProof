@@ -1,4 +1,4 @@
--- Course assignments, groups and submissions (20261119000001). Runs after 02_screens.sql: Echo has the course
+-- Course assignments, groups and submissions (20261120000001). Runs after 02_screens.sql: Echo has the course
 -- "Algorithms" (Cy is a student) with the individual assignment "Sorting lab". Di is a judge in Echo.
 \set ON_ERROR_STOP on
 create function pg_temp.act_as(u uuid) returns void language sql as $$

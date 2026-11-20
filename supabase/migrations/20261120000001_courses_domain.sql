@@ -9,8 +9,28 @@
 -- events: the repository analysis cache (repo_analyses, file_summaries) is common, and interviews and integrity
 -- decisions point at either an event submission or an assignment submission.
 --
--- Events lose what 20261117000004 had added for courses (events.course_id, kind = 'assignment'); any course event that
--- exists is moved here with its submissions, versions, scores, feedback, interviews and decisions.
+-- Events lose what 20261117000004 and 20261119000001 had added for courses (events.course_id, kind = 'assignment',
+-- visibility = 'course', the roster triggers and the course_assignments view); any course event that exists is moved
+-- here with its submissions, versions, scores, feedback, interviews and decisions.
+--
+-- 20261119000001_course_assignments (assignments stored as events) is already applied in production and stays as it
+-- was; this migration starts from that state.
+
+-- ---------------------------------------------------------------------------
+-- Undo the first model (20261119000001): assignments as events
+-- ---------------------------------------------------------------------------
+
+drop view if exists public.course_assignments;
+drop trigger if exists course_members_sync on public.course_members;
+drop trigger if exists events_seed_assignment_roster on public.events;
+drop trigger if exists event_allowlist_not_for_assignments on public.event_allowlist;
+drop trigger if exists event_participants_by_roster on public.event_participants;
+drop function if exists public.sync_course_roster();
+drop function if exists public.seed_assignment_roster();
+drop function if exists public.reject_assignment_allowlist();
+drop function if exists public.reject_assignment_join();
+alter table public.events drop constraint if exists events_assignment_shape;
+drop index if exists public.events_kind_idx;
 
 -- ---------------------------------------------------------------------------
 -- Tables
@@ -251,10 +271,18 @@ delete from public.integrity_decisions where flag_id is not null and event_id in
 
 delete from public.events where course_id is not null;
 update public.events set kind = 'hackathon' where kind <> 'hackathon';
+-- Course access was the roster; whatever is left (should be nothing) goes back to invite-only.
+update public.events set visibility = 'invite' where visibility = 'course';
+delete from public.event_participants where joined_via = 'course';
 
 alter table public.events drop column course_id;
 alter table public.events drop constraint if exists events_kind_check;
 alter table public.events add constraint events_kind_check check (kind = 'hackathon');
+alter table public.events drop constraint if exists events_visibility_check;
+alter table public.events add constraint events_visibility_check check (visibility in ('public', 'code', 'invite'));
+alter table public.event_participants drop constraint if exists event_participants_joined_via_check;
+alter table public.event_participants
+  add constraint event_participants_joined_via_check check (joined_via in ('public', 'code', 'invite'));
 
 -- ---------------------------------------------------------------------------
 -- Rules

@@ -272,7 +272,7 @@ that failed before it started does not count and can be retried. Event interview
 deadline, so a personal interview on that commit also counts.
 ## Courses
 
-Courses are their own product, apart from events (`20261119000001_courses_domain`).
+Courses are their own product, apart from events (`20261120000001_courses_domain`).
 
 - A course has a roster (instructors, TAs, students by section). Its assignments have no visibility, access code,
   allowlist or "join": only the students on the roster see them and submit. Students find them in My courses

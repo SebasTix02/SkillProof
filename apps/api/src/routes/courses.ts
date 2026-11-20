@@ -17,7 +17,7 @@ import { closeAssignment } from '../services/judge.js';
 import { dispatchJudging } from '../services/judgeQueue.js';
 
 /**
- * Courses and their assignments (20261119000001), apart from events.
+ * Courses and their assignments (20261120000001), apart from events.
  *   Staff (organization members; writes need course.manage): courses, roster, assignments, groups, console, grading.
  *   Students (on the roster): their courses and assignments, their group and invitations, their submission and results.
  * Every group and submission rule is enforced by the database functions; this file maps their errors to messages.

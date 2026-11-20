@@ -23,7 +23,7 @@ export interface InterviewRow {
   repo_id: string;
   analysis_id: string | null;
   submission_id: string | null;
-  /** Set for an interview about a course assignment submission (20261119000001). */
+  /** Set for an interview about a course assignment submission (20261120000001). */
   assignment_submission_id?: string | null;
   organization_id: string | null;
   transcript_json: TranscriptEntry[] | null;
