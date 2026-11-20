@@ -98,6 +98,10 @@ select pg_temp.check_eq('any member submits for the group',
   (select versions_used from public.submit_assignment_version('50000000-0000-0000-0000-000000000002','00000000-0000-0000-0000-00000000000e','10000000-0000-0000-0000-000000000001','team v1',null)), 1);
 select pg_temp.check_eq('the group submission is one, for the group',
   (select count(*) from public.assignment_submissions where assignment_id = '50000000-0000-0000-0000-000000000002' and group_id is not null and student_id is null), 1);
+select pg_temp.check_eq('another member sends a new version of the same group submission',
+  (select versions_used from public.submit_assignment_version('50000000-0000-0000-0000-000000000002','00000000-0000-0000-0000-00000000000c','10000000-0000-0000-0000-000000000001','team v2',null)), 2);
+select pg_temp.check_eq('still one submission for the group, last sent by that member',
+  (select count(*) from public.assignment_submissions where assignment_id = '50000000-0000-0000-0000-000000000002' and submitted_by = '00000000-0000-0000-0000-00000000000c'), 1);
 select pg_temp.check_raises('a submitted group is closed to students',
   $$select public.invite_to_group((select id from public.assignment_groups where name = 'Cy and friends'), '00000000-0000-0000-0000-00000000000c', '00000000-0000-0000-0000-00000000000f')$$,
   'groups_closed');
@@ -137,7 +141,7 @@ select pg_temp.check_raises('the browser writes nothing', $$update public.assign
 
 select pg_temp.act_as('00000000-0000-0000-0000-00000000000e'); -- Ed, in Cy's group
 select pg_temp.check_eq('a group member sees the group submission only', (select count(*) from public.assignment_submissions), 1);
-select pg_temp.check_eq('and its versions', (select count(*) from public.assignment_submission_versions), 1);
+select pg_temp.check_eq('and its versions', (select count(*) from public.assignment_submission_versions), 2);
 
 select pg_temp.act_as('00000000-0000-0000-0000-00000000000b'); -- Bob, other tenant
 select pg_temp.check_eq('another organization sees no assignments', (select count(*) from public.course_assignments), 0);
