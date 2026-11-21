@@ -1,3 +1,4 @@
+import { tr } from '../i18n';
 import type { Rubric } from '@skillproof/shared';
 import { useEffect, useRef, useState } from 'react';
 import { Badge, Button, Notice, Select, SkeletonCard, Textarea, formatDate } from './shared';
@@ -72,9 +73,9 @@ export function JudgeReviewCard({ submissionId, rubric, locked }: { submissionId
       dirty.current = false;
       setStatus(res.review.status);
       setSavedAt(res.review.updated_at);
-      if (nextStatus === 'submitted') toast.success('Review submitted to the organizer.');
+      if (nextStatus === 'submitted') toast.success(tr('Review submitted to the organizer.'));
     } catch (err) {
-      toast.error(`Could not save your review. ${errorMessage(err)}`);
+      toast.error(tr('Could not save your review. {error}', { error: errorMessage(err) }));
     } finally {
       setSaving(false);
     }
@@ -98,17 +99,17 @@ export function JudgeReviewCard({ submissionId, rubric, locked }: { submissionId
   return (
     <div className="space-y-3 rounded-[6px] border border-line bg-surface p-5">
       <div className="flex items-center justify-between border-b border-line pb-2.5">
-        <h3 className="font-serif-heading text-[18px] font-medium text-ink">Your review</h3>
+        <h3 className="font-serif-heading text-[18px] font-medium text-ink">{tr('Your review')}</h3>
         <Badge tone={status === 'submitted' ? 'good' : 'neutral'}>{status === 'submitted' ? 'SUBMITTED' : 'DRAFT'}</Badge>
       </div>
-      {locked && <Notice tone="info">Results are published, so reviews can no longer change.</Notice>}
+      {locked && <Notice tone="info">{tr('Results are published, so reviews can no longer change.')}</Notice>}
       <ul className="space-y-2.5">
         {rubric.map((c) => (
           <li key={c.key} className="space-y-1.5 rounded-[4px] border border-line bg-paper/60 p-2.5">
             <div className="flex items-center justify-between gap-2">
               <span className="text-[13px] font-medium text-ink">{c.name}</span>
               <Select
-                aria-label={`Your score for ${c.name}`}
+                aria-label={tr('Your score for {criterion}', { criterion: c.name })}
                 className="h-8 w-20 bg-surface text-[12px]"
                 disabled={locked}
                 value={scores[c.key] ?? ''}
@@ -124,14 +125,14 @@ export function JudgeReviewCard({ submissionId, rubric, locked }: { submissionId
               </Select>
             </div>
             <input
-              aria-label={`Note for ${c.name}`}
+              aria-label={tr('Note for {criterion}', { criterion: c.name })}
               disabled={locked}
               value={notes[c.key] ?? ''}
               onChange={(e) => {
                 touch();
                 setNotes((n) => ({ ...n, [c.key]: e.target.value }));
               }}
-              placeholder="Why this score (optional)"
+              placeholder={tr('Why this score (optional)')}
               className="w-full rounded-[4px] border border-line bg-surface px-2 py-1 text-[12px]"
             />
           </li>
@@ -145,19 +146,19 @@ export function JudgeReviewCard({ submissionId, rubric, locked }: { submissionId
           touch();
           setNote(e.target.value);
         }}
-        placeholder="Overall note for the organizer"
-        aria-label="Overall note"
+        placeholder={tr('Overall note for the organizer')}
+        aria-label={tr('Overall note')}
       />
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="font-mono-code text-[11px] text-muted">
-          {saving ? 'Saving…' : savedAt ? `Saved ${formatDate(savedAt)}` : 'Not saved yet'}
-          {total != null && <> · your total {total.toFixed(1)} / 100</>}
+          {saving ? tr('Saving…') : savedAt ? tr('Saved {date}', { date: formatDate(savedAt) }) : tr('Not saved yet')}
+          {total != null && <>{' '}{tr('· your total')}{' '}{total.toFixed(1)} / 100</>}
         </span>
         <Button type="button" disabled={locked || saving || !complete} loading={saving} onClick={() => void save('submitted')}>
-          {status === 'submitted' ? 'Submit again' : 'Submit review'}
+          {status === 'submitted' ? tr('Submit again') : tr('Submit review')}
         </Button>
       </div>
-      {!complete && !locked && <p className="text-[11px] text-muted">Score every criterion to submit.</p>}
+      {!complete && !locked && <p className="text-[11px] text-muted">{tr('Score every criterion to submit.')}</p>}
     </div>
   );
 }
@@ -170,9 +171,9 @@ export function JudgeReviewsList({ submissionId, rubric }: { submissionId: strin
   const reviews = data?.reviews ?? [];
   return (
     <div className="space-y-3 rounded-[6px] border border-line bg-surface p-5">
-      <h3 className="font-serif-heading border-b border-line pb-2.5 text-[18px] font-medium text-ink">Judge reviews</h3>
+      <h3 className="font-serif-heading border-b border-line pb-2.5 text-[18px] font-medium text-ink">{tr('Judge reviews')}</h3>
       {reviews.length === 0 ? (
-        <p className="text-[13px] text-muted">No judge has reviewed this submission yet. Assign judges from the event console.</p>
+        <p className="text-[13px] text-muted">{tr('No judge has reviewed this submission yet. Assign judges from the event console.')}</p>
       ) : (
         <ul className="space-y-2">
           {reviews.map((r) => {
@@ -180,14 +181,14 @@ export function JudgeReviewsList({ submissionId, rubric }: { submissionId: strin
             return (
               <li key={r.id} className="space-y-1 rounded-[4px] border border-line bg-paper/60 p-2.5 text-[12px]">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="font-medium text-ink">{r.profiles?.display_name || 'Judge'}</span>
+                  <span className="font-medium text-ink">{r.profiles?.display_name || tr('Judge')}</span>
                   <span className="flex items-center gap-2">
                     {t != null && <span className="font-mono-code font-bold text-ink">{t.toFixed(1)}</span>}
                     <Badge tone={r.status === 'submitted' ? 'good' : 'neutral'}>{r.status.toUpperCase()}</Badge>
                   </span>
                 </div>
                 {r.note && <p className="text-muted">{r.note}</p>}
-                <p className="font-mono-code text-[10px] text-muted">Updated {formatDate(r.updated_at)}</p>
+                <p className="font-mono-code text-[10px] text-muted">{tr('Updated')}{' '}{formatDate(r.updated_at)}</p>
               </li>
             );
           })}

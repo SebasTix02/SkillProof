@@ -1,3 +1,4 @@
+import { tr } from '../../i18n';
 import type { ReactNode } from 'react';
 import { DOSSIER_THEMES, ORG_ROLE_SPECS, normalizeOrgRole, type DossierThemeKey, type OrgRoleKey } from './tokens';
 
@@ -112,23 +113,23 @@ export function CodeEvidenceViewer({
 }
 
 export function VerificationProtocolCard({
-  title = 'Verification Protocol & Oral Defense Integrity',
+  title = tr('Verification Protocol & Oral Defense Integrity'),
   description,
   steps = [
     {
-      code: '01 / SELECTIVE REPO READING',
+      code: tr('01 / SELECTIVE REPO READING'),
       tone: 'text-accent',
-      text: 'Reads the Git tree, selects high-signal source files, and caches file summaries by blob SHA and commit.',
+      text: tr('Reads the Git tree, selects high-signal source files, and caches file summaries by blob SHA and commit.'),
     },
     {
-      code: '02 / 3-MIN VOICE CROSS-EXAM',
+      code: tr('02 / 3-MIN VOICE CROSS-EXAM'),
       tone: 'text-good',
-      text: 'Probes architectural trade-offs and specific code snippets out loud, following up on vague answers.',
+      text: tr('Probes architectural trade-offs and specific code snippets out loud, following up on vague answers.'),
     },
     {
-      code: '03 / OWNERSHIP REPORT & DOSSIER',
+      code: tr('03 / OWNERSHIP REPORT & DOSSIER'),
       tone: 'text-ink',
-      text: 'Produces an ownership score (0–100) and demonstrated skills backed by verbatim transcript quotes.',
+      text: tr('Produces an ownership score (0–100) and demonstrated skills backed by verbatim transcript quotes.'),
     },
   ],
 }: {
@@ -147,12 +148,11 @@ export function VerificationProtocolCard({
           <p className="text-[13px] leading-[21px] text-muted">
             {description ?? (
               <>
-                SkillProof analyzes your repository structure and prepares an interview plan with expected points that
-                never leave the server (
+                {tr('SkillProof analyzes your repository structure and prepares an interview plan with expected points that never leave the server (')}
                 <code className="font-mono-code rounded-[3px] border border-line bg-paper px-1.5 py-0.5 text-[11px] text-accent">
                   publicQuestions
                 </code>
-                ). Your browser receives a single-use token for Gemini Live to conduct the 3-minute voice session.
+                {tr('). Your browser receives a single-use token for Gemini Live to conduct the 3-minute voice session.')}
               </>
             )}
           </p>

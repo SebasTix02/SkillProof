@@ -1,3 +1,4 @@
+import { lazy, tr } from '../i18n';
 /**
  * What the side menu shows: every screen the signed-in user can open, grouped by section.
  *
@@ -41,74 +42,74 @@ export interface NavSection {
   items: NavItem[];
 }
 
-export const ROLE_LABEL: Record<string, string> = {
-  org_owner: 'Owner',
-  organizer: 'Organizer',
-  judge: 'Judge',
-  auditor: 'Auditor',
-};
+export const ROLE_LABEL: Record<string, string> = lazy(() => ({
+  org_owner: tr('Owner'),
+  organizer: tr('Organizer'),
+  judge: tr('Judge'),
+  auditor: tr('Auditor'),
+}));
 
 /** The role shown under the user's name: their highest role in the current organization, else Candidate. */
 export function roleLabel(org: Organization | null): string {
   for (const r of ['org_owner', 'organizer', 'auditor', 'judge']) if (org?.roles.includes(r)) return ROLE_LABEL[r]!;
-  return 'Candidate';
+  return tr('Candidate');
 }
 
 export function navSections(me: Me | null, org: Organization | null): NavSection[] {
   const personal: NavItem[] = [
-    { key: 'events', label: 'Events', to: '/events', icon: 'events', owns: ['/events', '/e'] },
-    { key: 'interviews', label: 'Interviews', to: '/interviews', icon: 'interviews', owns: ['/interviews', '/interview'] },
+    { key: 'events', label: tr('Events'), to: '/events', icon: 'events', owns: ['/events', '/e'] },
+    { key: 'interviews', label: tr('Interviews'), to: '/interviews', icon: 'interviews', owns: ['/interviews', '/interview'] },
   ];
   const slug = me?.public_profile?.slug;
-  if (slug && me?.public_profile?.is_public) personal.push({ key: 'profile', label: 'Public profile', to: `/p/${slug}`, icon: 'profile' });
-  if ((me?.enrolled_courses ?? 0) > 0) personal.push({ key: 'my-courses', label: 'My courses', to: '/courses', icon: 'myCourses', owns: ['/courses', '/courses/*', '/courses/*/a/*'] });
+  if (slug && me?.public_profile?.is_public) personal.push({ key: 'profile', label: tr('Public profile'), to: `/p/${slug}`, icon: 'profile' });
+  if ((me?.enrolled_courses ?? 0) > 0) personal.push({ key: 'my-courses', label: tr('My courses'), to: '/courses', icon: 'myCourses', owns: ['/courses', '/courses/*', '/courses/*/a/*'] });
   personal.push({
     key: 'account',
-    label: 'Account',
+    label: tr('Account'),
     to: '/me',
     icon: 'account',
     children: [
-      { key: 'account-profile', label: 'Profile', to: '/me#section-profile', icon: 'account' },
-      { key: 'account-visibility', label: 'Public dossier', to: '/me#section-visibility', icon: 'account' },
-      { key: 'account-integrations', label: 'Connections', to: '/me#section-integrations', icon: 'account' },
-      { key: 'account-appearance', label: 'Appearance & language', to: '/me#section-appearance', icon: 'account' },
-      { key: 'account-privacy', label: 'Privacy', to: '/me#section-privacy', icon: 'account' },
-      { key: 'account-security', label: 'Security & access', to: '/me#section-danger', icon: 'account' },
+      { key: 'account-profile', label: tr('Profile'), to: '/me#section-profile', icon: 'account' },
+      { key: 'account-visibility', label: tr('Public dossier'), to: '/me#section-visibility', icon: 'account' },
+      { key: 'account-integrations', label: tr('Connections'), to: '/me#section-integrations', icon: 'account' },
+      { key: 'account-appearance', label: tr('Appearance & language'), to: '/me#section-appearance', icon: 'account' },
+      { key: 'account-privacy', label: tr('Privacy'), to: '/me#section-privacy', icon: 'account' },
+      { key: 'account-security', label: tr('Security & access'), to: '/me#section-danger', icon: 'account' },
     ],
   });
 
-  const sections: NavSection[] = [{ key: 'personal', title: 'You', items: personal }];
+  const sections: NavSection[] = [{ key: 'personal', title: tr('You'), items: personal }];
   if (!org) return sections;
 
   const can = (p: string) => org.permissions.includes(p);
   const items: NavItem[] = [];
   // A judge who runs nothing sees the events list as their review queue (it opens with their assignments).
   if (can('submission.review') && !can('event.manage'))
-    items.push({ key: 'org-events', label: 'Review queue', to: '/org/events', icon: 'review', owns: ['/org/events'] });
-  else items.push({ key: 'org-events', label: 'Event console', to: '/org/events', icon: 'console', owns: ['/org/events'] });
-  if (can('event.create')) items.push({ key: 'org-new', label: 'New event', to: '/org/events/new', icon: 'plus' });
+    items.push({ key: 'org-events', label: tr('Review queue'), to: '/org/events', icon: 'review', owns: ['/org/events'] });
+  else items.push({ key: 'org-events', label: tr('Event console'), to: '/org/events', icon: 'console', owns: ['/org/events'] });
+  if (can('event.create')) items.push({ key: 'org-new', label: tr('New event'), to: '/org/events/new', icon: 'plus' });
   // Courses and integrity are separate screens: a course is not an event, and integrity covers events and assignments.
-  if (can('course.manage')) items.push({ key: 'org-courses', label: 'Courses', to: '/org/courses', icon: 'courses' });
+  if (can('course.manage')) items.push({ key: 'org-courses', label: tr('Courses'), to: '/org/courses', icon: 'courses' });
   if (can('integrity.decide') || can('event.manage'))
-    items.push({ key: 'org-integrity', label: 'Integrity', to: '/org/integrity', icon: 'integrity', owns: ['/org/integrity', '/org/events/*/compare'] });
+    items.push({ key: 'org-integrity', label: tr('Integrity'), to: '/org/integrity', icon: 'integrity', owns: ['/org/integrity', '/org/events/*/compare'] });
   // Organization settings is one page; its sections are sub-items, each one shown only with its permission.
   const settings: NavItem[] = [];
   if (can('org.manage_members')) {
-    settings.push({ key: 'org-members', label: 'Members', to: '/org/settings#section-roster', icon: 'members' });
-    settings.push({ key: 'org-invitations', label: 'Invitations', to: '/org/settings#section-dispatch-queue', icon: 'members' });
+    settings.push({ key: 'org-members', label: tr('Members'), to: '/org/settings#section-roster', icon: 'members' });
+    settings.push({ key: 'org-invitations', label: tr('Invitations'), to: '/org/settings#section-dispatch-queue', icon: 'members' });
   }
-  if (can('org.view_usage')) settings.push({ key: 'org-usage', label: 'AI usage', to: '/org/settings#section-usage', icon: 'usage' });
+  if (can('org.view_usage')) settings.push({ key: 'org-usage', label: tr('AI usage'), to: '/org/settings#section-usage', icon: 'usage' });
   const audit = can('audit.read');
   const policies = can('org.manage_members');
   if (audit || policies)
     settings.push({
       key: 'org-audit',
-      label: audit && policies ? 'Audit log & policies' : audit ? 'Audit log' : 'Policies',
+      label: audit && policies ? tr('Audit log & policies') : audit ? tr('Audit log') : tr('Policies'),
       to: '/org/settings#section-enclave',
       icon: 'audit',
     });
   if (settings.length)
-    items.push({ key: 'org-settings', label: 'Organization settings', to: '/org/settings', icon: 'settings', children: settings });
+    items.push({ key: 'org-settings', label: tr('Organization settings'), to: '/org/settings', icon: 'settings', children: settings });
   sections.push({ key: 'org', title: org.name, items });
   return sections;
 }

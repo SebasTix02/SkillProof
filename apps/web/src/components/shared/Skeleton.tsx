@@ -1,3 +1,4 @@
+import { tr } from '../../i18n';
 /**
  * Loading placeholders with the shape of what is coming (`.skeleton` in index.css: well tone + soft shimmer).
  * `PageSkeleton` draws a whole screen; `PageState` uses it, shown only after 150 ms so quick loads do not flicker.
@@ -105,7 +106,7 @@ function SkeletonKpis({ count = 4 }: { count?: number }) {
 export type PageSkeletonKind = 'page' | 'cards' | 'list' | 'table' | 'console' | 'detail' | 'sections' | 'profile';
 
 /** A whole screen (or one block of it, for 'cards', 'list' and 'table') while it loads. */
-export function PageSkeleton({ kind = 'page', label = 'Loading' }: { kind?: PageSkeletonKind; label?: string }) {
+export function PageSkeleton({ kind = 'page', label = tr('Loading') }: { kind?: PageSkeletonKind; label?: string }) {
   let body: ReactNode;
   switch (kind) {
     case 'cards':

@@ -1,3 +1,4 @@
+import { tr } from '../../i18n';
 import { useState, type ReactNode } from 'react';
 
 export function ToggleSwitch({
@@ -29,8 +30,8 @@ export function ToggleSwitch({
 
 export function CopyLinkButton({
   value,
-  label = 'Copy Link',
-  copiedLabel = 'Copied!',
+  label = tr('Copy Link'),
+  copiedLabel = tr('Copied!'),
   icon = 'content_copy',
   onCopied,
   variant = 'outline',
@@ -147,10 +148,10 @@ export function DarkBanner({
 }
 
 export function LedgerAnchorBanner({
-  badge = 'AUDIT LOG',
-  meta = 'FROZEN COMMITS // RECORDED OVERRIDES',
-  title = 'Every change is in the audit log',
-  description = 'Each score is judged on the commit frozen at the deadline, and every override, publication and decision is recorded with who made it and when.',
+  badge = tr('AUDIT LOG'),
+  meta = tr('FROZEN COMMITS // RECORDED OVERRIDES'),
+  title = tr('Every change is in the audit log'),
+  description = tr('Each score is judged on the commit frozen at the deadline, and every override, publication and decision is recorded with who made it and when.'),
   actions,
 }: {
   badge?: string;

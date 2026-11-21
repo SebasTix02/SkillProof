@@ -1,3 +1,4 @@
+import { lazy, tr } from '../../i18n';
 import type { ActivityEntry, CommitProfile, RepoMap, Rubric } from '@skillproof/shared';
 import { useMemo, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
@@ -85,11 +86,11 @@ interface DetailResponse {
 
 type CourseTab = 'roster' | 'plagiarism' | 'grading' | 'rubric';
 
-const VERDICT_LABEL: Record<string, string> = {
-  code_of_conduct: 'Referred to committee',
-  live_defense: 'Live defense required',
-  clear: 'Cleared',
-};
+const VERDICT_LABEL: Record<string, string> = lazy(() => ({
+  code_of_conduct: tr('Referred to committee'),
+  live_defense: tr('Live defense required'),
+  clear: tr('Cleared'),
+}));
 type RosterFilter = 'all' | 'flagged' | 'incomplete_defense' | 'scored';
 type SortKey = 'risk' | 'lowest_ownership' | 'highest_grade' | 'name';
 
@@ -281,7 +282,7 @@ export function IntegrityReview() {
           kind: 'assignment',
           id: asg.id,
           name: asg.title,
-          tag: assignments.find((x) => x.id === asg.id)?.course_name ?? assignmentConsole.data?.course.name ?? 'Course',
+          tag: assignments.find((x) => x.id === asg.id)?.course_name ?? assignmentConsole.data?.course.name ?? tr('Course'),
           status: asg.status,
           deadline: asg.due_at,
           interviews_enabled: asg.interviews_enabled,
@@ -298,7 +299,7 @@ export function IntegrityReview() {
 
   function exportCanvasCsv() {
     if (!event || submissions.length === 0) {
-      toast.error('No student submissions available to export.');
+      toast.error(tr('No student submissions available to export.'));
       return;
     }
     const header = [
@@ -329,7 +330,7 @@ export function IntegrityReview() {
     a.download = `${event.name.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-integrity.csv`;
     a.click();
     URL.revokeObjectURL(url);
-    toast.success('Exported as CSV.');
+    toast.success(tr('Exported as CSV.'));
   }
 
   /** The faculty determination for one student, kept as history in integrity_decisions. */
@@ -343,11 +344,11 @@ export function IntegrityReview() {
           note: docketNote,
         },
       });
-      toast.success(`Determination saved for ${who}.`);
+      toast.success(tr('Determination saved for {name}.', { name: who }));
       setDocketNote('');
       await integrity.reload();
     } catch (err) {
-      toast.error(`Could not save the determination. ${errorMessage(err)}`);
+      toast.error(tr('Could not save the determination. {error}', { error: errorMessage(err) }));
     } finally {
       setSavingVerdict(false);
     }
@@ -357,7 +358,7 @@ export function IntegrityReview() {
     setBusyScoreId(scoreId);
     try {
       await api(`${event?.kind === 'assignment' ? '/api/assignment-scores' : '/api/scores'}/${scoreId}`, { method: 'PATCH', body: { override_score: value } });
-      toast.success(`Criterion updated to ${value}/10.`);
+      toast.success(tr('Criterion updated to {value}/10.', { value }));
       await Promise.all([consoleData.reload(), selectedDetail.reload()]);
     } catch (err) {
       toast.error(errorMessage(err));
@@ -377,7 +378,7 @@ export function IntegrityReview() {
         <div className="font-mono-code flex flex-wrap items-center gap-2 text-[11px]">
           <span className="inline-flex items-center gap-1.5 rounded-[3px] bg-accent-soft px-2 py-0.5 font-bold text-accent-ink">
             <span className="material-symbols-outlined text-[14px]">policy</span>
-            <span>INTEGRITY</span>
+            <span>{tr('INTEGRITY')}</span>
           </span>
           <span className="text-line">//</span>
           <span className="font-semibold text-ink">{org?.name?.toUpperCase() ?? 'DEPARTMENT'}</span>
@@ -392,7 +393,7 @@ export function IntegrityReview() {
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          <div role="tablist" aria-label="Review events or courses" className="font-mono-code flex overflow-hidden rounded-[4px] border border-line text-[11px]">
+          <div role="tablist" aria-label={tr('Review events or courses')} className="font-mono-code flex overflow-hidden rounded-[4px] border border-line text-[11px]">
             {(['events', 'courses'] as const).map((k) => (
               <button
                 key={k}
@@ -405,13 +406,13 @@ export function IntegrityReview() {
                 }}
                 className={`cursor-pointer px-3 py-1.5 ${source === k ? 'bg-accent-soft font-bold text-accent-ink' : 'bg-surface text-muted hover:text-ink'}`}
               >
-                {k === 'events' ? 'Events' : 'Courses'}
+                {k === 'events' ? tr('Events') : tr('Courses')}
               </button>
             ))}
           </div>
           {source === 'events' && events.length > 0 && (
             <Select
-              aria-label="Event"
+              aria-label={tr('Event')}
               value={activeEventId ?? ''}
               onChange={(e) => {
                 setSelectedEventId(e.target.value);
@@ -428,7 +429,7 @@ export function IntegrityReview() {
           )}
           {source === 'courses' && assignments.length > 0 && (
             <Select
-              aria-label="Course assignment"
+              aria-label={tr('Course assignment')}
               value={activeAssignmentId ?? ''}
               onChange={(e) => {
                 setSelectedAssignmentId(e.target.value);
@@ -452,14 +453,14 @@ export function IntegrityReview() {
           eyebrow={
             <div className="flex flex-wrap items-center gap-2 text-muted">
               <Link to="/org/events" className="text-accent hover:underline">
-                ← EVENT CONSOLE
+                {tr('← EVENT CONSOLE')}
               </Link>
               <span>/</span>
-              <span>INTEGRITY REVIEW</span>
+              <span>{tr('INTEGRITY REVIEW')}</span>
             </div>
           }
-          title={event ? event.name : 'Integrity review'}
-          subtitle="Similarity between submissions, voice-interview ownership and your verdict on each submission, for one event or course assignment at a time."
+          title={event ? event.name : tr('Integrity review')}
+          subtitle={tr('Similarity between submissions, voice-interview ownership and your verdict on each submission, for one event or course assignment at a time.')}
           borderBottom={false}
           rightSlot={
             <div className="flex flex-wrap items-center gap-2">
@@ -469,16 +470,16 @@ export function IntegrityReview() {
                 className={linkButtonSecondary}
               >
                 <span className="material-symbols-outlined text-[16px]">refresh</span>
-                <span>Refresh</span>
+                <span>{tr('Refresh')}</span>
               </button>
               <button type="button" onClick={exportCanvasCsv} className={linkButtonSecondary}>
                 <span className="material-symbols-outlined text-[16px]">file_download</span>
-                <span>Export CSV</span>
+                <span>{tr('Export CSV')}</span>
               </button>
               {event && (
                 <Link to={event.consoleLink} className={linkButton}>
                   <span className="material-symbols-outlined text-[16px]">gavel</span>
-                  <span>{event.kind === 'assignment' ? 'Assignment console' : 'Event console'}</span>
+                  <span>{event.kind === 'assignment' ? tr('Assignment console') : tr('Event console')}</span>
                 </Link>
               )}
             </div>
@@ -489,27 +490,27 @@ export function IntegrityReview() {
         {event && (
           <div className="font-mono-code grid grid-cols-2 gap-4 border-t border-line pt-4 text-[12px] md:grid-cols-5">
             <div>
-              <span className="block text-[10px] text-muted uppercase">Reviewer</span>
-              <span className="font-semibold text-ink">{me?.profile.display_name || 'Faculty Lead'}</span>
+              <span className="block text-[10px] text-muted uppercase">{tr('Reviewer')}</span>
+              <span className="font-semibold text-ink">{me?.profile.display_name || tr('Faculty Lead')}</span>
             </div>
             <div>
-              <span className="block text-[10px] text-muted uppercase">Participants</span>
+              <span className="block text-[10px] text-muted uppercase">{tr('Participants')}</span>
               <span className="font-semibold text-ink">
                 {consoleData.data?.participant_count ?? 0} participants
               </span>
             </div>
             <div>
-              <span className="block text-[10px] text-muted uppercase">Status</span>
+              <span className="block text-[10px] text-muted uppercase">{tr('Status')}</span>
               <span className="font-semibold text-accent uppercase">{STATUS_LABEL[event.status]}</span>
             </div>
             <div>
-              <span className="block text-[10px] text-muted uppercase">Submissions</span>
+              <span className="block text-[10px] text-muted uppercase">{tr('Submissions')}</span>
               <span className="font-semibold text-ink">
                 {submissions.length} / {consoleData.data?.participant_count ?? submissions.length}
               </span>
             </div>
             <div>
-              <span className="block text-[10px] text-muted uppercase">Deadline</span>
+              <span className="block text-[10px] text-muted uppercase">{tr('Deadline')}</span>
               <span className="font-semibold text-good">{formatDate(event.deadline)}</span>
             </div>
           </div>
@@ -519,25 +520,25 @@ export function IntegrityReview() {
           tabs={[
             {
               key: 'roster',
-              label: '01. Submissions',
+              label: tr('01. Submissions'),
               count: submissions.length,
               icon: 'group',
             },
             {
               key: 'plagiarism',
-              label: '02. Similarity & Plagiarism Matrix',
+              label: tr('02. Similarity & Plagiarism Matrix'),
               count: flags.length,
               icon: 'schema',
             },
             {
               key: 'grading',
-              label: '03. Oral Defense & Review',
+              label: tr('03. Oral Defense & Review'),
               count: metrics.withOwnershipCount,
               icon: 'record_voice_over',
             },
             {
               key: 'rubric',
-              label: '04. Rubric',
+              label: tr('04. Rubric'),
               count: selectedRubric.length,
               icon: 'fact_check',
             },
@@ -551,19 +552,19 @@ export function IntegrityReview() {
         <Notice tone="info">
           {source === 'events' ? (
             <>
-              No events to review yet.{' '}
+              {tr('No events to review yet.')}{' '}
               <Link to="/org/events/new" className="font-semibold text-accent-ink underline">
-                Create an event
+                {tr('Create an event')}
               </Link>
               .
             </>
           ) : (
             <>
-              No course assignments to review yet.{' '}
+              {tr('No course assignments to review yet.')}{' '}
               <Link to="/org/courses" className="font-semibold text-accent-ink underline">
-                Open a course
+                {tr('Open a course')}
               </Link>{' '}
-              to create one.
+              {tr('to create one.')}
             </>
           )}
         </Notice>
@@ -573,38 +574,38 @@ export function IntegrityReview() {
           <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <TopAccentKpiCard
               accent="cobalt"
-              eyebrow="Class Average Score"
+              eyebrow={tr('Class Average Score')}
               icon="analytics"
               value={metrics.avgScore != null ? metrics.avgScore.toFixed(1) : '—'}
               unit="/ 100"
-              description={`${metrics.scoredCount} of ${submissions.length} submissions scored.`}
+              description={tr('{n} of {total} submissions scored.', { n: metrics.scoredCount, total: submissions.length })}
             />
             <TopAccentKpiCard
               accent="emerald"
-              eyebrow="Authorship Confidence"
+              eyebrow={tr('Authorship Confidence')}
               icon="fingerprint"
               value={metrics.avgOwnership != null ? `${metrics.avgOwnership.toFixed(1)}%` : '—'}
-              unit="Mean"
-              description={`${metrics.withOwnershipCount} students completed 3-min voice defense.`}
+              unit={tr('Mean')}
+              description={tr('{n} students completed 3-min voice defense.', { n: metrics.withOwnershipCount })}
             />
             <TopAccentKpiCard
               accent="amber"
-              eyebrow="Similarity Anomalies"
+              eyebrow={tr('Similarity Anomalies')}
               icon="schema"
               value={`${metrics.anomalyPct}%`}
               unit={`(${flags.length} pairs)`}
-              description="Shared repositories, common forks, or structural matches."
+              description={tr('Shared repositories, common forks, or structural matches.')}
             />
             <TopAccentKpiCard
               accent="neutral"
-              eyebrow="Oral Defense Status"
+              eyebrow={tr('Oral Defense Status')}
               icon="mic"
               value={metrics.withOwnershipCount}
-              unit="Completed"
+              unit={tr('Completed')}
               description={
                 event?.interviews_enabled
-                  ? 'Gemini Live 3-minute repository cross-exam enabled.'
-                  : 'Oral defense disabled for this assignment.'
+                  ? tr('Gemini Live 3-minute repository cross-exam enabled.')
+                  : tr('Oral defense disabled for this assignment.')
               }
             />
           </section>
@@ -613,16 +614,16 @@ export function IntegrityReview() {
           {activeTab === 'rubric' && selectedRubric.length > 0 && (
             <section className="space-y-4 rounded-[6px] border border-line bg-surface p-6">
               <h2 className="font-serif-heading text-[22px] font-medium text-ink">
-                Course Rubric &amp; Auto-Grader Criteria
+                {tr('Course Rubric & Auto-Grader Criteria')}
               </h2>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 {selectedRubric.map((c, idx) => (
                   <div key={c.key} className="space-y-1.5 rounded-[4px] border border-line bg-paper/60 p-4">
                     <div className="flex items-center justify-between">
                       <span className="font-mono-code text-[11px] font-bold text-accent uppercase">
-                        Criterion {String(idx + 1).padStart(2, '0')}
+                        {tr('Criterion')}{' '}{String(idx + 1).padStart(2, '0')}
                       </span>
-                      <Badge tone="neutral">WEIGHT: {c.weight}%</Badge>
+                      <Badge tone="neutral">{tr('WEIGHT:')}{' '}{c.weight}%</Badge>
                     </div>
                     <div className="font-serif-heading text-[18px] font-medium text-ink">{c.name}</div>
                     {c.description && <p className="text-[13px] text-muted">{c.description}</p>}
@@ -638,26 +639,26 @@ export function IntegrityReview() {
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
                   <h2 className="font-serif-heading text-[22px] font-medium text-ink">
-                    Plagiarism &amp; Similarity Cluster Matrix
+                    {tr('Plagiarism & Similarity Cluster Matrix')}
                   </h2>
                   <p className="text-[13px] text-muted">
-                    Inspect flagged submission pairs side-by-side in the Forensic Comparison Console.
+                    {tr('Inspect flagged submission pairs side-by-side in the Forensic Comparison Console.')}
                   </p>
                 </div>
                 {event?.compareLink && flags[0] && (
                   <Link to={event.compareLink(flags[0].submission_a, flags[0].submission_b, flags[0].id)} className={linkButton}>
-                    Open Forensic Comparison →
+                    {tr('Open Forensic Comparison →')}
                   </Link>
                 )}
               </div>
 
               {flags.length === 0 ? (
-                <Notice tone="good">Zero similarity anomalies detected across the current cohort.</Notice>
+                <Notice tone="good">{tr('Zero similarity anomalies detected across the current cohort.')}</Notice>
               ) : (
                 <ul className="space-y-2.5">
                   {flags.map((f) => {
-                    const nameA = submissions.find((s) => s.id === f.submission_a)?.team_name ?? 'Team A';
-                    const nameB = submissions.find((s) => s.id === f.submission_b)?.team_name ?? 'Team B';
+                    const nameA = submissions.find((s) => s.id === f.submission_a)?.team_name ?? tr('Team A');
+                    const nameB = submissions.find((s) => s.id === f.submission_b)?.team_name ?? tr('Team B');
                     return (
                       <li
                         key={f.id}
@@ -675,7 +676,7 @@ export function IntegrityReview() {
                             to={event.compareLink(f.submission_a, f.submission_b, f.id)}
                             className="font-mono-code text-[11px] font-semibold text-accent hover:underline"
                           >
-                            Compare Side-by-Side →
+                            {tr('Compare Side-by-Side →')}
                           </Link>
                         )}
                       </li>
@@ -697,7 +698,7 @@ export function IntegrityReview() {
                   <Input
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    placeholder="Search student, team, commit SHA, or repo..."
+                    placeholder={tr('Search student, team, commit SHA, or repo...')}
                     className="h-9 bg-paper pl-8 text-[12px]"
                   />
                 </div>
@@ -705,13 +706,13 @@ export function IntegrityReview() {
                 <div className="font-mono-code flex flex-wrap items-center divide-x divide-line overflow-hidden rounded-[4px] border border-line text-[11px]">
                   {(
                     [
-                      { key: 'all', label: `All (${submissions.length})` },
-                      { key: 'flagged', label: `Flagged (${flaggedSet.size})` },
+                      { key: 'all', label: tr('All ({n})', { n: submissions.length }) },
+                      { key: 'flagged', label: tr('Flagged ({n})', { n: flaggedSet.size }) },
                       {
                         key: 'incomplete_defense',
-                        label: `No Defense (${submissions.length - metrics.withOwnershipCount})`,
+                        label: tr('No Defense ({n})', { n: submissions.length - metrics.withOwnershipCount }),
                       },
-                      { key: 'scored', label: `Scored (${metrics.scoredCount})` },
+                      { key: 'scored', label: tr('Scored ({n})', { n: metrics.scoredCount }) },
                     ] as const
                   ).map((f) => (
                     <button
@@ -731,17 +732,17 @@ export function IntegrityReview() {
               </div>
 
               <div className="flex items-center gap-2">
-                <span className="font-mono-code text-[11px] text-muted">SORT:</span>
+                <span className="font-mono-code text-[11px] text-muted">{tr('SORT:')}</span>
                 <Select
-                  aria-label="Sort submissions"
+                  aria-label={tr('Sort submissions')}
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value as SortKey)}
                   className="font-mono-code h-9 w-48 bg-paper text-[11px]"
                 >
-                  <option value="risk">Similarity &amp; Risk (Desc)</option>
-                  <option value="lowest_ownership">Lowest Ownership Score</option>
-                  <option value="highest_grade">Highest Composite Grade</option>
-                  <option value="name">Student Name (A–Z)</option>
+                  <option value="risk">{tr('Similarity & Risk (Desc)')}</option>
+                  <option value="lowest_ownership">{tr('Lowest Ownership Score')}</option>
+                  <option value="highest_grade">{tr('Highest Composite Grade')}</option>
+                  <option value="name">{tr('Student Name (A–Z)')}</option>
                 </Select>
               </div>
             </div>
@@ -750,20 +751,20 @@ export function IntegrityReview() {
               <table className="w-full border-collapse text-left text-[13px]">
                 <thead className="font-mono-code border-b border-line bg-paper text-[11px] tracking-wider text-muted uppercase">
                   <tr>
-                    <th className="px-4 py-3 font-semibold">Student / Team</th>
-                    <th className="px-3 py-3 font-semibold">Repository &amp; Commit</th>
-                    <th className="px-3 py-3 text-right font-semibold">Oral Probe</th>
-                    <th className="px-3 py-3 font-semibold">Integrity Signal</th>
-                    <th className="px-3 py-3 text-right font-semibold">Composite</th>
-                    <th className="px-3 py-3 font-semibold">Status</th>
-                    <th className="px-4 py-3 text-right font-semibold">Inspection</th>
+                    <th className="px-4 py-3 font-semibold">{tr('Student / Team')}</th>
+                    <th className="px-3 py-3 font-semibold">{tr('Repository & Commit')}</th>
+                    <th className="px-3 py-3 text-right font-semibold">{tr('Oral Probe')}</th>
+                    <th className="px-3 py-3 font-semibold">{tr('Integrity Signal')}</th>
+                    <th className="px-3 py-3 text-right font-semibold">{tr('Composite')}</th>
+                    <th className="px-3 py-3 font-semibold">{tr('Status')}</th>
+                    <th className="px-4 py-3 text-right font-semibold">{tr('Inspection')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-line">
                   {filteredRows.length === 0 ? (
                     <tr>
                       <td colSpan={7} className="px-4 py-8 text-center text-[13px] text-muted">
-                        No student submissions match the current filter.
+                        {tr('No student submissions match the current filter.')}
                       </td>
                     </tr>
                   ) : (
@@ -811,7 +812,7 @@ export function IntegrityReview() {
                               <span className="text-muted">—</span>
                             )}
                             {s.locked_commit_sha && (
-                              <div className="text-[10px] text-muted">commit @{s.locked_commit_sha.slice(0, 7)}</div>
+                              <div className="text-[10px] text-muted">{tr('commit @')}{s.locked_commit_sha.slice(0, 7)}</div>
                             )}
                           </td>
                           <td className="font-mono-code px-3 py-3 text-right">
@@ -830,10 +831,10 @@ export function IntegrityReview() {
                           <td className="px-3 py-3">
                             {isFlagged ? (
                               <Badge tone="bad" dot>
-                                Similarity Flag
+                                {tr('Similarity Flag')}
                               </Badge>
                             ) : (
-                              <Badge tone="good">Unique Tree</Badge>
+                              <Badge tone="good">{tr('Unique Tree')}</Badge>
                             )}
                           </td>
                           <td className="font-mono-code px-3 py-3 text-right text-[14px] font-bold text-ink">
@@ -852,7 +853,7 @@ export function IntegrityReview() {
                                 onClick={(e) => e.stopPropagation()}
                                 className="btn-tactile font-mono-code inline-flex items-center gap-1 rounded-[3px] border border-line bg-surface px-2.5 py-1 text-[11px] font-semibold text-accent hover:border-accent"
                               >
-                                <span>Inspect</span>
+                                <span>{tr('Inspect')}</span>
                                 <span>→</span>
                               </Link>
                             )}
@@ -877,16 +878,16 @@ export function IntegrityReview() {
                     }`}
                   />
                   <h2 className="font-serif-heading text-[20px] font-medium text-ink">
-                    Forensic Cross-Examination: {selectedSummary.submitted_by_name || selectedSummary.team_name}
+                    {tr('Forensic Cross-Examination:')}{' '}{selectedSummary.submitted_by_name || selectedSummary.team_name}
                   </h2>
-                  {flaggedSet.has(selectedSummary.id) && <Badge tone="bad">FLAGGED FOR REVIEW</Badge>}
+                  {flaggedSet.has(selectedSummary.id) && <Badge tone="bad">{tr('FLAGGED FOR REVIEW')}</Badge>}
                 </div>
                 <div className="font-mono-code flex items-center gap-2 text-[11px] text-muted">
-                  <span>TEAM: {selectedSummary.team_name}</span>
+                  <span>{tr('TEAM:')}{' '}{selectedSummary.team_name}</span>
                   {selectedSummary.locked_commit_sha && (
                     <>
                       <span>•</span>
-                      <span>COMMIT: @{selectedSummary.locked_commit_sha.slice(0, 7)}</span>
+                      <span>{tr('COMMIT: @')}{selectedSummary.locked_commit_sha.slice(0, 7)}</span>
                     </>
                   )}
                 </div>
@@ -897,11 +898,11 @@ export function IntegrityReview() {
                 <div className="space-y-5 p-6 lg:col-span-7">
                   <div className="space-y-2">
                     <div className="font-mono-code flex items-center justify-between text-[11px] text-muted uppercase">
-                      <span>AI Oral Defense Telemetry</span>
+                      <span>{tr('AI Oral Defense Telemetry')}</span>
                       <span className="font-semibold text-ink">
                         {selectedSummary.ownership
-                          ? `OWNERSHIP: ${selectedSummary.ownership.score}/100 (${selectedSummary.ownership.confidence})`
-                          : 'NO ORAL DEFENSE RECORDED'}
+                          ? tr('OWNERSHIP: {score}/100 ({level})', { score: selectedSummary.ownership.score, level: selectedSummary.ownership.confidence })
+                          : tr('NO ORAL DEFENSE RECORDED')}
                       </span>
                     </div>
                     <div className="rounded-[4px] border border-line bg-paper p-3.5">
@@ -909,13 +910,13 @@ export function IntegrityReview() {
                       {selectedDetail.data?.interview && (
                         <div className="mt-2.5 flex items-center justify-between border-t border-line pt-2 text-[12px]">
                           <span className="font-mono-code text-muted">
-                            Session Status: {selectedDetail.data.interview.status.toUpperCase()}
+                            {tr('Session Status:')}{' '}{selectedDetail.data.interview.status.toUpperCase()}
                           </span>
                           <Link
                             to={`/interview/${selectedDetail.data.interview.id}`}
                             className="font-mono-code font-semibold text-accent hover:underline"
                           >
-                            Open Full Voice Transcript →
+                            {tr('Open Full Voice Transcript →')}
                           </Link>
                         </div>
                       )}
@@ -925,8 +926,8 @@ export function IntegrityReview() {
                   {selectedAnalysis && (
                     <div className="space-y-2 rounded-[4px] border border-line bg-paper/50 p-4">
                       <div className="font-mono-code flex items-center justify-between text-[11px] text-muted uppercase">
-                        <span>Repository Analysis Summary</span>
-                        <span>{selectedAnalysis.file_count} files inspected</span>
+                        <span>{tr('Repository Analysis Summary')}</span>
+                        <span>{selectedAnalysis.file_count}{' '}{tr('files inspected')}</span>
                       </div>
                       <p className="text-[13px] leading-relaxed text-ink">{selectedAnalysis.map_json.summary}</p>
                     </div>
@@ -935,7 +936,7 @@ export function IntegrityReview() {
                   {selectedScores.length > 0 && (
                     <div className="space-y-2">
                       <span className="font-mono-code block text-[11px] font-bold text-muted uppercase">
-                        Criterion Breakdown
+                        {tr('Criterion Breakdown')}
                       </span>
                       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                         {selectedScores.map((sc) => {
@@ -960,12 +961,12 @@ export function IntegrityReview() {
                 <div className="flex flex-col justify-between space-y-5 bg-surface p-6 lg:col-span-5">
                   <div className="space-y-4">
                     <div className="font-mono-code flex items-center justify-between border-b border-line pb-2 text-[11px] text-muted uppercase">
-                      <span>Score override &amp; verdict</span>
-                      <span>{canOverride ? 'OVERRIDE ACTIVE' : STATUS_LABEL[event?.status ?? 'open']}</span>
+                      <span>{tr('Score override & verdict')}</span>
+                      <span>{canOverride ? tr('OVERRIDE ACTIVE') : STATUS_LABEL[event?.status ?? 'open']}</span>
                     </div>
 
                     <div className="flex items-baseline justify-between">
-                      <span className="text-[13px] font-semibold text-ink">Composite Assignment Grade</span>
+                      <span className="text-[13px] font-semibold text-ink">{tr('Composite Assignment Grade')}</span>
                       <div className="font-mono-code">
                         <span className="text-[24px] font-bold text-ink">
                           {selectedSummary.total != null ? selectedSummary.total.toFixed(1) : '—'}
@@ -977,7 +978,7 @@ export function IntegrityReview() {
                     {canOverride && selectedScores[0] && (
                       <div className="space-y-1.5 rounded-[4px] border border-line bg-paper p-3">
                         <label className="font-mono-code block text-[11px] font-semibold text-ink">
-                          Quick Adjust First Criterion ({selectedRubric[0]?.name ?? selectedScores[0].criterion_key})
+                          {tr('Quick Adjust First Criterion (')}{selectedRubric[0]?.name ?? selectedScores[0].criterion_key})
                         </label>
                         <div className="flex items-center gap-2">
                           <Select
@@ -988,7 +989,7 @@ export function IntegrityReview() {
                             }}
                             className="font-mono-code h-8 bg-surface text-[12px]"
                           >
-                            <option value="">Keep AI ({selectedScores[0].ai_score ?? '–'})</option>
+                            <option value="">{tr('Keep AI (')}{selectedScores[0].ai_score ?? '–'})</option>
                             {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
                               <option key={n} value={n}>
                                 {n} / 10
@@ -1000,7 +1001,7 @@ export function IntegrityReview() {
                               to={event.submissionLink(selectedSummary.id)}
                               className="font-mono-code shrink-0 text-[11px] font-semibold text-accent hover:underline"
                             >
-                              All Criteria →
+                              {tr('All Criteria →')}
                             </Link>
                           )}
                         </div>
@@ -1009,24 +1010,24 @@ export function IntegrityReview() {
 
                     <div className="space-y-2">
                       <span className="font-mono-code block text-[11px] font-bold text-ink uppercase">
-                        Integrity Verdict
+                        {tr('Integrity Verdict')}
                       </span>
                       {(
                         [
                           {
                             key: 'cod',
-                            title: 'Refer to Committee on Discipline',
-                            desc: 'Unexplained similarity + failed oral defense.',
+                            title: tr('Refer to Committee on Discipline'),
+                            desc: tr('Unexplained similarity + failed oral defense.'),
                           },
                           {
                             key: 'live_defense',
-                            title: 'Mandate Live In-Person Defense',
-                            desc: 'Schedule 15-minute whiteboard walk with TA/instructor.',
+                            title: tr('Mandate Live In-Person Defense'),
+                            desc: tr('Schedule 15-minute whiteboard walk with TA/instructor.'),
                           },
                           {
                             key: 'clear',
-                            title: 'Clear Flag (Verified Authorship)',
-                            desc: 'Approve grade for final roster publication.',
+                            title: tr('Clear Flag (Verified Authorship)'),
+                            desc: tr('Approve grade for final roster publication.'),
                           },
                         ] as const
                       ).map((v) => (
@@ -1053,13 +1054,13 @@ export function IntegrityReview() {
 
                     <div className="space-y-1">
                       <label className="font-mono-code block text-[11px] font-semibold text-ink uppercase">
-                        Official Docket Notes
+                        {tr('Official Docket Notes')}
                       </label>
                       <Textarea
                         rows={3}
                         value={docketNote}
                         onChange={(e) => setDocketNote(e.target.value)}
-                        placeholder="Notes for this verdict (kept in the history)…"
+                        placeholder={tr('Notes for this verdict (kept in the history)…')}
                       />
                     </div>
                   </div>
@@ -1072,18 +1073,18 @@ export function IntegrityReview() {
                       disabled={!canDecide || savingVerdict}
                       onClick={() => void saveVerdict(selectedSummary.id, selectedSummary.submitted_by_name || selectedSummary.team_name)}
                     >
-                      {savingVerdict ? 'Saving…' : 'Save Determination'}
+                      {savingVerdict ? tr('Saving…') : tr('Save Determination')}
                     </Button>
                     {event && (
                       <Link to={event.submissionLink(selectedSummary.id)} className={linkButtonSecondary}>
-                        Full Judge View
+                        {tr('Full Judge View')}
                       </Link>
                     )}
                   </div>
-                  {!canDecide && <p className="text-[11px] text-muted">Your role cannot record integrity determinations.</p>}
+                  {!canDecide && <p className="text-[11px] text-muted">{tr('Your role cannot record integrity determinations.')}</p>}
                   {(() => {
                     const history = (integrity.data?.decisions ?? []).filter((d) => (d.submission_id ?? d.assignment_submission_id) === selectedSummary.id);
-                    if (history.length === 0) return <p className="text-[11px] text-muted">No determination recorded for this student yet.</p>;
+                    if (history.length === 0) return <p className="text-[11px] text-muted">{tr('No determination recorded for this student yet.')}</p>;
                     return (
                       <ul className="space-y-1 border-t border-line pt-3 text-[11px]">
                         {history.map((d) => (
@@ -1104,10 +1105,10 @@ export function IntegrityReview() {
       )}
 
       <LedgerAnchorBanner
-        badge="INTEGRITY LOG"
-        meta="FROZEN COMMITS // CSV EXPORT"
-        title="Every grading change is in the audit log"
-        description="Scores are judged on the commit frozen at the deadline. Faculty overrides and integrity determinations are recorded with who made them and when."
+        badge={tr('INTEGRITY LOG')}
+        meta={tr('FROZEN COMMITS // CSV EXPORT')}
+        title={tr('Every grading change is in the audit log')}
+        description={tr('Scores are judged on the commit frozen at the deadline. Faculty overrides and integrity determinations are recorded with who made them and when.')}
       />
     </div>
   );

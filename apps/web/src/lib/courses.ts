@@ -1,3 +1,4 @@
+import { lazy, tr } from '../i18n';
 /** Types and words for courses and their assignments (their own product, apart from events). */
 import type { ActivityEntry, Rubric } from '@skillproof/shared';
 import type { EventView, RepoRef, ScoreView } from './types';
@@ -104,14 +105,14 @@ export interface AssignmentConsoleResponse {
   primary_models: string[];
 }
 
-export const MODE_LABEL: Record<AssignmentMode, string> = { individual: 'Individual', group: 'Group' };
+export const MODE_LABEL: Record<AssignmentMode, string> = lazy(() => ({ individual: tr('Individual'), group: tr('Group') }));
 
 /** "Groups of 2–4", "Pairs", "Groups of 3". */
 export function groupSizeLabel(a: { mode: AssignmentMode; group_min: number | null; group_max: number | null }): string {
-  if (a.mode !== 'group' || a.group_min == null || a.group_max == null) return 'Individual';
-  if (a.group_min === 2 && a.group_max === 2) return 'Pairs';
-  if (a.group_min === a.group_max) return `Groups of ${a.group_min}`;
-  return `Groups of ${a.group_min}–${a.group_max}`;
+  if (a.mode !== 'group' || a.group_min == null || a.group_max == null) return tr('Individual');
+  if (a.group_min === 2 && a.group_max === 2) return tr('Pairs');
+  if (a.group_min === a.group_max) return tr('Groups of {n}', { n: a.group_min });
+  return tr('Groups of {min}–{max}', { min: a.group_min, max: a.group_max });
 }
 
 export const COURSE_STATUS_TONE: Record<AssignmentStatus, 'neutral' | 'good' | 'warn' | 'accent'> = {
@@ -133,9 +134,11 @@ export function localInput(date: Date | string): string {
 export function nextStep(
   a: { status: AssignmentStatus; due_at: string; mode?: AssignmentMode; my_submission: { status: string } | null },
   now = Date.now(),
-): { label: string; tone: 'good' | 'warn' | 'bad' | 'neutral' | 'accent' } {
-  if (a.status === 'published') return a.my_submission ? { label: 'Results ready', tone: 'accent' } : { label: 'Missed', tone: 'bad' };
-  if (a.status === 'open' && Date.parse(a.due_at) > now) return a.my_submission ? { label: 'Submitted', tone: 'good' } : { label: 'To do', tone: 'warn' };
-  if (!a.my_submission) return { label: 'Missed', tone: 'bad' };
-  return { label: 'Being graded', tone: 'neutral' };
+): { key: 'results' | 'missed' | 'submitted' | 'todo' | 'grading'; label: string; tone: 'good' | 'warn' | 'bad' | 'neutral' | 'accent' } {
+  if (a.status === 'published')
+    return a.my_submission ? { key: 'results', label: tr('Results ready'), tone: 'accent' } : { key: 'missed', label: tr('Missed'), tone: 'bad' };
+  if (a.status === 'open' && Date.parse(a.due_at) > now)
+    return a.my_submission ? { key: 'submitted', label: tr('Submitted'), tone: 'good' } : { key: 'todo', label: tr('To do'), tone: 'warn' };
+  if (!a.my_submission) return { key: 'missed', label: tr('Missed'), tone: 'bad' };
+  return { key: 'grading', label: tr('Being graded'), tone: 'neutral' };
 }

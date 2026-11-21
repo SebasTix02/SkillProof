@@ -1,3 +1,4 @@
+import { tr } from '../i18n';
 import { Badge } from './shared';
 
 export interface AnswerKeyQuestion {
@@ -24,9 +25,9 @@ export function AnswerKey({ questions, answers }: { questions: AnswerKeyQuestion
   return (
     <section className="print-avoid-break space-y-3 border-t border-line pt-6">
       <div>
-        <h3 className="font-serif-heading text-[20px] font-medium text-ink">What a strong answer covered</h3>
+        <h3 className="font-serif-heading text-[20px] font-medium text-ink">{tr('What a strong answer covered')}</h3>
         <p className="text-[12px] text-muted">
-          The points the author of this code would be expected to mention, and which ones came up in the interview.
+          {tr('The points the author of this code would be expected to mention, and which ones came up in the interview.')}
         </p>
       </div>
       <ol className="space-y-3">
@@ -67,7 +68,7 @@ export function AnswerKey({ questions, answers }: { questions: AnswerKeyQuestion
         })}
       </ol>
       {answers.length === 0 && (
-        <p className="text-[11px] text-muted">This report was written before coverage was recorded, so points are listed without marks.</p>
+        <p className="text-[11px] text-muted">{tr('This report was written before coverage was recorded, so points are listed without marks.')}</p>
       )}
     </section>
   );

@@ -1,3 +1,4 @@
+import { tr } from '../../i18n';
 import { useCallback, useMemo, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import {
@@ -138,7 +139,7 @@ export function OrgSettings() {
   const policies: OrgSettingsJson = policyDraft ?? orgInfo?.settings_json ?? {};
   const policiesDirty = !!policyDraft && isDirty(orgInfo?.settings_json ?? {}, policyDraft);
   const askToLeave = useCallback(
-    () => confirm({ title: 'Leave without saving?', body: 'Your changes to the policies will be lost.', confirmLabel: 'Leave', cancelLabel: 'Stay' }),
+    () => confirm({ title: tr('Leave without saving?'), body: tr('Your changes to the policies will be lost.'), confirmLabel: tr('Leave'), cancelLabel: tr('Stay') }),
     [confirm],
   );
   useUnsavedChanges(policiesDirty, askToLeave);
@@ -161,7 +162,7 @@ export function OrgSettings() {
     };
   }, [usage.data]);
 
-  async function run<T>(key: string, fn: () => Promise<T>, success?: string, failure = 'Something went wrong'): Promise<T | undefined> {
+  async function run<T>(key: string, fn: () => Promise<T>, success?: string, failure = tr('Something went wrong')): Promise<T | undefined> {
     setBusy(key);
     try {
       const result = await fn();
@@ -184,12 +185,12 @@ export function OrgSettings() {
       'invite',
       () => api<{ invitation: Invitation; token: string }>(`/api/orgs/${org.id}/invitations`, { body: { email, role: toApiRole(inviteRole) } }),
       undefined,
-      'Could not create the invitation',
+      tr('Could not create the invitation'),
     );
     if (!res) return;
     setInviteEmail('');
     setNewLink({ email, url: `${window.location.origin}/invite/${res.token}`, expires_at: res.invitation.expires_at });
-    toast.success(`Invitation for ${email} is ready. Copy the link: it is shown only once.`);
+    toast.success(tr('Invitation for {email} is ready. Copy the link: it is shown only once.', { email }));
     await invites.reload();
   }
 
@@ -198,35 +199,35 @@ export function OrgSettings() {
     await run(
       `role-${m.user_id}`,
       () => api(`/api/orgs/${org.id}/members/${m.user_id}`, { method: 'PATCH', body: { role: toApiRole(role) } }),
-      `${m.display_name || m.email} is now ${ORG_ROLE_SPECS[role].label.toLowerCase()}.`,
-      'Could not change the role',
+      tr('{name} is now {role}.', { name: m.display_name || m.email, role: ORG_ROLE_SPECS[role].label.toLowerCase() }),
+      tr('Could not change the role'),
     );
     await members.reload();
   }
 
   async function removeMember(m: Member) {
     if (!org) return;
-    if (!(await confirm({ title: `Remove ${m.display_name || m.email} from ${org.name}?`, body: 'They lose access at once. You can invite them again later.', confirmLabel: 'Remove member' }))) return;
-    await run(`remove-${m.user_id}`, () => api(`/api/orgs/${org.id}/members/${m.user_id}`, { method: 'DELETE' }), 'Member removed.', 'Could not remove the member');
+    if (!(await confirm({ title: tr('Remove {name} from {org}?', { name: m.display_name || m.email, org: org.name }), body: tr('They lose access at once. You can invite them again later.'), confirmLabel: tr('Remove member') }))) return;
+    await run(`remove-${m.user_id}`, () => api(`/api/orgs/${org.id}/members/${m.user_id}`, { method: 'DELETE' }), tr('Member removed.'), tr('Could not remove the member'));
     await members.reload();
   }
 
   async function revokeInvite(inv: Invitation) {
     if (!org) return;
     const ok = await confirm({
-      title: `Revoke the invitation for ${inv.email}?`,
-      body: 'Its link stops working at once. You can send a new invitation later.',
-      confirmLabel: 'Revoke invitation',
+      title: tr('Revoke the invitation for {email}?', { email: inv.email }),
+      body: tr('Its link stops working at once. You can send a new invitation later.'),
+      confirmLabel: tr('Revoke invitation'),
     });
     if (!ok) return;
-    await run(`revoke-${inv.id}`, () => api(`/api/orgs/${org.id}/invitations/${inv.id}`, { method: 'DELETE' }), `Invitation for ${inv.email} revoked.`, 'Could not revoke the invitation');
+    await run(`revoke-${inv.id}`, () => api(`/api/orgs/${org.id}/invitations/${inv.id}`, { method: 'DELETE' }), tr('Invitation for {email} revoked.', { email: inv.email }), tr('Could not revoke the invitation'));
     if (newLink?.email === inv.email) setNewLink(null);
     await invites.reload();
   }
 
   async function savePolicies() {
     if (!org) return;
-    const ok = await run('policies', () => api(`/api/orgs/${org.id}/settings`, { method: 'PATCH', body: { settings: policies } }), 'Organization policies saved.', 'Could not save the policies');
+    const ok = await run('policies', () => api(`/api/orgs/${org.id}/settings`, { method: 'PATCH', body: { settings: policies } }), tr('Organization policies saved.'), tr('Could not save the policies'));
     if (ok !== undefined) {
       setPolicyDraft(null);
       await members.reload();
@@ -243,7 +244,7 @@ export function OrgSettings() {
     a.download = `${org?.slug ?? 'org'}-audit-trail.json`;
     a.click();
     URL.revokeObjectURL(url);
-    toast.success(`Audit trail exported (${entries.length} entries).`);
+    toast.success(tr('Audit trail exported ({n} entries).', { n: entries.length }));
   }
 
   if (!org) return <PageState loading error={null} kind="sections" />;
@@ -255,71 +256,71 @@ export function OrgSettings() {
           <>
             <span className="inline-flex items-center gap-1.5 font-semibold text-good-on-dark">
               <LiveDot tone="mint" />
-              <span>ORGANIZATION · {org.name.toUpperCase()}</span>
+              <span>{tr('ORGANIZATION ·')}{' '}{org.name.toUpperCase()}</span>
             </span>
             <span>•</span>
-            <span className="font-semibold text-accent-on-dark">{(usage.data?.plan ?? orgInfo?.plan ?? org.plan ?? 'free').toUpperCase()} PLAN</span>
+            <span className="font-semibold text-accent-on-dark">{(usage.data?.plan ?? orgInfo?.plan ?? org.plan ?? 'free').toUpperCase()}{' '}{tr('PLAN')}</span>
           </>
         }
         statusChips={
           <span className="inline-flex items-center gap-1.5 rounded-full border border-good/40 bg-good/20 px-2.5 py-0.5 text-[10px] font-semibold text-good-on-dark">
             <LiveDot tone="mint" />
-            <span>YOUR ROLE: {roleLabel(org).toUpperCase()}</span>
+            <span>{tr('YOUR ROLE:')}{' '}{roleLabel(org).toUpperCase()}</span>
           </span>
         }
-        title="Organization Settings & Resource Allocation"
-        subtitle="Manage members and their roles, invitations, AI usage and the policies of your organization."
+        title={tr('Organization Settings & Resource Allocation')}
+        subtitle={tr('Manage members and their roles, invitations, AI usage and the policies of your organization.')}
         actions={
           <Link to="/org/events" className={`${linkButtonSecondary} border-white/15 bg-white/10 text-white hover:bg-white/20`}>
-            <span>← Organizer Console</span>
+            <span>{tr('← Organizer Console')}</span>
           </Link>
         }
       />
 
       {!canManage && !canSeeUsage && !canAudit && (
-        <Notice tone="info">Your role in {org.name} cannot see its settings. Ask an owner of the organization.</Notice>
+        <Notice tone="info">{tr('Your role in')}{' '}{org.name}{' '}{tr('cannot see its settings. Ask an owner of the organization.')}</Notice>
       )}
 
       {/* KPI strip */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <TopAccentKpiCard
           accent="cobalt"
-          eyebrow="Seats"
+          eyebrow={tr('Seats')}
           icon="badge"
           value={usage.data?.seats_used ?? (canManage ? memberList.length : '–')}
           unit={seatLimit ? `/ ${seatLimit} seats` : ''}
           description={
             canManage
-              ? `${memberList.filter((m) => primaryRole(m.roles) === 'judge').length} judges, ${memberList.filter((m) => primaryRole(m.roles) === 'organizer').length} organizers, ${memberList.filter((m) => primaryRole(m.roles) === 'owner').length} owners`
-              : 'Member list is visible to owners.'
+              ? tr('{judges} judges, {organizers} organizers, {owners} owners', { judges: memberList.filter((m) => primaryRole(m.roles) === 'judge').length, organizers: memberList.filter((m) => primaryRole(m.roles) === 'organizer').length, owners: memberList.filter((m) => primaryRole(m.roles) === 'owner').length })
+              : tr('Member list is visible to owners.')
           }
           progress={seatLimit ? Math.min(100, Math.round(((usage.data?.seats_used ?? memberList.length) / seatLimit) * 100)) : 0}
         />
         <TopAccentKpiCard
           accent="emerald"
-          eyebrow="AI calls, last 30 days"
+          eyebrow={tr('AI calls, last 30 days')}
           icon="memory"
           value={canSeeUsage ? (usage.loading ? '…' : compact(usageTotals.calls)) : '–'}
-          unit={canSeeUsage ? `${compact(usageTotals.tokens)} tokens` : ''}
-          description={canSeeUsage ? `Estimated cost: $${usageTotals.cost.toFixed(2)}` : 'Usage is visible to owners, organizers and auditors.'}
+          unit={canSeeUsage ? tr('{n} tokens', { n: compact(usageTotals.tokens) }) : ''}
+          description={canSeeUsage ? tr('Estimated cost: ${cost}', { cost: usageTotals.cost.toFixed(2) }) : tr('Usage is visible to owners, organizers and auditors.')}
           progress={canSeeUsage && usageTotals.calls > 0 ? 100 : 0}
         />
         <TopAccentKpiCard
           accent="amber"
-          eyebrow="Pending Invitations"
+          eyebrow={tr('Pending Invitations')}
           icon="mark_email_unread"
           value={canManage ? invitations.length : '–'}
-          unit="open"
-          description="Invitation links expire after 72 hours."
+          unit={tr('open')}
+          description={tr('Invitation links expire after 72 hours.')}
           progress={Math.min(100, invitations.length * 25)}
         />
         <TopAccentKpiCard
           accent="neutral"
-          eyebrow="Your Permissions"
+          eyebrow={tr('Your Permissions')}
           icon="verified"
           value={perms.length}
           unit={perms.length === 1 ? 'permission' : 'permissions'}
-          description={permissionLabels(perms).join(' · ') || 'No permissions in this organization.'}
+          description={permissionLabels(perms).join(' · ') || tr('No permissions in this organization.')}
           progress={100}
         />
       </div>
@@ -330,9 +331,9 @@ export function OrgSettings() {
           id="section-seat-dispatch"
           number="01"
           icon="vpn_key"
-          title="Invite a Member"
-          subtitle="Create a role-scoped invitation link for a co-organizer, judge or auditor."
-          sectionTag="SECTION 01 // INVITE"
+          title={tr('Invite a Member')}
+          subtitle={tr('Create a role-scoped invitation link for a co-organizer, judge or auditor.')}
+          sectionTag={tr('SECTION 01 // INVITE')}
           theme="accent"
         >
           <div className="space-y-6">
@@ -340,9 +341,9 @@ export function OrgSettings() {
               <div className="space-y-1.5 md:col-span-6">
                 <div className="flex items-center justify-between">
                   <label htmlFor="invite-email" className="font-mono-code text-[11px] font-semibold tracking-wider text-ink uppercase">
-                    Work Email
+                    {tr('Work Email')}
                   </label>
-                  <span className="font-mono-code text-[11px] text-accent">They must sign in with this email</span>
+                  <span className="font-mono-code text-[11px] text-accent">{tr('They must sign in with this email')}</span>
                 </div>
                 <div className="relative">
                   <span className="material-symbols-outlined pointer-events-none absolute top-2.5 left-3 text-[17px] text-muted">alternate_email</span>
@@ -352,26 +353,26 @@ export function OrgSettings() {
                     required
                     value={inviteEmail}
                     onChange={(e) => setInviteEmail(e.target.value)}
-                    placeholder="colleague@university.edu"
+                    placeholder={tr('colleague@university.edu')}
                     className="font-mono-code h-10 bg-paper pl-9"
                   />
                 </div>
               </div>
               <div className="space-y-1.5 md:col-span-3">
                 <label htmlFor="invite-role" className="font-mono-code block text-[11px] font-semibold tracking-wider text-ink uppercase">
-                  Role
+                  {tr('Role')}
                 </label>
                 <Select id="invite-role" value={inviteRole} onChange={(e) => setInviteRole(e.target.value as OrgRoleKey)} className="h-10 bg-paper">
-                  <option value="judge">Judge (scores assigned submissions)</option>
-                  <option value="organizer">Organizer (runs events)</option>
-                  <option value="auditor">Auditor (audit trail and integrity)</option>
-                  <option value="owner">Owner (members and settings)</option>
+                  <option value="judge">{tr('Judge (scores assigned submissions)')}</option>
+                  <option value="organizer">{tr('Organizer (runs events)')}</option>
+                  <option value="auditor">{tr('Auditor (audit trail and integrity)')}</option>
+                  <option value="owner">{tr('Owner (members and settings)')}</option>
                 </Select>
               </div>
               <div className="md:col-span-3">
                 <Button type="submit" className="h-10 w-full" disabled={busy === 'invite'} loading={busy === 'invite'}>
                   <span className="material-symbols-outlined text-[17px]">link</span>
-                  <span>{busy === 'invite' ? 'Creating…' : 'Create Invitation Link'}</span>
+                  <span>{busy === 'invite' ? tr('Creating…') : tr('Create Invitation Link')}</span>
                 </Button>
               </div>
             </form>
@@ -379,11 +380,11 @@ export function OrgSettings() {
             {newLink && (
               <div className="space-y-2 rounded-[4px] border border-accent/30 bg-accent-soft p-4">
                 <p className="text-[13px] text-ink">
-                  Send this link to <strong>{newLink.email}</strong>. It is shown only once and expires {formatDate(newLink.expires_at)}.
+                  {tr('Send this link to')}{' '}<strong>{newLink.email}</strong>{tr('. It is shown only once and expires')}{' '}{formatDate(newLink.expires_at)}.
                 </p>
                 <div className="flex flex-wrap items-center gap-2">
                   <code className="font-mono-code min-w-0 flex-1 truncate rounded-[3px] border border-line bg-surface px-2 py-1.5 text-[12px]">{newLink.url}</code>
-                  <CopyLinkButton value={newLink.url} label="Copy Invitation Link" variant="primary" />
+                  <CopyLinkButton value={newLink.url} label={tr('Copy Invitation Link')} variant="primary" />
                 </div>
               </div>
             )}
@@ -391,7 +392,7 @@ export function OrgSettings() {
             <div className="space-y-2.5 border-t border-line pt-4">
               <div className="font-mono-code flex items-center gap-2 text-[11px] font-semibold tracking-wider text-muted uppercase">
                 <span className="material-symbols-outlined text-[15px] text-accent">grid_view</span>
-                <span>What each role can do</span>
+                <span>{tr('What each role can do')}</span>
               </div>
               <RoleCapabilityGrid activeRole={inviteRole} />
             </div>
@@ -405,26 +406,26 @@ export function OrgSettings() {
           id="section-roster"
           number="02"
           icon="groups"
-          title="Members"
-          subtitle="Change roles or remove access. An organization always keeps at least one owner."
-          sectionTag={`SECTION 02 // ${memberList.length} MEMBERS`}
+          title={tr('Members')}
+          subtitle={tr('Change roles or remove access. An organization always keeps at least one owner.')}
+          sectionTag={tr('SECTION 02 // {n} MEMBERS', { n: memberList.length })}
           theme="neutral"
         >
           <div className="space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-3 rounded-[4px] border border-line bg-paper p-3">
               <div className="relative max-w-md flex-1">
                 <span className="material-symbols-outlined pointer-events-none absolute top-2 left-3 text-[16px] text-muted">search</span>
-                <Input value={memberSearch} onChange={(e) => setMemberSearch(e.target.value)} placeholder="Search by name, email or role…" className="h-9 bg-surface pl-9 text-[12px]" />
+                <Input value={memberSearch} onChange={(e) => setMemberSearch(e.target.value)} placeholder={tr('Search by name, email or role…')} className="h-9 bg-surface pl-9 text-[12px]" />
               </div>
               <div className="flex flex-wrap items-center gap-1.5">
-                <span className="font-mono-code mr-1 text-[11px] text-muted">Role:</span>
+                <span className="font-mono-code mr-1 text-[11px] text-muted">{tr('Role:')}</span>
                 {(
                   [
-                    { key: 'all', label: `All (${memberList.length})` },
-                    { key: 'owner', label: 'Owners' },
-                    { key: 'organizer', label: 'Organizers' },
-                    { key: 'judge', label: 'Judges' },
-                    { key: 'auditor', label: 'Auditors' },
+                    { key: 'all', label: tr('All ({n})', { n: memberList.length }) },
+                    { key: 'owner', label: tr('Owners') },
+                    { key: 'organizer', label: tr('Organizers') },
+                    { key: 'judge', label: tr('Judges') },
+                    { key: 'auditor', label: tr('Auditors') },
                   ] as const
                 ).map((tab) => (
                   <button
@@ -450,11 +451,11 @@ export function OrgSettings() {
                 <table className="w-full border-collapse text-left text-[13px]">
                   <thead className="font-mono-code border-b border-line bg-paper text-[11px] tracking-wider text-muted uppercase">
                     <tr>
-                      <th className="px-5 py-3 font-semibold">Member</th>
-                      <th className="px-4 py-3 font-semibold">Role</th>
-                      <th className="px-4 py-3 font-semibold">GitHub</th>
-                      <th className="px-4 py-3 font-semibold">Joined</th>
-                      <th className="px-5 py-3 text-right font-semibold">Actions</th>
+                      <th className="px-5 py-3 font-semibold">{tr('Member')}</th>
+                      <th className="px-4 py-3 font-semibold">{tr('Role')}</th>
+                      <th className="px-4 py-3 font-semibold">{tr('GitHub')}</th>
+                      <th className="px-4 py-3 font-semibold">{tr('Joined')}</th>
+                      <th className="px-5 py-3 text-right font-semibold">{tr('Actions')}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-line">
@@ -467,7 +468,7 @@ export function OrgSettings() {
                       const role = primaryRole(m.roles);
                       const spec = ORG_ROLE_SPECS[role];
                       const isMe = m.user_id === me?.profile.id;
-                      const name = m.display_name || m.email || 'Unnamed member';
+                      const name = m.display_name || m.email || tr('Unnamed member');
                       return (
                         <tr key={m.user_id} className="audit-table-row transition-colors">
                           <td className="px-5 py-3.5">
@@ -479,7 +480,7 @@ export function OrgSettings() {
                                 <div className="flex items-center gap-2 font-medium text-ink">
                                   <span>{name}</span>
                                   {isMe && (
-                                    <span className="font-mono-code rounded-[2px] border border-accent/25 bg-accent-soft px-1.5 py-0.2 text-[9px] font-bold text-accent-ink uppercase">YOU</span>
+                                    <span className="font-mono-code rounded-[2px] border border-accent/25 bg-accent-soft px-1.5 py-0.2 text-[9px] font-bold text-accent-ink uppercase">{tr('YOU')}</span>
                                   )}
                                 </div>
                                 <div className="font-mono-code text-[11px] text-muted">{m.email ?? '—'}</div>
@@ -492,7 +493,7 @@ export function OrgSettings() {
                           <td className="px-5 py-3.5 text-right">
                             <div className="flex items-center justify-end gap-2">
                               <Select
-                                aria-label={`Role of ${name}`}
+                                aria-label={tr('Role of {name}', { name })}
                                 value={role}
                                 disabled={busy === `role-${m.user_id}`}
                                 onChange={(e) => void changeRole(m, e.target.value as OrgRoleKey)}
@@ -509,7 +510,7 @@ export function OrgSettings() {
                                   onClick={() => void removeMember(m)}
                                   className="btn-tactile font-mono-code cursor-pointer rounded-[3px] border border-bad/30 bg-bad-soft px-2.5 py-1 text-[11px] font-medium text-bad hover:bg-bad hover:text-on-bad disabled:opacity-50"
                                 >
-                                  Remove
+                                  {tr('Remove')}
                                 </button>
                               )}
                             </div>
@@ -531,9 +532,9 @@ export function OrgSettings() {
           id="section-dispatch-queue"
           number="03"
           icon="schedule_send"
-          title="Pending Invitations"
-          subtitle="Links not used yet. Revoke one to make its link stop working."
-          sectionTag={`SECTION 03 // ${invitations.length} OPEN`}
+          title={tr('Pending Invitations')}
+          subtitle={tr('Links not used yet. Revoke one to make its link stop working.')}
+          sectionTag={tr('SECTION 03 // {n} OPEN', { n: invitations.length })}
           theme="warn"
         >
           {invites.loading ? (
@@ -541,17 +542,17 @@ export function OrgSettings() {
           ) : invites.error ? (
             <Notice tone="error">{invites.error}</Notice>
           ) : invitations.length === 0 ? (
-            <p className="py-4 text-center text-[13px] text-muted">No pending invitations. Use section 01 to invite judges or co-organizers.</p>
+            <p className="py-4 text-center text-[13px] text-muted">{tr('No pending invitations. Use section 01 to invite judges or co-organizers.')}</p>
           ) : (
             <div className="overflow-x-auto rounded-[4px] border border-warn/30">
               <table className="w-full border-collapse text-left text-[12px]">
                 <thead className="font-mono-code border-b border-warn/25 bg-warn-soft/45 text-[11px] tracking-wider text-muted uppercase">
                   <tr>
-                    <th className="px-5 py-3 font-semibold">Email</th>
-                    <th className="px-4 py-3 font-semibold">Role</th>
-                    <th className="px-4 py-3 font-semibold">Invited by</th>
-                    <th className="px-4 py-3 font-semibold">Created</th>
-                    <th className="px-5 py-3 text-right font-semibold">Action</th>
+                    <th className="px-5 py-3 font-semibold">{tr('Email')}</th>
+                    <th className="px-4 py-3 font-semibold">{tr('Role')}</th>
+                    <th className="px-4 py-3 font-semibold">{tr('Invited by')}</th>
+                    <th className="px-4 py-3 font-semibold">{tr('Created')}</th>
+                    <th className="px-5 py-3 text-right font-semibold">{tr('Action')}</th>
                   </tr>
                 </thead>
                 <tbody className="font-mono-code divide-y divide-line">
@@ -566,7 +567,7 @@ export function OrgSettings() {
                       <td className="px-4 py-3.5"><RoleBadge role={normalizeOrgRole(inv.role_key)} /></td>
                       <td className="px-4 py-3.5 text-muted">{inv.profiles?.display_name || '—'}</td>
                       <td className="px-4 py-3.5 text-muted">
-                        {formatDate(inv.created_at)} <span className="text-warn">(expires in {expiresIn(inv.expires_at)})</span>
+                        {formatDate(inv.created_at)} <span className="text-warn">{tr('(expires in')}{' '}{expiresIn(inv.expires_at)})</span>
                       </td>
                       <td className="px-5 py-3.5 text-right">
                         <button
@@ -575,7 +576,7 @@ export function OrgSettings() {
                           onClick={() => void revokeInvite(inv)}
                           className="btn-tactile cursor-pointer rounded-[3px] border border-bad/30 bg-bad-soft px-2.5 py-1 text-[11px] font-medium text-bad hover:bg-bad hover:text-on-bad disabled:opacity-50"
                         >
-                          Revoke
+                          {tr('Revoke')}
                         </button>
                       </td>
                     </tr>
@@ -593,9 +594,9 @@ export function OrgSettings() {
           id="section-usage"
           number="04"
           icon="analytics"
-          title="AI Usage"
-          subtitle={usage.data ? `Gemini calls since ${formatDate(usage.data.since)}, by job and model.` : 'Gemini calls of the last 30 days.'}
-          sectionTag="SECTION 04 // USAGE"
+          title={tr('AI Usage')}
+          subtitle={usage.data ? tr('Gemini calls since {date}, by job and model.', { date: formatDate(usage.data.since) }) : tr('Gemini calls of the last 30 days.')}
+          sectionTag={tr('SECTION 04 // USAGE')}
           theme="accent"
         >
           {usage.loading ? (
@@ -603,18 +604,18 @@ export function OrgSettings() {
           ) : usage.error ? (
             <Notice tone="error">{usage.error}</Notice>
           ) : (usage.data?.usage.length ?? 0) === 0 ? (
-            <p className="py-4 text-center text-[13px] text-muted">No AI calls in the last 30 days.</p>
+            <p className="py-4 text-center text-[13px] text-muted">{tr('No AI calls in the last 30 days.')}</p>
           ) : (
             <div className="overflow-x-auto rounded-[4px] border border-line">
               <table className="w-full border-collapse text-left text-[12px]">
                 <thead className="font-mono-code border-b border-line bg-paper text-[11px] tracking-wider text-muted uppercase">
                   <tr>
-                    <th className="px-5 py-3 font-semibold">Job</th>
-                    <th className="px-4 py-3 font-semibold">Model</th>
-                    <th className="px-4 py-3 text-right font-semibold">Calls</th>
-                    <th className="px-4 py-3 text-right font-semibold">Input tokens</th>
-                    <th className="px-4 py-3 text-right font-semibold">Output tokens</th>
-                    <th className="px-5 py-3 text-right font-semibold">Est. cost</th>
+                    <th className="px-5 py-3 font-semibold">{tr('Job')}</th>
+                    <th className="px-4 py-3 font-semibold">{tr('Model')}</th>
+                    <th className="px-4 py-3 text-right font-semibold">{tr('Calls')}</th>
+                    <th className="px-4 py-3 text-right font-semibold">{tr('Input tokens')}</th>
+                    <th className="px-4 py-3 text-right font-semibold">{tr('Output tokens')}</th>
+                    <th className="px-5 py-3 text-right font-semibold">{tr('Est. cost')}</th>
                   </tr>
                 </thead>
                 <tbody className="font-mono-code divide-y divide-line">
@@ -640,12 +641,12 @@ export function OrgSettings() {
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-4">
           <div className="flex items-center gap-3">
             <span className="font-mono-code rounded-[3px] border border-accent/40 bg-accent/20 px-2.5 py-0.5 text-[11px] font-bold text-accent-on-dark">
-              SECTION 05 // AUDIT & POLICIES
+              {tr('SECTION 05 // AUDIT & POLICIES')}
             </span>
-            <h3 className="font-serif-heading text-[22px] font-medium text-white">Audit Trail &amp; Organization Policies</h3>
+            <h3 className="font-serif-heading text-[22px] font-medium text-white">{tr('Audit Trail & Organization Policies')}</h3>
           </div>
           <span className="font-mono-code inline-flex items-center gap-1.5 rounded-[3px] border border-white/15 bg-white/5 px-2.5 py-1 text-[11px] text-white/70">
-            ORG {org.id}
+            {tr('ORG')}{' '}{org.id}
           </span>
         </div>
 
@@ -657,8 +658,8 @@ export function OrgSettings() {
                 onChange={(v) => setPolicyDraft({ ...policies, require_oral_defense: v })}
               />
               <span>
-                <span className="block font-semibold text-white">Require an oral defense</span>
-                New events ask participants for a voice interview about their code.
+                <span className="block font-semibold text-white">{tr('Require an oral defense')}</span>
+                {tr('New events ask participants for a voice interview about their code.')}
               </span>
             </label>
             <label className="flex items-start gap-3 rounded-[4px] border border-white/10 bg-white/5 p-4 text-[12px] text-white/80">
@@ -667,12 +668,12 @@ export function OrgSettings() {
                 onChange={(v) => setPolicyDraft({ ...policies, allow_judge_overrides: v })}
               />
               <span>
-                <span className="block font-semibold text-white">Judges may override AI scores</span>
-                When off, only organizers change the final score.
+                <span className="block font-semibold text-white">{tr('Judges may override AI scores')}</span>
+                {tr('When off, only organizers change the final score.')}
               </span>
             </label>
             <label className="space-y-1.5 rounded-[4px] border border-white/10 bg-white/5 p-4 text-[12px] text-white/80">
-              <span className="block font-semibold text-white">Keep data for (days)</span>
+              <span className="block font-semibold text-white">{tr('Keep data for (days)')}</span>
               <Input
                 type="number"
                 min={30}
@@ -687,20 +688,20 @@ export function OrgSettings() {
 
         {canAudit && (
           <div className="space-y-2">
-            <div className="font-mono-code text-[11px] tracking-wider text-white/55 uppercase">Recent activity</div>
+            <div className="font-mono-code text-[11px] tracking-wider text-white/55 uppercase">{tr('Recent activity')}</div>
             {audit.loading ? (
               <SkeletonText lines={5} />
             ) : audit.error ? (
               <Notice tone="error">{audit.error}</Notice>
             ) : (audit.data?.entries.length ?? 0) === 0 ? (
-              <p className="text-[12px] text-white/65">Nothing recorded yet. Score overrides, publishing, member changes and decisions appear here.</p>
+              <p className="text-[12px] text-white/65">{tr('Nothing recorded yet. Score overrides, publishing, member changes and decisions appear here.')}</p>
             ) : (
               <ul className="font-mono-code max-h-72 divide-y divide-white/10 overflow-y-auto rounded-[4px] border border-white/10 text-[12px]">
                 {audit.data!.entries.map((e) => (
                   <li key={e.id} className="flex flex-wrap items-baseline gap-x-3 px-3 py-2 text-white/80">
                     <span className="text-white/50">{formatDate(e.created_at)}</span>
                     <span className="font-semibold text-accent-on-dark">{e.action}</span>
-                    <span>{e.profiles?.display_name ?? 'System'}</span>
+                    <span>{e.profiles?.display_name ?? tr('System')}</span>
                     <span className="text-white/50">{e.subject_type}</span>
                   </li>
                 ))}
@@ -708,7 +709,7 @@ export function OrgSettings() {
             )}
             {(audit.data?.entries.length ?? 0) >= auditLimit && (
               <button type="button" onClick={() => setAuditLimit((n) => n + 100)} className="text-[12px] font-semibold text-accent-on-dark hover:underline">
-                Load more
+                {tr('Load more')}
               </button>
             )}
           </div>
@@ -723,18 +724,18 @@ export function OrgSettings() {
               className="btn-tactile font-mono-code inline-flex cursor-pointer items-center gap-1.5 rounded-[4px] border border-white/15 bg-white/10 px-3.5 py-2 text-[11px] font-semibold text-white hover:bg-white/20 disabled:opacity-50"
             >
               <span className="material-symbols-outlined text-[15px]">file_download</span>
-              <span>Export Audit Trail (JSON)</span>
+              <span>{tr('Export Audit Trail (JSON)')}</span>
             </button>
           )}
           {canManage && policiesDirty && (
             <span role="status" className="font-mono-code text-[11px] font-semibold text-warn-on-dark">
-              Unsaved changes
+              {tr('Unsaved changes')}
             </span>
           )}
           {canManage && (
             <Button type="button" onClick={() => void savePolicies()} disabled={!policiesDirty || busy === 'policies'} loading={busy === 'policies'}>
               <span className="material-symbols-outlined text-[16px]">save</span>
-              <span>{busy === 'policies' ? 'Saving…' : 'Save Policies'}</span>
+              <span>{busy === 'policies' ? tr('Saving…') : tr('Save Policies')}</span>
             </Button>
           )}
         </div>

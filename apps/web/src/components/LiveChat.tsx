@@ -1,3 +1,4 @@
+import { tr } from '../i18n';
 import type { PublicQuestion, TranscriptEntry } from '@skillproof/shared';
 import { Fragment, useLayoutEffect, useRef, useState } from 'react';
 
@@ -36,10 +37,10 @@ export function LiveChat({ messages, questions, className = '' }: { messages: Tr
         onScroll={onScroll}
         role="log"
         aria-live="polite"
-        aria-label="Interview conversation"
+        aria-label={tr('Interview conversation')}
         className="min-h-0 flex-1 space-y-2.5 overflow-y-auto rounded-[4px] border border-line bg-paper p-3.5"
       >
-        {messages.length === 0 && <p className="font-mono-code text-[11px] text-muted">The conversation appears here as you talk.</p>}
+        {messages.length === 0 && <p className="font-mono-code text-[11px] text-muted">{tr('The conversation appears here as you talk.')}</p>}
         {messages.map((m, i) => {
           const n = questionNumber(m.question_id);
           const showSeparator = m.question_id && m.question_id !== lastQuestion && n !== null;
@@ -49,13 +50,13 @@ export function LiveChat({ messages, questions, className = '' }: { messages: Tr
               {showSeparator && (
                 <div className="font-mono-code flex items-center gap-2 py-1 text-[10px] font-semibold tracking-wider text-muted uppercase">
                   <span className="h-px flex-1 bg-line" />
-                  Question {n} of {questions.length}
+                  {tr('Question')}{' '}{n} of {questions.length}
                   <span className="h-px flex-1 bg-line" />
                 </div>
               )}
               {m.role === 'system' ? (
                 <p className="font-mono-code rounded-[3px] border border-warn/30 bg-warn-soft px-2.5 py-1.5 text-[11px] text-warn-ink">
-                  Skipped: {m.text}
+                  {tr('Skipped:')}{' '}{m.text}
                 </p>
               ) : (
                 <div className={`flex ${m.role === 'candidate' ? 'justify-end' : 'justify-start'}`}>
@@ -65,7 +66,7 @@ export function LiveChat({ messages, questions, className = '' }: { messages: Tr
                     }`}
                   >
                     <span className={`font-mono-code mb-0.5 block text-[10px] font-bold uppercase ${m.role === 'candidate' ? 'text-good' : 'text-accent'}`}>
-                      {m.role === 'candidate' ? 'You' : 'Interviewer'}
+                      {m.role === 'candidate' ? tr('You') : tr('Interviewer')}
                     </span>
                     {m.text}
                   </div>
@@ -81,7 +82,7 @@ export function LiveChat({ messages, questions, className = '' }: { messages: Tr
           onClick={() => setFollow(true)}
           className="absolute right-3 bottom-3 rounded-full border border-line bg-surface px-3 py-1 text-[11px] font-medium text-ink shadow hover:bg-paper"
         >
-          Jump to latest ↓
+          {tr('Jump to latest ↓')}
         </button>
       )}
     </div>

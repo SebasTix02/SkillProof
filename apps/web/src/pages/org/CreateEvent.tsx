@@ -1,3 +1,4 @@
+import { tr, translateMessage } from '../../i18n';
 import { CreateEventSchema, DEFAULT_RUBRIC, type Rubric } from '@skillproof/shared';
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -62,7 +63,7 @@ export function CreateEvent() {
     });
     if (!parsed.success) {
       const issue = parsed.error.issues[0];
-      setError(issue ? `${issue.path.join(' › ') || 'Form'}: ${issue.message}` : 'Check the form and try again.');
+      setError(issue ? `${issue.path.join(' › ') || tr('Form')}: ${translateMessage(issue.message)}` : tr('Check the form and try again.'));
       return;
     }
     setBusy(true);
@@ -81,7 +82,7 @@ export function CreateEvent() {
         breadcrumbs={
           <>
             <Link to="/org/events" className="text-accent-on-dark hover:underline">
-              ← ORGANIZER CONSOLE
+              {tr('← ORGANIZER CONSOLE')}
             </Link>
             <span>//</span>
             <span>{org?.name?.toUpperCase() ?? 'ORGANIZATION'}</span>
@@ -89,15 +90,15 @@ export function CreateEvent() {
         }
         statusChips={
           <span className="rounded-[3px] border border-white/10 bg-white/5 px-2.5 py-0.5 text-white/75">
-            RUBRIC CRITERIA: {rubric.length} ({totalWeight} WEIGHT)
+            {tr('RUBRIC CRITERIA:')}{' '}{rubric.length} ({totalWeight}{' '}{tr('WEIGHT)')}
           </span>
         }
-        eyebrowBadge="NEW EVENT // SETUP"
-        title="New Hackathon or Capstone Event"
-        subtitle="Configure the event schedule, cohort access control, submission limits, 3-minute voice defense option, and weighted evaluation rubric."
+        eyebrowBadge={tr('NEW EVENT // SETUP')}
+        title={tr('New Hackathon or Capstone Event')}
+        subtitle={tr('Configure the event schedule, cohort access control, submission limits, 3-minute voice defense option, and weighted evaluation rubric.')}
         actions={
           <Link to="/org/events" className={`${linkButtonSecondary} border-white/15 bg-white/10 text-white hover:bg-white/20`}>
-            Cancel &amp; Return
+            {tr('Cancel & Return')}
           </Link>
         }
       />
@@ -106,38 +107,38 @@ export function CreateEvent() {
       <NumberedSectionCard
         number="01"
         icon="event"
-        title="Event Identity & Commit-Freeze Schedule"
-        subtitle="Define the public title, rules, and exact cutoff timestamp when repositories are frozen."
-        sectionTag="SECTION 01 // TIMELINE"
+        title={tr('Event Identity & Commit-Freeze Schedule')}
+        subtitle={tr('Define the public title, rules, and exact cutoff timestamp when repositories are frozen.')}
+        sectionTag={tr('SECTION 01 // TIMELINE')}
         theme="accent"
       >
         <div className="space-y-4">
-          <Field label="Event Name">
+          <Field label={tr('Event Name')}>
             <Input
               required
               minLength={3}
               maxLength={120}
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Campus Hack 2026 — Distributed Systems Track"
+              placeholder={tr('Campus Hack 2026 — Distributed Systems Track')}
             />
           </Field>
 
           <Field
-            label="Briefing, Rules & Track Overview"
-            hint="Shown on the public event workspace (/e/slug) for registered participants."
+            label={tr('Briefing, Rules & Track Overview')}
+            hint={tr('Shown on the public event workspace (/e/slug) for registered participants.')}
           >
             <Textarea
               rows={4}
               maxLength={4000}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Describe the theme, evaluation rules, deliverables, and prizes..."
+              placeholder={tr('Describe the theme, evaluation rules, deliverables, and prizes...')}
             />
           </Field>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Registration & Submission Opens">
+            <Field label={tr('Registration & Submission Opens')}>
               <Input
                 type="datetime-local"
                 required
@@ -147,8 +148,8 @@ export function CreateEvent() {
               />
             </Field>
             <Field
-              label="Submission Deadline (Commit Freeze)"
-              hint="At this moment every repository is frozen at its latest commit and queued for judging."
+              label={tr('Submission Deadline (Commit Freeze)')}
+              hint={tr('At this moment every repository is frozen at its latest commit and queued for judging.')}
             >
               <Input
                 type="datetime-local"
@@ -167,34 +168,34 @@ export function CreateEvent() {
         <NumberedSectionCard
           number="02"
           icon="shield_lock"
-          title="Cohort Access & Visibility"
-          subtitle="Control who can join and submit a repository to this event."
-          sectionTag="SECTION 02 // ACCESS"
+          title={tr('Cohort Access & Visibility')}
+          subtitle={tr('Control who can join and submit a repository to this event.')}
+          sectionTag={tr('SECTION 02 // ACCESS')}
           theme="neutral"
         >
           <div className="space-y-4">
-            <Field label="Access Mode">
+            <Field label={tr('Access Mode')}>
               <Select
                 value={visibility}
                 onChange={(e) => setVisibility(e.target.value as EventView['visibility'])}
               >
-                <option value="public">Public: anyone with a SkillProof account</option>
-                <option value="code">Access code: anyone who enters the organizer code</option>
-                <option value="invite">Invite only: verified emails on your allowlist</option>
+                <option value="public">{tr('Public: anyone with a SkillProof account')}</option>
+                <option value="code">{tr('Access code: anyone who enters the organizer code')}</option>
+                <option value="invite">{tr('Invite only: verified emails on your allowlist')}</option>
               </Select>
             </Field>
 
             {visibility === 'code' && (
               <Field
-                label="Organizer Access Code"
-                hint="At least 4 characters. Stored hashed with scrypt, so keep a copy to share with participants."
+                label={tr('Organizer Access Code')}
+                hint={tr('At least 4 characters. Stored hashed with scrypt, so keep a copy to share with participants.')}
               >
                 <Input
                   required
                   minLength={4}
                   maxLength={64}
                   className="font-mono-code tracking-wider uppercase"
-                  placeholder="MIT-FALL-2026"
+                  placeholder={tr('MIT-FALL-2026')}
                   value={accessCode}
                   onChange={(e) => setAccessCode(e.target.value)}
                 />
@@ -203,8 +204,7 @@ export function CreateEvent() {
 
             {visibility === 'invite' && (
               <Notice tone="info">
-                You can paste or upload a CSV of invited participant emails from the event console immediately after
-                creating the event.
+                {tr('You can paste or upload a CSV of invited participant emails from the event console immediately after creating the event.')}
               </Notice>
             )}
           </div>
@@ -214,17 +214,17 @@ export function CreateEvent() {
         <NumberedSectionCard
           number="03"
           icon="record_voice_over"
-          title="Submission Quota & Oral Defense"
-          subtitle="Configure version limits and 3-minute Gemini Live voice cross-examination."
-          sectionTag="SECTION 03 // SUBMISSIONS"
+          title={tr('Submission Quota & Oral Defense')}
+          subtitle={tr('Configure version limits and 3-minute Gemini Live voice cross-examination.')}
+          sectionTag={tr('SECTION 03 // SUBMISSIONS')}
           theme="neutral"
         >
           <div className="space-y-4">
             <div className="flex items-start justify-between gap-4 rounded-[4px] border border-line bg-paper p-3.5">
               <div>
-                <div className="text-[13px] font-semibold text-ink">Unlimited versions until deadline</div>
+                <div className="text-[13px] font-semibold text-ink">{tr('Unlimited versions until deadline')}</div>
                 <p className="mt-0.5 text-[12px] text-muted">
-                  Allow teams to update their submission freely before the cutoff. Only the latest version is judged.
+                  {tr('Allow teams to update their submission freely before the cutoff. Only the latest version is judged.')}
                 </p>
               </div>
               <ToggleSwitch checked={unlimited} onChange={setUnlimited} />
@@ -232,8 +232,8 @@ export function CreateEvent() {
 
             {!unlimited && (
               <Field
-                label="Maximum Versions Allowed Per Team"
-                hint="Each new submission version replaces the previous one."
+                label={tr('Maximum Versions Allowed Per Team')}
+                hint={tr('Each new submission version replaces the previous one.')}
               >
                 <Input
                   type="number"
@@ -249,9 +249,9 @@ export function CreateEvent() {
 
             <div className="flex items-start justify-between gap-4 rounded-[4px] border border-line bg-paper p-3.5">
               <div>
-                <div className="text-[13px] font-semibold text-ink">Enable 3-minute live voice defense</div>
+                <div className="text-[13px] font-semibold text-ink">{tr('Enable 3-minute live voice defense')}</div>
                 <p className="mt-0.5 text-[12px] text-muted">
-                  Offer participants an AI oral interview about their own code after judging to verify authorship.
+                  {tr('Offer participants an AI oral interview about their own code after judging to verify authorship.')}
                 </p>
               </div>
               <ToggleSwitch
@@ -268,9 +268,9 @@ export function CreateEvent() {
       <NumberedSectionCard
         number="04"
         icon="fact_check"
-        title="Evaluation Rubric & Weight Attribution"
-        subtitle={`Weights sum to ${totalWeight}. Weights are normalized relatively, so they do not strictly need to equal 100.`}
-        sectionTag={`TOTAL WEIGHT: ${totalWeight}`}
+        title={tr('Evaluation Rubric & Weight Attribution')}
+        subtitle={tr('Weights sum to {total}. Weights are normalized relatively, so they do not strictly need to equal 100.', { total: totalWeight })}
+        sectionTag={tr('TOTAL WEIGHT: {total}', { total: totalWeight })}
         theme="neutral"
       >
         <RubricEditor rubric={rubric} setRubric={setRubric} />
@@ -280,16 +280,16 @@ export function CreateEvent() {
 
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-[6px] border border-line bg-surface p-5">
         <div className="font-mono-code text-[11px] text-muted">
-          ORGANIZER: <strong className="text-ink">{org?.name}</strong> • STATUS ON PUBLISH:{' '}
-          <strong className="text-good">OPEN FOR SUBMISSIONS</strong>
+          {tr('ORGANIZER:')}{' '}<strong className="text-ink">{org?.name}</strong>{' '}{tr('• STATUS ON PUBLISH:')}{' '}
+          <strong className="text-good">{tr('OPEN FOR SUBMISSIONS')}</strong>
         </div>
         <div className="flex flex-wrap gap-3">
           <Button type="button" variant="secondary" disabled={busy} loading={busy} onClick={(e) => void submit(e, false)}>
-            Save as Draft
+            {tr('Save as Draft')}
           </Button>
           <Button type="submit" disabled={busy} loading={busy}>
             <span className="material-symbols-outlined text-[17px]">rocket_launch</span>
-            <span>{busy ? 'Creating Event…' : 'Create & Open Event'}</span>
+            <span>{busy ? tr('Creating Event…') : tr('Create & Open Event')}</span>
           </Button>
         </div>
       </div>

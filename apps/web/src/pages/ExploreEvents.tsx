@@ -1,3 +1,4 @@
+import { tr } from '../i18n';
 import { useMemo, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
@@ -96,17 +97,17 @@ export function ExploreEvents() {
           eyebrow={
             <>
               <span className="font-semibold tracking-widest text-accent uppercase">
-                EVENTS // HACKATHONS &amp; COURSES
+                {tr('EVENTS // HACKATHONS & COURSES')}
               </span>
               <span className="text-line">•</span>
               <span className="flex items-center gap-1.5 font-medium text-good">
                 <LiveDot tone="good" />
-                {openEvents.length} PUBLIC {openEvents.length === 1 ? 'ARENA' : 'ARENAS'} LIVE
+                {openEvents.length}{' '}{tr('PUBLIC')}{' '}{openEvents.length === 1 ? 'ARENA' : 'ARENAS'}{' '}{tr('LIVE')}
               </span>
             </>
           }
-          title="Events & Algorithmic Hackathons"
-          subtitle="Commit-locked repository evaluations, weighted rubric audits, and 3-minute live oral defense trials."
+          title={tr('Events & Algorithmic Hackathons')}
+          subtitle={tr('Commit-locked repository evaluations, weighted rubric audits, and 3-minute live oral defense trials.')}
           rightSlot={
             org ? (
               <>
@@ -114,14 +115,14 @@ export function ExploreEvents() {
                   to="/org/events"
                   className="btn-tactile font-mono-code inline-flex h-10 items-center gap-1.5 rounded-[4px] border border-line bg-surface px-3.5 text-[12px] font-semibold text-ink hover:border-muted hover:bg-paper"
                 >
-                  <span>Organizer Console</span>
+                  <span>{tr('Organizer Console')}</span>
                 </Link>
                 <Link
                   to="/org/events/new"
                   className="btn-tactile inline-flex h-10 items-center gap-2 rounded-[4px] border border-ink bg-ink px-4 text-[13px] font-medium text-on-accent hover:border-accent hover:bg-accent"
                 >
                   <span className="material-symbols-outlined text-[16px]">add_circle</span>
-                  <span>Create Event (Organizer)</span>
+                  <span>{tr('Create Event (Organizer)')}</span>
                 </Link>
               </>
             ) : (
@@ -130,7 +131,7 @@ export function ExploreEvents() {
                 className="btn-tactile inline-flex h-10 items-center gap-2 rounded-[4px] border border-ink bg-ink px-4 text-[13px] font-medium text-on-accent hover:border-accent hover:bg-accent"
               >
                 <span className="material-symbols-outlined text-[16px]">mic</span>
-                <span>Take Independent Interview</span>
+                <span>{tr('Take Independent Interview')}</span>
               </Link>
             )
           }
@@ -141,7 +142,7 @@ export function ExploreEvents() {
             <div className="absolute inset-0 z-0">
               <img
                 src={GLOBE_BANNER}
-                alt="Global developer hackathon live evaluation hub"
+                alt={tr('Global developer hackathon live evaluation hub')}
                 className="h-full w-full object-cover opacity-85"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-ink via-ink/55 to-transparent" />
@@ -150,23 +151,23 @@ export function ExploreEvents() {
             <div className="relative z-10 flex flex-wrap items-center justify-between gap-2 p-5">
               <span className="font-mono-code inline-flex items-center gap-2 rounded-[3px] border border-white/20 bg-ink/90 px-2.5 py-1 text-[11px] font-medium tracking-wide text-paper">
                 <LiveDot tone="good" />
-                COMMIT-LOCKED EVALUATION // GEMINI RUBRIC ENGINE
+                {tr('COMMIT-LOCKED EVALUATION // GEMINI RUBRIC ENGINE')}
               </span>
               <span className="font-mono-code rounded-[3px] border border-white/15 bg-black/70 px-2 py-0.5 text-[11px] text-white/90">
-                {featured ? `SLUG: /e/${featured.slug}` : 'SELECTIVE REPO INGESTION'}
+                {featured ? `SLUG: /e/${featured.slug}` : tr('SELECTIVE REPO INGESTION')}
               </span>
             </div>
 
             <div className="relative z-10 mt-auto space-y-2 p-6">
               <span className="font-mono-code text-[11px] font-semibold tracking-wider text-accent-soft uppercase">
-                {featured ? 'FEATURED FLAGSHIP ARENA' : 'EVALUATION ARENA ARCHITECTURE'}
+                {featured ? tr('FEATURED FLAGSHIP ARENA') : tr('EVALUATION ARENA ARCHITECTURE')}
               </span>
               <h2 className="font-serif-heading text-[26px] leading-tight font-medium text-white sm:text-[30px]">
-                {featured ? featured.name : 'Automated Repository Judging & Oral Defense'}
+                {featured ? featured.name : tr('Automated Repository Judging & Oral Defense')}
               </h2>
               <p className="max-w-xl text-[13px] leading-[20px] text-white/80">
                 {featured?.description ||
-                  'Join an open hackathon arena below or enter a private event slug to submit your GitHub repository before the deadline.'}
+                  tr('Join an open hackathon arena below or enter a private event slug to submit your GitHub repository before the deadline.')}
               </p>
             </div>
           </div>
@@ -193,31 +194,31 @@ export function ExploreEvents() {
 
                   <div className="space-y-1">
                     <div className="font-mono-code text-[11px] tracking-wider text-muted uppercase">
-                      Host Organization
+                      {tr('Host Organization')}
                     </div>
                     <div className="flex items-center gap-1.5 text-[14px] font-semibold text-ink">
                       <span className="material-symbols-outlined text-[17px] text-accent">corporate_fare</span>
-                      <span>{featured.organization?.name || 'SkillProof Organization'}</span>
+                      <span>{featured.organization?.name || tr('SkillProof Organization')}</span>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-3 pt-1">
                     <MetricTile
-                      label="VISIBILITY"
+                      label={tr('VISIBILITY')}
                       value={VISIBILITY_LABEL[featured.visibility]}
                       sub={
                         <span className="text-good">
-                          {joinedIds.has(featured.id) ? 'Registered Participant' : 'Open to Join'}
+                          {joinedIds.has(featured.id) ? tr('Registered Participant') : tr('Open to Join')}
                         </span>
                       }
                     />
                     <MetricTile
-                      label="ORAL DEFENSE"
-                      value={featured.interviews_enabled ? '3-Min Voice Exam' : 'Code Rubric Only'}
+                      label={tr('ORAL DEFENSE')}
+                      value={featured.interviews_enabled ? tr('3-Min Voice Exam') : tr('Code Rubric Only')}
                       sub={
                         Array.isArray(featured.rubric_json)
-                          ? `${featured.rubric_json.length} Rubric Criteria`
-                          : 'Weighted Rubric'
+                          ? tr('{n} Rubric Criteria', { n: featured.rubric_json.length })
+                          : tr('Weighted Rubric')
                       }
                     />
                   </div>
@@ -225,11 +226,11 @@ export function ExploreEvents() {
 
                 <div className="space-y-2 border-t border-line pt-3">
                   <Link to={`/e/${featured.slug}`} className={`${linkButton} h-10 w-full`}>
-                    <span>Enter Event Workspace</span>
+                    <span>{tr('Enter Event Workspace')}</span>
                     <span className="arrow-nudge font-mono-code text-[12px]">→</span>
                   </Link>
                   <div className="font-mono-code flex items-center justify-between px-1 text-[11px] text-muted">
-                    <span>DEADLINE: {formatDate(featured.submission_deadline)}</span>
+                    <span>{tr('DEADLINE:')}{' '}{formatDate(featured.submission_deadline)}</span>
                     <span>{featured.kind.toUpperCase()}</span>
                   </div>
                 </div>
@@ -238,18 +239,17 @@ export function ExploreEvents() {
               <div className="flex h-full flex-col justify-between space-y-4">
                 <div className="space-y-3">
                   <Badge tone="accent" dot>
-                    NOTHING OPEN RIGHT NOW
+                    {tr('NOTHING OPEN RIGHT NOW')}
                   </Badge>
                   <h3 className="font-serif-heading text-[22px] font-medium text-ink">
-                    No active public events right now
+                    {tr('No active public events right now')}
                   </h3>
                   <p className="text-[13px] leading-[21px] text-muted">
-                    If you have a private event slug or link from your organizer, enter it in the Private Access bar
-                    below, or take a 3-minute voice interview on any public GitHub repository you authored.
+                    {tr('If you have a private event slug or link from your organizer, enter it in the Private Access bar below, or take a 3-minute voice interview on any public GitHub repository you authored.')}
                   </p>
                 </div>
                 <Link to="/interview/new" className={`${linkButton} h-10 w-full`}>
-                  <span>Prove My Skills on Any Repository</span>
+                  <span>{tr('Prove My Skills on Any Repository')}</span>
                   <span className="arrow-nudge font-mono-code text-[12px]">→</span>
                 </Link>
               </div>
@@ -270,7 +270,7 @@ export function ExploreEvents() {
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search hackathons, organizations, slugs..."
+                placeholder={tr('Search hackathons, organizations, slugs...')}
                 className="h-10 w-full rounded-[4px] border border-line-strong bg-paper pr-3 pl-9 text-[13px] text-ink placeholder:text-muted transition-colors focus:border-accent focus:bg-surface focus:outline-none"
               />
             </div>
@@ -279,25 +279,25 @@ export function ExploreEvents() {
               <select
                 value={filterKind}
                 onChange={(e) => setFilterKind(e.target.value as typeof filterKind)}
-                aria-label="Filter events"
+                aria-label={tr('Filter events')}
                 className="h-10 cursor-pointer rounded-[4px] border border-line bg-surface px-3 text-[13px] text-ink focus:border-accent focus:outline-none"
               >
-                <option value="all">All Event Types</option>
-                <option value="interviews">3-Min Voice Defense Enabled</option>
-                <option value="public">Public Arenas</option>
-                <option value="code">Access-Code Protected</option>
-                <option value="invite">Invite-Only Cohorts</option>
+                <option value="all">{tr('All Event Types')}</option>
+                <option value="interviews">{tr('3-Min Voice Defense Enabled')}</option>
+                <option value="public">{tr('Public Arenas')}</option>
+                <option value="code">{tr('Access-Code Protected')}</option>
+                <option value="invite">{tr('Invite-Only Cohorts')}</option>
               </select>
 
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
-                aria-label="Sort events"
+                aria-label={tr('Sort events')}
                 className="h-10 cursor-pointer rounded-[4px] border border-line bg-surface px-3 text-[13px] text-ink focus:border-accent focus:outline-none"
               >
-                <option value="deadline">Sort: Ending Soon</option>
-                <option value="recent">Sort: Recently Started</option>
-                <option value="name">Sort: Name (A–Z)</option>
+                <option value="deadline">{tr('Sort: Ending Soon')}</option>
+                <option value="recent">{tr('Sort: Recently Started')}</option>
+                <option value="name">{tr('Sort: Name (A–Z)')}</option>
               </select>
             </div>
           </div>
@@ -305,21 +305,21 @@ export function ExploreEvents() {
           <div className="flex flex-col items-stretch gap-2 border-t border-line pt-4 sm:flex-row sm:items-center xl:border-t-0 xl:border-l xl:pt-0 xl:pl-5">
             <div className="mr-1 flex shrink-0 items-center gap-1.5 text-muted">
               <span className="material-symbols-outlined text-[18px] text-accent">vpn_key</span>
-              <span className="font-mono-code text-[11px] font-semibold tracking-wide uppercase">Private Event</span>
+              <span className="font-mono-code text-[11px] font-semibold tracking-wide uppercase">{tr('Private Event')}</span>
             </div>
             <form onSubmit={handleOpenPrivate} className="flex items-center gap-2">
               <input
                 type="text"
                 value={privateInput}
                 onChange={(e) => setPrivateInput(e.target.value)}
-                placeholder="event-slug or URL"
+                placeholder={tr('event-slug or URL')}
                 className="font-mono-code h-9 w-full rounded-[4px] border border-line-strong bg-paper px-3 text-[12px] text-ink placeholder:text-faint focus:border-accent focus:bg-surface focus:outline-none sm:w-40"
               />
               <button
                 type="submit"
                 className="btn-tactile h-9 cursor-pointer rounded-[4px] border border-ink bg-ink px-3.5 text-[12px] font-medium whitespace-nowrap text-on-accent hover:border-accent hover:bg-accent"
               >
-                Open →
+                {tr('Open →')}
               </button>
             </form>
           </div>
@@ -329,9 +329,9 @@ export function ExploreEvents() {
       {/* 3. My Active & Past Events */}
       <section className="space-y-4">
         <SectionHeader
-          title="My Active & Past Events"
+          title={tr('My Active & Past Events')}
           rightSlot={
-            <Badge>{String(filteredMine.length).padStart(2, '0')} REGISTERED WORKSPACES</Badge>
+            <Badge>{String(filteredMine.length).padStart(2, '0')}{' '}{tr('REGISTERED WORKSPACES')}</Badge>
           }
         />
 
@@ -340,8 +340,8 @@ export function ExploreEvents() {
         {!mine.loading && !mine.error && filteredMine.length === 0 && (
           <div className="rounded-[6px] border border-line bg-surface p-6 text-[13px] text-muted">
             {myEvents.length === 0
-              ? 'You have not joined an event yet. Select an open arena below or open a private event link above.'
-              : 'No joined events match your current search filter.'}
+              ? tr('You have not joined an event yet. Select an open arena below or open a private event link above.')
+              : tr('No joined events match your current search filter.')}
           </div>
         )}
 
@@ -361,14 +361,14 @@ export function ExploreEvents() {
                         <Badge tone={tone} dot>
                           {STATUS_LABEL[e.status]}
                         </Badge>
-                        <Badge>REGISTERED PARTICIPANT</Badge>
-                        {e.interviews_enabled && <Badge tone="accent">3-MIN VOICE DEFENSE</Badge>}
+                        <Badge>{tr('REGISTERED PARTICIPANT')}</Badge>
+                        {e.interviews_enabled && <Badge tone="accent">{tr('3-MIN VOICE DEFENSE')}</Badge>}
                         <span className="font-mono-code ml-1 flex items-center gap-1 text-[11px] text-muted">
                           <span className="material-symbols-outlined text-[14px]">
                             {e.status === 'open' ? 'timer' : 'lock'}
                           </span>
                           <span className="font-semibold text-ink">
-                            {e.status === 'open' ? countdown.label : `DEADLINE ${formatDate(e.submission_deadline)}`}
+                            {e.status === 'open' ? countdown.label : tr('DEADLINE {date}', { date: formatDate(e.submission_deadline) })}
                           </span>
                         </span>
                       </div>
@@ -378,10 +378,10 @@ export function ExploreEvents() {
                           <Link to={`/e/${e.slug}`}>{e.name}</Link>
                         </h3>
                         <div className="mt-0.5 flex flex-wrap items-center gap-2 text-[13px] text-muted">
-                          <span>Organized by {e.organization?.name || 'SkillProof Organization'}</span>
+                          <span>{tr('Organized by')}{' '}{e.organization?.name || tr('SkillProof Organization')}</span>
                           <span>•</span>
                           <span className="font-mono-code text-[11px] text-accent">
-                            Visibility: {VISIBILITY_LABEL[e.visibility]}
+                            {tr('Visibility:')}{' '}{VISIBILITY_LABEL[e.visibility]}
                           </span>
                         </div>
                       </div>
@@ -389,7 +389,7 @@ export function ExploreEvents() {
 
                     <div className="flex shrink-0 items-center justify-between gap-3 border-t border-line pt-3 lg:justify-end lg:border-t-0 lg:pt-0">
                       <div className="mr-2 hidden text-right md:block">
-                        <div className="font-mono-code text-[10px] text-muted uppercase">SUBMISSION CUTOFF</div>
+                        <div className="font-mono-code text-[10px] text-muted uppercase">{tr('SUBMISSION CUTOFF')}</div>
                         <div className="font-mono-code text-[12px] font-semibold text-ink">
                           {formatDate(e.submission_deadline)}
                         </div>
@@ -407,10 +407,10 @@ export function ExploreEvents() {
                       >
                         <span>
                           {e.status === 'published'
-                            ? 'View Published Standings'
+                            ? tr('View Published Standings')
                             : e.status === 'open'
-                              ? 'Enter Event Workspace'
-                              : 'View Audit Status'}
+                              ? tr('Enter Event Workspace')
+                              : tr('View Audit Status')}
                         </span>
                         <span className="arrow-nudge font-mono-code text-[12px]">→</span>
                       </Link>
@@ -426,18 +426,17 @@ export function ExploreEvents() {
       {/* 4. Open Hackathons & Benchmark Arenas */}
       <section className="space-y-4">
         <SectionHeader
-          title="Open Hackathons & Benchmark Arenas"
-          rightSlot={<Badge>{String(filteredOpen.length).padStart(2, '0')} PUBLIC ARENAS AVAILABLE</Badge>}
+          title={tr('Open Hackathons & Benchmark Arenas')}
+          rightSlot={<Badge>{String(filteredOpen.length).padStart(2, '0')}{' '}{tr('PUBLIC ARENAS AVAILABLE')}</Badge>}
         />
 
         <PageState loading={open.loading} error={open.error} kind="cards" />
 
         {!open.loading && !open.error && filteredOpen.length === 0 && (
           <div className="rounded-[6px] border border-line bg-surface p-6 text-[13px] text-muted">
-            No other public events are open right now. Have a private event link? Paste its slug in the Private Event
-            bar above, or{' '}
+            {tr('No other public events are open right now. Have a private event link? Paste its slug in the Private Event bar above, or')}{' '}
             <Link to="/interview/new" className="font-semibold text-accent hover:underline">
-              take a 3-minute voice interview on any repository you wrote
+              {tr('take a 3-minute voice interview on any repository you wrote')}
             </Link>
             .
           </div>
@@ -461,7 +460,7 @@ export function ExploreEvents() {
                           {STATUS_LABEL[e.status]}
                         </Badge>
                         <span className="font-mono-code rounded-[3px] bg-black/70 px-2 py-0.5 text-[10px] text-white">
-                          FEATURED ARENA
+                          {tr('FEATURED ARENA')}
                         </span>
                       </div>
                       <div className="font-mono-code absolute right-2 bottom-2 rounded-[3px] bg-black/80 px-2 py-0.5 text-[10px] text-white">
@@ -502,13 +501,13 @@ export function ExploreEvents() {
 
                     <div className="space-y-2.5 border-t border-line pt-3">
                       <div className="flex items-center justify-between text-[12px]">
-                        <span className="font-mono-code text-[11px] text-muted">ORAL DEFENSE</span>
+                        <span className="font-mono-code text-[11px] text-muted">{tr('ORAL DEFENSE')}</span>
                         <span className="font-mono-code text-[11px] font-semibold text-ink">
-                          {e.interviews_enabled ? '3-Min Voice Required' : 'Optional / Disabled'}
+                          {e.interviews_enabled ? tr('3-Min Voice Required') : tr('Optional / Disabled')}
                         </span>
                       </div>
                       <div className="flex items-center justify-between text-[12px]">
-                        <span className="font-mono-code text-[11px] text-muted">DEADLINE</span>
+                        <span className="font-mono-code text-[11px] text-muted">{tr('DEADLINE')}</span>
                         <span className="font-mono-code text-[11px] font-semibold text-ink">
                           {formatDate(e.submission_deadline)}
                         </span>
@@ -518,7 +517,7 @@ export function ExploreEvents() {
                         to={`/e/${e.slug}`}
                         className="btn-tactile mt-2 inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-[4px] border border-ink bg-ink text-[13px] font-medium text-on-accent hover:border-accent hover:bg-accent"
                       >
-                        <span>Enter Event Workspace</span>
+                        <span>{tr('Enter Event Workspace')}</span>
                         <span className="arrow-nudge font-mono-code text-[12px]">→</span>
                       </Link>
                     </div>
@@ -535,37 +534,36 @@ export function ExploreEvents() {
         <div className="flex flex-col justify-between gap-6 lg:flex-row lg:items-center">
           <div className="space-y-1.5">
             <div className="font-mono-code text-[11px] font-semibold tracking-widest text-accent uppercase">
-              YOUR EVENTS IN NUMBERS
+              {tr('YOUR EVENTS IN NUMBERS')}
             </div>
             <h3 className="font-serif-heading text-[22px] font-medium text-white">
-              No active event? Prove your skills on any repository you wrote.
+              {tr('No active event? Prove your skills on any repository you wrote.')}
             </h3>
             <p className="max-w-xl text-[13px] text-dark-muted">
-              Start an independent 3-minute Gemini Live voice interview on any public GitHub repository to generate a
-              verified ownership dossier for recruiters.
+              {tr('Start an independent 3-minute Gemini Live voice interview on any public GitHub repository to generate a verified ownership dossier for recruiters.')}
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-6 pt-2 lg:pt-0">
             <div className="border-l border-white/15 pl-4">
               <div className="font-mono-code text-[10px] tracking-wider text-dark-muted uppercase">
-                My Joined Events
+                {tr('My Joined Events')}
               </div>
               <div className="font-mono-code text-[20px] font-bold text-white">{myEvents.length}</div>
-              <div className="font-mono-code text-[11px] text-good-on-dark">Active Workspaces</div>
+              <div className="font-mono-code text-[11px] text-good-on-dark">{tr('Active Workspaces')}</div>
             </div>
 
             <div className="border-l border-white/15 pl-4">
               <div className="font-mono-code text-[10px] tracking-wider text-dark-muted uppercase">
-                Public Open Arenas
+                {tr('Public Open Arenas')}
               </div>
               <div className="font-mono-code text-[20px] font-bold text-white">{openEvents.length}</div>
-              <div className="font-mono-code text-[11px] text-accent">Commit-Locked</div>
+              <div className="font-mono-code text-[11px] text-accent">{tr('Commit-Locked')}</div>
             </div>
 
             <Link to="/interview/new" className={`${linkButton} px-5 py-2.5`}>
               <span className="material-symbols-outlined text-[16px]">mic</span>
-              <span>Start Repository Interview</span>
+              <span>{tr('Start Repository Interview')}</span>
               <span className="arrow-nudge font-mono-code text-[12px]">→</span>
             </Link>
           </div>

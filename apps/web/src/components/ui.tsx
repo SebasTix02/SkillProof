@@ -1,4 +1,4 @@
-import { formatDateTime } from '../i18n';
+import { formatDateTime, tr } from '../i18n';
 import { LanguageSelect } from './LanguageControl';
 import { ThemeToggle } from './ThemeControl';
 import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode, SelectHTMLAttributes, TextareaHTMLAttributes } from 'react';
@@ -113,7 +113,7 @@ export function Badge({
   );
 }
 
-export function Spinner({ label = 'Loading' }: { label?: string }) {
+export function Spinner({ label = tr('Loading') }: { label?: string }) {
   return (
     <span className="font-mono-code inline-flex items-center gap-2 text-[12px] text-muted" role="status">
       <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-line border-t-accent" />
@@ -160,25 +160,25 @@ export function Layout({ children }: { children: ReactNode }) {
           <div className="flex items-center gap-3 sm:gap-4">
             <Logo />
             <span className="hidden h-4 w-[1px] bg-line sm:inline-block" />
-            <div className="hidden items-center gap-2 md:flex">
+            <div className="hidden items-center gap-2 xl:flex">
               <span className="status-dot-live bg-good text-good" />
-              <span className="font-mono-code text-[11px] tracking-wider text-muted uppercase">
-                Commit-frozen judging // Gemini AI
+              <span className="font-mono-code text-[11px] tracking-wider whitespace-nowrap text-muted uppercase">
+                {tr('Commit-frozen judging // Gemini AI')}
               </span>
             </div>
           </div>
 
           <div className="flex items-center gap-2.5 sm:gap-3">
             {isLanding && (
-              <nav className="mr-2 hidden items-center gap-5 text-[13px] font-medium text-muted lg:flex" aria-label="Sections">
+              <nav className="mr-2 hidden items-center gap-5 text-[13px] font-medium whitespace-nowrap text-muted lg:flex" aria-label={tr('Sections')}>
                 <a href="#specimen" className="transition-colors hover:text-accent">
-                  Forensic AST
+                  {tr('Forensic AST')}
                 </a>
                 <a href="#organizers" className="transition-colors hover:text-accent">
-                  Workflows
+                  {tr('Workflows')}
                 </a>
                 <a href="#registry" className="transition-colors hover:text-accent">
-                  Dossier Registry
+                  {tr('Dossier Registry')}
                 </a>
               </nav>
             )}
@@ -187,8 +187,8 @@ export function Layout({ children }: { children: ReactNode }) {
             <ThemeToggle compact />
             {session ? (
               <>
-                <Link to="/events" className={cx(linkButton, 'px-3.5 py-1.5 text-[12px]')}>
-                  <span>Open app</span>
+                <Link to="/events" className={cx(linkButton, 'px-3.5 py-1.5 text-[12px] whitespace-nowrap')}>
+                  <span>{tr('Open app')}</span>
                   <span className="arrow-nudge font-mono-code text-[11px]">→</span>
                 </Link>
                 <button
@@ -196,19 +196,19 @@ export function Layout({ children }: { children: ReactNode }) {
                   onClick={() => void signOut()}
                   className="btn-tactile font-mono-code cursor-pointer rounded-[4px] border border-line bg-surface px-2.5 py-1 text-[11px] font-medium text-muted hover:border-muted hover:bg-paper hover:text-ink"
                 >
-                  SIGN OUT
+                  {tr('SIGN OUT')}
                 </button>
               </>
             ) : (
               <>
                 <Link
                   to="/login"
-                  className="btn-tactile font-mono-code rounded-[4px] border border-line bg-surface px-3 py-1.5 text-[12px] font-medium text-ink hover:border-muted hover:bg-paper"
+                  className="btn-tactile font-mono-code rounded-[4px] border border-line bg-surface px-3 py-1.5 text-[12px] font-medium whitespace-nowrap text-ink hover:border-muted hover:bg-paper"
                 >
-                  Log in
+                  {tr('Log in')}
                 </Link>
-                <Link to="/signup" className={cx(linkButton, 'px-3.5 py-1.5 text-[12px]')}>
-                  <span>Sign up</span>
+                <Link to="/signup" className={cx(linkButton, 'px-3.5 py-1.5 text-[12px] whitespace-nowrap')}>
+                  <span>{tr('Sign up')}</span>
                   <span className="arrow-nudge font-mono-code text-[11px]">→</span>
                 </Link>
               </>

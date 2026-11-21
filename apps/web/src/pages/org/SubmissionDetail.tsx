@@ -1,3 +1,4 @@
+import { tr } from '../../i18n';
 import { weightedTotal, type ActivityEntry, type CommitProfile, type RepoMap, type Rubric } from '@skillproof/shared';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
@@ -113,11 +114,11 @@ export function ScoreCalibrationRow({
         body: { override_score: value === '' ? null : Number(value) },
       });
       toast.success(
-        value === '' ? 'Back to the AI score.' : `Score changed to ${value}. The total is updated.`,
+        value === '' ? tr('Back to the AI score.') : tr('Score changed to {value}. The total is updated.', { value }),
       );
       onSaved();
     } catch (err) {
-      toast.error(`The score was not saved. ${errorMessage(err)}`);
+      toast.error(tr('The score was not saved. {error}', { error: errorMessage(err) }));
     } finally {
       setBusy(false);
     }
@@ -140,10 +141,10 @@ export function ScoreCalibrationRow({
         </div>
         <div className="flex items-center gap-1.5">
           <span className="font-mono-code rounded-[3px] border border-line bg-surface px-1.5 py-0.5 text-[10px] text-muted">
-            AI: {score.ai_score ?? '–'}
+            {tr('AI:')}{' '}{score.ai_score ?? '–'}
           </span>
           <Badge tone={scoreTone(effective)}>{effective ?? '–'}/10</Badge>
-          {isOverridden && <Badge tone="accent">Changed by you</Badge>}
+          {isOverridden && <Badge tone="accent">{tr('Changed by you')}</Badge>}
         </div>
       </div>
 
@@ -158,17 +159,17 @@ export function ScoreCalibrationRow({
               disabled={busy}
               value={effective ?? 5}
               onChange={(e) => void save(e.target.value)}
-              aria-label={`Slider for ${criterion?.name ?? score.criterion_key}`}
+              aria-label={tr('Slider for {criterion}', { criterion: criterion?.name ?? score.criterion_key })}
               className="h-1.5 w-full cursor-pointer accent-accent"
             />
             <Select
-              aria-label={`Your score for ${criterion?.name ?? score.criterion_key}`}
+              aria-label={tr('Your score for {criterion}', { criterion: criterion?.name ?? score.criterion_key })}
               className="font-mono-code h-8 w-auto bg-surface px-2 py-1 text-[11px] font-bold"
               disabled={busy}
               value={score.override_score ?? ''}
               onChange={(e) => void save(e.target.value)}
             >
-              <option value="">Keep AI ({score.ai_score ?? '–'})</option>
+              <option value="">{tr('Keep AI (')}{score.ai_score ?? '–'})</option>
               {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
                 <option key={n} value={n}>
                   {n} / 10
@@ -183,7 +184,7 @@ export function ScoreCalibrationRow({
 
       {score.evidence_json.length > 0 && (
         <div className="flex flex-wrap items-center gap-1.5 pt-0.5 text-[11px]">
-          <span className="font-mono-code text-[10px] text-muted uppercase">Evidence:</span>
+          <span className="font-mono-code text-[10px] text-muted uppercase">{tr('Evidence:')}</span>
           {score.evidence_json.map((path) =>
             repoUrl && sha ? (
               <a
@@ -235,8 +236,8 @@ export function SubmissionDetail() {
     ? (consoleData.data?.submissions ?? [])
     : (assignmentData.data?.assignments ?? []).map((a) => ({
         id: a.submission_id,
-        team_name: a.submissions?.team_name ?? 'Submission',
-        submitted_by_name: a.my_review ? (a.my_review.status === 'submitted' ? 'Review submitted' : 'Draft saved') : 'Not reviewed yet',
+        team_name: a.submissions?.team_name ?? tr('Submission'),
+        submitted_by_name: a.my_review ? (a.my_review.status === 'submitted' ? tr('Review submitted') : tr('Draft saved')) : tr('Not reviewed yet'),
         status: a.submissions?.status ?? 'submitted',
         locked_commit_sha: a.submissions?.locked_commit_sha ?? null,
         total: null,
@@ -286,7 +287,7 @@ export function SubmissionDetail() {
 
   /** Pause, resume, cancel or judge again, from the controls bar. */
   async function control(key: string, path: string, success: string, confirmText?: string) {
-    if (confirmText && !(await confirm(questionToOptions(confirmText, { confirmLabel: 'Continue' })))) return;
+    if (confirmText && !(await confirm(questionToOptions(confirmText, { confirmLabel: tr('Continue') })))) return;
     setRejudging(true);
     setControlKey(key);
     try {
@@ -338,7 +339,7 @@ export function SubmissionDetail() {
               ← {sub.events.name.toUpperCase()}
             </Link>
             <span>//</span>
-            <span>DOCKET #{sub.id.slice(0, 8).toUpperCase()}</span>
+            <span>{tr('DOCKET #')}{sub.id.slice(0, 8).toUpperCase()}</span>
             <span>//</span>
             <span className="inline-flex items-center gap-1.5 text-good-on-dark">
               <LiveDot tone="mint" pulse={working} />
@@ -349,7 +350,7 @@ export function SubmissionDetail() {
         statusChips={
           <div className="flex items-center gap-2 rounded-[4px] border border-white/10 bg-white/5 px-3 py-1">
             <span className="h-2 w-2 rounded-full bg-good-on-dark" />
-            <span className="font-medium text-white">{me?.profile.display_name || 'Judge'}</span>
+            <span className="font-medium text-white">{me?.profile.display_name || tr('Judge')}</span>
             {me?.email && <span className="text-white/50">({me.email})</span>}
             <span className="text-white/30">|</span>
             <span className="text-accent-on-dark uppercase">
@@ -357,15 +358,15 @@ export function SubmissionDetail() {
             </span>
           </div>
         }
-        eyebrowBadge={`SUBMISSION ${currentQueueIndex >= 0 ? `#${currentQueueIndex + 1} OF ${queue.length}` : 'DOSSIER'}`}
-        eyebrowMeta={sha ? `FROZEN AT COMMIT @${sha.slice(0, 7)}` : 'AWAITING COMMIT FREEZE'}
+        eyebrowBadge={(currentQueueIndex >= 0 ? tr('SUBMISSION #{n} OF {total}', { n: currentQueueIndex + 1, total: queue.length }) : tr('SUBMISSION DOSSIER'))}
+        eyebrowMeta={sha ? tr('FROZEN AT COMMIT @{sha}', { sha: sha.slice(0, 7) }) : tr('AWAITING COMMIT FREEZE')}
         title={sub.team_name}
         subtitle={
           current
-            ? `Repository: ${current.repos.owner}/${current.repos.name}${
-                analysis ? ` · ${analysis.file_count} source files analyzed` : ''
+            ? `${tr('Repository: {repo}', { repo: `${current.repos.owner}/${current.repos.name}` })}${
+                analysis ? ` · ${tr('{n} source files analyzed', { n: analysis.file_count })}` : ''
               }`
-            : 'Inspecting project submission, AI rubric evidence, and oral verification status.'
+            : tr('Inspecting project submission, AI rubric evidence, and oral verification status.')
         }
         actions={
           <div className="flex flex-wrap items-center gap-2">
@@ -375,7 +376,7 @@ export function SubmissionDetail() {
                 className="btn-tactile font-mono-code inline-flex items-center gap-1.5 rounded-[4px] border border-white/15 bg-white/10 px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-white/20"
               >
                 <span className="material-symbols-outlined text-[15px]">arrow_back</span>
-                <span>Prev ({prevSub.team_name.slice(0, 14)})</span>
+                <span>{tr('Prev (')}{prevSub.team_name.slice(0, 14)})</span>
               </Link>
             )}
             {nextSub && (
@@ -383,7 +384,7 @@ export function SubmissionDetail() {
                 to={`/org/events/${id}/s/${nextSub.id}`}
                 className={`${linkButton} font-mono-code px-3.5 py-1.5 text-[11px]`}
               >
-                <span>Next ({nextSub.team_name.slice(0, 14)})</span>
+                <span>{tr('Next (')}{nextSub.team_name.slice(0, 14)})</span>
                 <span className="material-symbols-outlined text-[15px]">arrow_forward</span>
               </Link>
             )}
@@ -396,9 +397,9 @@ export function SubmissionDetail() {
                 <div className="font-mono-code flex items-center justify-between text-[11px]">
                   <span className="text-white/80">
                     <strong className="text-white">{scoredInQueue}</strong> of{' '}
-                    <strong className="text-white">{queue.length}</strong> Cohort Submissions Scored
+                    <strong className="text-white">{queue.length}</strong>{' '}{tr('Cohort Submissions Scored')}
                   </span>
-                  <span className="font-semibold text-accent-on-dark">{queueProgressPct}% Complete</span>
+                  <span className="font-semibold text-accent-on-dark">{queueProgressPct}{tr('% Complete')}</span>
                 </div>
                 <ScoreBar
                   value={queueProgressPct}
@@ -410,8 +411,8 @@ export function SubmissionDetail() {
               </div>
               <div className="font-mono-code text-[11px] text-white/60">
                 {canOverride
-                  ? 'CALIBRATION MODE ACTIVE: Override any criterion score on the right.'
-                  : `EVENT STATUS: ${STATUS_LABEL[sub.events.status].toUpperCase()}`}
+                  ? tr('CALIBRATION MODE ACTIVE: Override any criterion score on the right.')
+                  : tr('EVENT STATUS: {status}', { status: STATUS_LABEL[sub.events.status].toUpperCase() })}
               </div>
             </div>
           ) : undefined
@@ -424,12 +425,12 @@ export function SubmissionDetail() {
           <span className="flex flex-wrap items-center gap-3">
             <span className="flex-1">
               {sub.status === 'paused'
-                ? 'Judging is paused. Work done so far is cached and reused when it resumes.'
+                ? tr('Judging is paused. Work done so far is cached and reused when it resumes.')
                 : sub.status === 'canceled'
-                  ? sub.error || 'Judging was canceled.'
+                  ? sub.error || tr('Judging was canceled.')
                   : sub.status === 'error'
-                    ? sub.error || 'This submission could not be judged.'
-                    : 'The AI is judging this submission. You can pause or cancel it.'}
+                    ? sub.error || tr('This submission could not be judged.')
+                    : tr('The AI is judging this submission. You can pause or cancel it.')}
             </span>
             {isManager && (
               <SubmissionJudgingControls
@@ -458,11 +459,11 @@ export function SubmissionDetail() {
             <div className="flex items-center gap-2">
               <span className="h-2 w-2 rounded-full bg-accent" />
               <span className="font-mono-code text-[11px] font-bold tracking-wider text-ink uppercase">
-                Assigned Queue
+                {tr('Assigned Queue')}
               </span>
             </div>
             <span className="font-mono-code rounded-full border border-line bg-paper px-2 py-0.5 text-[10px] font-semibold text-muted">
-              {queue.length} {isManager ? 'Submissions' : 'Assigned'}
+              {queue.length} {isManager ? tr('Submissions') : tr('Assigned')}
             </span>
           </div>
 
@@ -473,12 +474,12 @@ export function SubmissionDetail() {
             <Input
               value={queueSearch}
               onChange={(e) => setQueueSearch(e.target.value)}
-              placeholder="Filter by team or hash..."
+              placeholder={tr('Filter by team or hash...')}
               className="h-8 bg-paper pl-8 text-[12px]"
             />
           </div>
 
-          <nav aria-label="Review Queue" className="flex max-h-[600px] flex-col gap-2 overflow-y-auto pr-0.5">
+          <nav aria-label={tr('Review Queue')} className="flex max-h-[600px] flex-col gap-2 overflow-y-auto pr-0.5">
             {filteredQueue.length > 0 ? (
               filteredQueue.map((item, idx) => {
                 const isActive = item.id === sub.id;
@@ -502,7 +503,7 @@ export function SubmissionDetail() {
                       </span>
                       {isActive ? (
                         <span className="font-mono-code rounded-[2px] bg-accent px-1.5 py-0.5 text-[9px] font-bold tracking-wider text-on-accent uppercase">
-                          ACTIVE
+                          {tr('ACTIVE')}
                         </span>
                       ) : item.total != null ? (
                         <span className="font-mono-code rounded-[2px] border border-good/30 bg-good-soft px-1.5 py-0.5 text-[10px] font-bold text-good-ink">
@@ -528,24 +529,24 @@ export function SubmissionDetail() {
                               : 'text-warn'
                         }
                       >
-                        {item.status === 'scored' ? 'Scored' : item.status}
+                        {item.status === 'scored' ? tr('Scored') : item.status}
                       </span>
                     </div>
                   </Link>
                 );
               })
             ) : queueLoading ? (
-              <p className="py-3 text-center text-[12px] text-muted">Loading the queue…</p>
+              <p className="py-3 text-center text-[12px] text-muted">{tr('Loading the queue…')}</p>
             ) : !isManager && queue.length === 0 ? (
               <p className="rounded-[4px] border border-line bg-paper p-3 text-[12px] text-muted">
-                No submissions of this event are assigned to you yet. An organizer assigns them from the event console.
+                {tr('No submissions of this event are assigned to you yet. An organizer assigns them from the event console.')}
               </p>
             ) : (
               <div className="rounded-[4px] border border-accent bg-accent-soft/40 p-3">
                 <div className="flex items-center justify-between">
                   <span className="text-[13px] font-bold text-ink">{sub.team_name}</span>
                   <span className="font-mono-code rounded-[2px] bg-accent px-1.5 py-0.5 text-[9px] font-bold text-on-accent uppercase">
-                    ACTIVE
+                    {tr('ACTIVE')}
                   </span>
                 </div>
                 {sha && <div className="font-mono-code mt-1 text-[10px] text-muted">@{sha.slice(0, 7)}</div>}
@@ -557,13 +558,13 @@ export function SubmissionDetail() {
             <div className="flex items-center justify-between font-semibold text-ink">
               <span className="flex items-center gap-1.5">
                 <span className="material-symbols-outlined text-[14px] text-accent">keyboard</span>
-                <span>Queue Navigation</span>
+                <span>{tr('Queue Navigation')}</span>
               </span>
-              <span className="text-good">J / K Ready</span>
+              <span className="text-good">{tr('J / K Ready')}</span>
             </div>
             <p className="mt-1 text-[11px] leading-snug text-muted">
-              Press <kbd className="rounded border border-line bg-surface px-1">J</kbd> or{' '}
-              <kbd className="rounded border border-line bg-surface px-1">K</kbd> to jump between cohort dossiers.
+              {tr('Press')}{' '}<kbd className="rounded border border-line bg-surface px-1">J</kbd> or{' '}
+              <kbd className="rounded border border-line bg-surface px-1">K</kbd>{' '}{tr('to jump between cohort dossiers.')}
             </p>
           </div>
         </aside>
@@ -575,14 +576,14 @@ export function SubmissionDetail() {
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div>
                 <span className="font-mono-code text-[11px] font-bold tracking-wider text-accent uppercase">
-                  Submission ID: #{sub.id.slice(0, 8).toUpperCase()}
+                  {tr('Submission ID: #')}{sub.id.slice(0, 8).toUpperCase()}
                 </span>
                 <h2 className="font-serif-heading text-[24px] leading-tight font-medium text-ink">
                   {sub.team_name}
                 </h2>
                 {sub.locked_at && (
                   <span className="font-mono-code text-[11px] text-muted">
-                    Frozen on {formatDate(sub.locked_at)}
+                    {tr('Frozen on')}{' '}{formatDate(sub.locked_at)}
                   </span>
                 )}
               </div>
@@ -593,7 +594,7 @@ export function SubmissionDetail() {
 
             <div className="font-mono-code grid grid-cols-1 gap-2.5 border-t border-line pt-3 text-[12px] sm:grid-cols-2">
               <div className="rounded-[4px] border border-line bg-paper p-2.5">
-                <span className="block text-[10px] font-semibold text-muted uppercase">Repository Tree</span>
+                <span className="block text-[10px] font-semibold text-muted uppercase">{tr('Repository Tree')}</span>
                 {current ? (
                   <a
                     href={current.repos.url}
@@ -608,9 +609,9 @@ export function SubmissionDetail() {
                 )}
               </div>
               <div className="rounded-[4px] border border-line bg-paper p-2.5">
-                <span className="block text-[10px] font-semibold text-muted uppercase">Audited Commit</span>
+                <span className="block text-[10px] font-semibold text-muted uppercase">{tr('Audited Commit')}</span>
                 <span className="mt-0.5 block font-semibold text-ink">
-                  {sha ? sha.slice(0, 12) : 'Pending freeze'}
+                  {sha ? sha.slice(0, 12) : tr('Pending freeze')}
                   {analysis ? ` (${analysis.file_count} files)` : ''}
                 </span>
               </div>
@@ -624,10 +625,10 @@ export function SubmissionDetail() {
                     <Badge key={t}>{t}</Badge>
                   ))}
                   <Badge tone={map.complexity_signals.has_tests ? 'good' : 'neutral'}>
-                    {map.complexity_signals.has_tests ? 'Has tests' : 'No tests'}
+                    {map.complexity_signals.has_tests ? tr('Has tests') : tr('No tests')}
                   </Badge>
                   <Badge tone={map.complexity_signals.has_ci ? 'good' : 'neutral'}>
-                    {map.complexity_signals.has_ci ? 'Has CI' : 'No CI'}
+                    {map.complexity_signals.has_ci ? tr('Has CI') : tr('No CI')}
                   </Badge>
                 </div>
 
@@ -636,11 +637,11 @@ export function SubmissionDetail() {
                   <div className="font-mono-code flex items-center justify-between text-[11px] font-bold text-good">
                     <span className="flex items-center gap-1.5">
                       <span className="material-symbols-outlined text-[16px]">security</span>
-                      <span>What the Project Is (AI Repo Map)</span>
+                      <span>{tr('What the Project Is (AI Repo Map)')}</span>
                     </span>
                     {commits && (
                       <span className="rounded-[2px] border border-good/30 bg-surface px-1.5 py-0.2 text-[10px]">
-                        {commits.total_commits} commits · {commits.authors.length} author
+                        {commits.total_commits}{' '}{tr('commits ·')}{' '}{commits.authors.length} author
                         {commits.authors.length === 1 ? '' : 's'}
                       </span>
                     )}
@@ -648,8 +649,7 @@ export function SubmissionDetail() {
                   <p className="text-[12px] leading-relaxed text-ink">{map.summary}</p>
                   {commits?.commits_before_start != null && commits.commits_before_start > 0 && (
                     <p className="font-mono-code text-[11px] font-semibold text-warn">
-                      ⚠ {commits.commits_before_start} commit{commits.commits_before_start === 1 ? '' : 's'} authored
-                      before the event started.
+                      ⚠ {commits.commits_before_start} commit{commits.commits_before_start === 1 ? '' : 's'}{' '}{tr('authored before the event started.')}
                     </p>
                   )}
                 </div>
@@ -657,7 +657,7 @@ export function SubmissionDetail() {
                 {map.key_decisions.length > 0 && (
                   <div className="space-y-1.5">
                     <h3 className="font-mono-code text-[11px] font-bold tracking-wider text-ink uppercase">
-                      Key Architectural Decisions
+                      {tr('Key Architectural Decisions')}
                     </h3>
                     <ul className="space-y-1.5 text-[12px]">
                       {map.key_decisions.map((d, i) => (
@@ -673,7 +673,7 @@ export function SubmissionDetail() {
                 {map.weaknesses.length > 0 && (
                   <div className="space-y-1.5">
                     <h3 className="font-mono-code text-[11px] font-bold tracking-wider text-ink uppercase">
-                      Weak Points &amp; Risks
+                      {tr('Weak Points & Risks')}
                     </h3>
                     <ul className="space-y-1.5 text-[12px]">
                       {map.weaknesses.map((w, i) => (
@@ -720,22 +720,22 @@ export function SubmissionDetail() {
                 <div className="flex items-center gap-2">
                   <span className="material-symbols-outlined text-[15px] text-accent-on-dark">code</span>
                   <span className="font-semibold text-white">
-                    {activeScore?.evidence_json[0] ?? activeCriterion?.name ?? 'Criterion Evidence'}
+                    {activeScore?.evidence_json[0] ?? activeCriterion?.name ?? tr('Criterion Evidence')}
                   </span>
                 </div>
                 <span className="rounded border border-white/15 bg-white/5 px-2 py-0.5 text-[10px] text-good-on-dark">
-                  SCORE: {activeScore?.override_score ?? activeScore?.ai_score ?? '–'} / 10
+                  {tr('SCORE:')}{' '}{activeScore?.override_score ?? activeScore?.ai_score ?? '–'} / 10
                 </span>
               </div>
 
               <div className="space-y-3 bg-dark-canvas p-4 text-[12px] text-white/85">
                 <p className="leading-relaxed text-white/90">
-                  {activeScore?.justification || 'No justification recorded for this criterion.'}
+                  {activeScore?.justification || tr('No justification recorded for this criterion.')}
                 </p>
                 {activeScore && activeScore.evidence_json.length > 0 && (
                   <div className="space-y-1.5 border-t border-white/10 pt-2.5">
                     <span className="font-mono-code block text-[10px] text-white/50 uppercase">
-                      Cited Repository Files (Click to inspect at frozen commit):
+                      {tr('Cited Repository Files (Click to inspect at frozen commit):')}
                     </span>
                     <div className="flex flex-wrap gap-1.5">
                       {activeScore.evidence_json.map((path) =>
@@ -772,20 +772,19 @@ export function SubmissionDetail() {
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="font-mono-code flex items-center gap-2 text-[11px] font-bold text-accent-ink uppercase">
                   <span className="material-symbols-outlined text-[18px] text-accent">record_voice_over</span>
-                  <span>Oral Verification Defense</span>
+                  <span>{tr('Oral Verification Defense')}</span>
                 </div>
                 <Badge tone={data.interview.status === 'completed' ? 'good' : 'accent'}>
                   {data.interview.status.toUpperCase()}
                 </Badge>
               </div>
               <p className="text-[13px] text-ink">
-                This participant {data.interview.status === 'completed' ? 'completed' : 'started'} a 3-minute voice
-                interview defending this repository.
+                {tr('This participant')}{' '}{data.interview.status === 'completed' ? 'completed' : 'started'}{' '}{tr('a 3-minute voice interview defending this repository.')}
               </p>
               <div>
                 <Link to={`/interview/${data.interview.id}`} className={linkButtonSecondary}>
                   <span className="material-symbols-outlined text-[16px]">description</span>
-                  <span>Open Oral Defense Dossier →</span>
+                  <span>{tr('Open Oral Defense Dossier →')}</span>
                 </Link>
               </div>
             </div>
@@ -795,12 +794,12 @@ export function SubmissionDetail() {
           {(activity.length > 0 || working || models.length > 0) && (
             <div className="space-y-3 rounded-[6px] border border-line bg-surface p-5">
               <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line pb-2.5">
-                <h2 className="font-serif-heading text-[20px] font-medium text-ink">How the AI Judged It</h2>
-                {working && <Spinner label={sub.status === 'queued' ? 'Waiting to start' : 'Working'} />}
+                <h2 className="font-serif-heading text-[20px] font-medium text-ink">{tr('How the AI Judged It')}</h2>
+                {working && <Spinner label={sub.status === 'queued' ? tr('Waiting to start') : tr('Working')} />}
               </div>
               {models.length > 0 && (
                 <div className="font-mono-code flex flex-wrap items-center gap-2 text-[11px] text-muted">
-                  <span>MODELS USED:</span>
+                  <span>{tr('MODELS USED:')}</span>
                   <ModelsUsed models={models} primary={data.primary_models} />
                 </div>
               )}
@@ -812,7 +811,7 @@ export function SubmissionDetail() {
               ) : (
                 working && (
                   <p className="text-[13px] text-muted">
-                    The steps appear here as the AI works. This page updates on its own.
+                    {tr('The steps appear here as the AI works. This page updates on its own.')}
                   </p>
                 )
               )}
@@ -823,7 +822,7 @@ export function SubmissionDetail() {
           {feedback && (
             <div className="space-y-3 rounded-[6px] border border-line bg-surface p-5">
               <h2 className="font-serif-heading text-[20px] font-medium text-ink">
-                Feedback the Team Will Receive
+                {tr('Feedback the Team Will Receive')}
               </h2>
               <ul className="list-disc space-y-1 pl-5 text-[13px] text-ink">
                 {feedback.strengths_json.map((s, i) => (
@@ -835,7 +834,7 @@ export function SubmissionDetail() {
                   <li key={i} className="rounded-[4px] border border-line bg-paper/60 p-3">
                     <p className="font-medium text-ink">{f.what}</p>
                     <p className="font-mono-code text-[11px] text-accent">{f.where}</p>
-                    <p className="mt-1 text-[12px] text-muted">Next step: {f.next_step}</p>
+                    <p className="mt-1 text-[12px] text-muted">{tr('Next step:')}{' '}{f.next_step}</p>
                   </li>
                 ))}
               </ul>
@@ -844,13 +843,13 @@ export function SubmissionDetail() {
 
           {/* Versions Sent */}
           <div className="space-y-3 rounded-[6px] border border-line bg-surface p-5">
-            <h2 className="font-serif-heading text-[20px] font-medium text-ink">Versions Sent</h2>
+            <h2 className="font-serif-heading text-[20px] font-medium text-ink">{tr('Versions Sent')}</h2>
             <ol className="space-y-2.5 text-[13px]">
               {versions.map((v, i) => (
                 <li key={v.id} className="rounded-[4px] border border-line bg-paper/45 p-3">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-mono-code font-semibold text-ink">Version {v.version_no}</span>
-                    {i === 0 && <Badge tone="accent">{sha ? 'Judged' : 'Latest'}</Badge>}
+                    <span className="font-mono-code font-semibold text-ink">{tr('Version')}{' '}{v.version_no}</span>
+                    {i === 0 && <Badge tone="accent">{sha ? tr('Judged') : tr('Latest')}</Badge>}
                     <span className="font-mono-code text-[11px] text-muted">{formatDate(v.created_at)}</span>
                   </div>
                   {v.description && <p className="mt-2 whitespace-pre-line text-muted">{v.description}</p>}
@@ -861,7 +860,7 @@ export function SubmissionDetail() {
                       rel="noreferrer"
                       className="font-semibold text-accent hover:underline"
                     >
-                      Repository ↗
+                      {tr('Repository ↗')}
                     </a>
                     {v.video_url && (
                       <a
@@ -870,7 +869,7 @@ export function SubmissionDetail() {
                         rel="noreferrer"
                         className="font-semibold text-accent hover:underline"
                       >
-                        Demo video ↗
+                        {tr('Demo video ↗')}
                       </a>
                     )}
                     {v.slides_url && (
@@ -880,7 +879,7 @@ export function SubmissionDetail() {
                         rel="noreferrer"
                         className="font-semibold text-accent hover:underline"
                       >
-                        Slides ↗
+                        {tr('Slides ↗')}
                       </a>
                     )}
                   </p>
@@ -896,25 +895,25 @@ export function SubmissionDetail() {
             <div className="space-y-1 border-b border-line pb-3">
               <div className="flex items-center justify-between">
                 <h2 className="font-serif-heading text-[22px] font-medium text-ink">
-                  Adjudication &amp; Calibration
+                  {tr('Adjudication & Calibration')}
                 </h2>
                 <Badge tone={canOverride ? 'accent' : 'neutral'}>
-                  {canOverride ? 'OVERRIDE READY' : STATUS_LABEL[sub.events.status]}
+                  {canOverride ? tr('OVERRIDE READY') : STATUS_LABEL[sub.events.status]}
                 </Badge>
               </div>
               <p className="text-[12px] text-muted">
                 {canOverride
-                  ? 'Each score comes with the reason and the files behind it. Change any score you disagree with; the total updates right away.'
+                  ? tr('Each score comes with the reason and the files behind it. Change any score you disagree with; the total updates right away.')
                   : sub.events.status === 'published'
-                    ? 'Results are published, so scores can no longer be changed.'
-                    : 'Each score comes with the reason and the files behind it.'}
+                    ? tr('Results are published, so scores can no longer be changed.')
+                    : tr('Each score comes with the reason and the files behind it.')}
               </p>
             </div>
 
             {/* Baseline Metrics */}
             <div className="font-mono-code grid grid-cols-2 gap-2.5 text-[11px]">
               <div className="rounded-[4px] border border-line bg-paper p-3">
-                <span className="block text-[10px] font-semibold text-muted uppercase">AI Baseline</span>
+                <span className="block text-[10px] font-semibold text-muted uppercase">{tr('AI Baseline')}</span>
                 <div className="mt-0.5 flex items-baseline gap-1">
                   <span className="text-[20px] font-bold text-ink">
                     {aiTotal != null ? aiTotal.toFixed(1) : '—'}
@@ -924,7 +923,7 @@ export function SubmissionDetail() {
               </div>
 
               <div className="rounded-[4px] border border-good/30 bg-good-soft/50 p-3">
-                <span className="block text-[10px] font-semibold text-good uppercase">Effective Total</span>
+                <span className="block text-[10px] font-semibold text-good uppercase">{tr('Effective Total')}</span>
                 <div className="mt-0.5 flex items-baseline gap-1">
                   <span className="text-[20px] font-bold text-good">
                     {total != null ? total.toFixed(1) : '—'}
@@ -952,7 +951,7 @@ export function SubmissionDetail() {
               </ul>
             ) : (
               <p className="py-4 text-center text-[13px] text-muted">
-                Scores will appear here as soon as the AI evaluation completes.
+                {tr('Scores will appear here as soon as the AI evaluation completes.')}
               </p>
             )}
 
@@ -961,7 +960,7 @@ export function SubmissionDetail() {
               <div className="flex items-center justify-between rounded-[4px] border border-accent/30 bg-accent-soft/55 p-3.5">
                 <div>
                   <span className="font-mono-code block text-[10px] font-semibold tracking-wider text-muted uppercase">
-                    Weighted Composite Score
+                    {tr('Weighted Composite Score')}
                   </span>
                   <div className="mt-0.5 flex items-baseline gap-1">
                     <span className="font-serif-heading text-[28px] leading-none font-bold text-accent">
@@ -980,9 +979,9 @@ export function SubmissionDetail() {
                           : 'border-line bg-surface text-muted'
                     }`}
                   >
-                    {delta > 0 ? `+${delta}` : delta} DELTA
+                    {delta > 0 ? `+${delta}` : delta}{' '}{tr('DELTA')}
                   </span>
-                  <span className="font-mono-code mt-1 block text-[10px] text-muted">vs. AI baseline</span>
+                  <span className="font-mono-code mt-1 block text-[10px] text-muted">{tr('vs. AI baseline')}</span>
                 </div>
               </div>
             )}
@@ -991,12 +990,12 @@ export function SubmissionDetail() {
             <div className="flex flex-col gap-2 pt-1">
               {nextSub && (
                 <Link to={`/org/events/${id}/s/${nextSub.id}`} className={`${linkButton} w-full py-2.5`}>
-                  <span>Proceed to Next ({nextSub.team_name})</span>
+                  <span>{tr('Proceed to Next (')}{nextSub.team_name})</span>
                   <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
                 </Link>
               )}
               <Link to={`/org/events/${id}`} className={`${linkButtonSecondary} w-full py-2`}>
-                Return to Event Console
+                {tr('Return to Event Console')}
               </Link>
             </div>
           </div>
@@ -1012,9 +1011,9 @@ export function SubmissionDetail() {
               <kbd className="rounded border border-line bg-paper px-1.5 py-0.5 font-semibold text-ink">J</kbd>
               <span>/</span>
               <kbd className="rounded border border-line bg-paper px-1.5 py-0.5 font-semibold text-ink">K</kbd>
-              <span>Navigate Queue</span>
+              <span>{tr('Navigate Queue')}</span>
             </span>
-            <span>{canOverride ? 'Auto-saves on change' : 'Read-only mode'}</span>
+            <span>{canOverride ? tr('Auto-saves on change') : tr('Read-only mode')}</span>
           </div>
         </aside>
       </div>

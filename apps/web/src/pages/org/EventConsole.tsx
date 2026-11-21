@@ -1,3 +1,4 @@
+import { tr, trn } from '../../i18n';
 import type { ActivityEntry } from '@skillproof/shared';
 import { Fragment, useMemo, useState, type ChangeEvent } from 'react';
 import { Link, useParams } from 'react-router-dom';
@@ -95,7 +96,7 @@ function Allowlist({ eventId }: { eventId: string }) {
       for (let i = 0; i < emails.length; i += 2000) {
         await api(`/api/events/${eventId}/allowlist`, { body: { emails: emails.slice(i, i + 2000) } });
       }
-      setMessage({ tone: 'good', text: `${emails.length} emails are now on the list.` });
+      setMessage({ tone: 'good', text: tr('{n} emails are now on the list.', { n: emails.length }) });
       setText('');
       await list.reload();
     } catch (err) {
@@ -111,19 +112,19 @@ function Allowlist({ eventId }: { eventId: string }) {
     <NumberedSectionCard
       number="AL"
       icon="mail_lock"
-      title="Invited Participant Allowlist"
+      title={tr('Invited Participant Allowlist')}
       subtitle={
         <>
-          Only people who sign up with one of these emails and confirm it can join.
+          {tr('Only people who sign up with one of these emails and confirm it can join.')}
           {list.data && (
             <>
               {' '}
-              <strong>{list.data.allowlist.length}</strong> invited, <strong>{joined}</strong> joined.
+              <strong>{list.data.allowlist.length}</strong>{' '}{tr('invited,')}{' '}<strong>{joined}</strong> joined.
             </>
           )}
         </>
       }
-      sectionTag="INVITE-ONLY ACCESS"
+      sectionTag={tr('INVITE-ONLY ACCESS')}
       theme="accent"
     >
       <div className="space-y-4">
@@ -131,14 +132,14 @@ function Allowlist({ eventId }: { eventId: string }) {
           rows={3}
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder="Paste emails, one per line or separated by commas..."
-          aria-label="Emails to invite"
+          placeholder={tr('Paste emails, one per line or separated by commas...')}
+          aria-label={tr('Emails to invite')}
           className="font-mono-code text-[12px]"
         />
         <div className="flex flex-wrap items-center justify-between gap-3">
           <label className="btn-tactile font-mono-code inline-flex cursor-pointer items-center gap-1.5 rounded-[4px] border border-line bg-paper px-3 py-1.5 text-[11px] font-semibold text-accent hover:border-accent">
             <span className="material-symbols-outlined text-[15px]">upload_file</span>
-            <span>Upload CSV / TXT File</span>
+            <span>{tr('Upload CSV / TXT File')}</span>
             <input
               type="file"
               accept=".csv,.txt,text/csv,text/plain"
@@ -147,20 +148,20 @@ function Allowlist({ eventId }: { eventId: string }) {
             />
           </label>
           <Button disabled={busy || emails.length === 0} loading={busy} onClick={() => void add()}>
-            {busy ? 'Adding…' : `Add ${emails.length} email${emails.length === 1 ? '' : 's'}`}
+            {busy ? tr('Adding…') : trn('Add {count} email', 'Add {count} emails', emails.length)}
           </Button>
         </div>
         {message && <Notice tone={message.tone}>{message.text}</Notice>}
         {list.data && list.data.allowlist.length > 0 && (
           <details className="rounded-[4px] border border-line bg-paper/60 p-3">
             <summary className="font-mono-code cursor-pointer text-[11px] font-semibold tracking-wider text-ink uppercase">
-              Inspect Allowlist Roster ({list.data.allowlist.length} emails)
+              {tr('Inspect Allowlist Roster (')}{list.data.allowlist.length}{' '}{tr('emails)')}
             </summary>
             <ul className="font-mono-code mt-2.5 max-h-56 space-y-1.5 overflow-auto border-t border-line pt-2.5 text-[12px]">
               {list.data.allowlist.map((a) => (
                 <li key={a.email} className="flex items-center justify-between gap-2">
                   <span className="text-ink">{a.email}</span>
-                  {a.claimed_by ? <Badge tone="good">Joined</Badge> : <Badge>Invited</Badge>}
+                  {a.claimed_by ? <Badge tone="good">{tr('Joined')}</Badge> : <Badge>{tr('Invited')}</Badge>}
                 </li>
               ))}
             </ul>
@@ -215,7 +216,7 @@ export function EventConsole() {
   const { event, submissions } = data;
 
   async function act(key: string, path: string, success: string, confirmText?: string) {
-    if (confirmText && !(await confirm(questionToOptions(confirmText, { confirmLabel: 'Continue' })))) return;
+    if (confirmText && !(await confirm(questionToOptions(confirmText, { confirmLabel: tr('Continue') })))) return;
     setBusy(key);
     try {
       await api(path, { method: 'POST' });
@@ -233,14 +234,14 @@ export function EventConsole() {
   const done = submissions.filter((s) => s.status === 'scored' || s.status === 'error').length;
   const failed = submissions.filter((s) => s.status === 'error').length;
   const voiceCompleted = submissions.filter((s) => s.ownership != null).length;
-  const teamName = (sid: string) => submissions.find((s) => s.id === sid)?.team_name ?? 'Unknown team';
+  const teamName = (sid: string) => submissions.find((s) => s.id === sid)?.team_name ?? tr('Unknown team');
   const flagged = new Set(data.similarity_flags.flatMap((f) => [f.submission_a, f.submission_b]));
   const ranked = event.status !== 'open' && event.status !== 'draft';
   const progressPct = submissions.length > 0 ? Math.round((done / submissions.length) * 100) : 0;
 
   function exportEventCsv() {
     if (submissions.length === 0) {
-      toast.error('No submissions to export yet.');
+      toast.error(tr('No submissions to export yet.'));
       return;
     }
     const header = ['rank', 'team_name', 'submitted_by', 'repo', 'commit_sha', 'status', 'score', 'ownership_score'];
@@ -262,7 +263,7 @@ export function EventConsole() {
     a.download = `${event.slug}-standings.csv`;
     a.click();
     URL.revokeObjectURL(url);
-    toast.success('Event standings exported as CSV.');
+    toast.success(tr('Event standings exported as CSV.'));
   }
 
   return (
@@ -272,12 +273,12 @@ export function EventConsole() {
         breadcrumbs={
           <>
             <Link to="/org/events" className="text-accent-on-dark hover:underline">
-              ← ALL ORGANIZATION EVENTS
+              {tr('← ALL ORGANIZATION EVENTS')}
             </Link>
             <span>//</span>
-            <span>SLUG: /e/{event.slug}</span>
+            <span>{tr('SLUG: /e/')}{event.slug}</span>
             <span>//</span>
-            <span className="font-semibold text-white">{VISIBILITY_LABEL[event.visibility].toUpperCase()} ACCESS</span>
+            <span className="font-semibold text-white">{VISIBILITY_LABEL[event.visibility].toUpperCase()}{' '}{tr('ACCESS')}</span>
           </>
         }
         statusChips={
@@ -287,27 +288,27 @@ export function EventConsole() {
                 tone={event.status === 'open' || event.status === 'judging' ? 'mint' : 'good'}
                 pulse={event.status === 'open' || event.status === 'judging'}
               />
-              <span>STATUS: {STATUS_LABEL[event.status].toUpperCase()}</span>
+              <span>{tr('STATUS:')}{' '}{STATUS_LABEL[event.status].toUpperCase()}</span>
             </span>
             <span className="rounded-[3px] border border-white/10 bg-white/5 px-2.5 py-0.5 text-white/75">
-              DEADLINE: {formatDate(event.submission_deadline).toUpperCase()}
+              {tr('DEADLINE:')}{' '}{formatDate(event.submission_deadline).toUpperCase()}
             </span>
           </>
         }
-        eyebrowBadge={`EVENT CONSOLE // ${event.kind.toUpperCase()}`}
+        eyebrowBadge={tr('EVENT CONSOLE // {kind}', { kind: event.kind.toUpperCase() })}
         eyebrowMeta={
           event.max_submissions == null
-            ? 'UNLIMITED VERSIONS'
-            : `MAX ${event.max_submissions} VERSIONS / PARTICIPANT`
+            ? tr('UNLIMITED VERSIONS')
+            : tr('MAX {n} VERSIONS / PARTICIPANT', { n: event.max_submissions })
         }
         title={event.name}
-        subtitle={`Participant registration link: ${link}`}
+        subtitle={tr('Participant registration link: {link}', { link })}
         actions={
           <>
             <CopyLinkButton
               value={link}
-              label="Copy Participant Link"
-              copiedLabel="Link Copied!"
+              label={tr('Copy Participant Link')}
+              copiedLabel={tr('Link Copied!')}
               variant="dark"
             />
             <button
@@ -316,12 +317,12 @@ export function EventConsole() {
               className="btn-tactile font-mono-code inline-flex cursor-pointer items-center gap-1.5 rounded-[4px] border border-white/15 bg-white/10 px-3.5 py-1.5 text-[11px] font-semibold text-white hover:bg-white/20"
             >
               <span className="material-symbols-outlined text-[15px]">download</span>
-              <span>Export CSV</span>
+              <span>{tr('Export CSV')}</span>
             </button>
             {submissions[0] && (
               <Link to={`/org/events/${event.id}/s/${submissions[0].id}`} className={linkButton}>
                 <span className="material-symbols-outlined text-[16px]">gavel</span>
-                <span>Open Judge Workspace</span>
+                <span>{tr('Open Judge Workspace')}</span>
               </Link>
             )}
             <Link
@@ -329,7 +330,7 @@ export function EventConsole() {
               className="btn-tactile font-mono-code inline-flex items-center gap-1.5 rounded-[4px] border border-white/15 bg-white/10 px-3.5 py-1.5 text-[11px] font-semibold text-white hover:bg-white/20"
             >
               <span className="material-symbols-outlined text-[15px]">policy</span>
-              <span>Integrity review</span>
+              <span>{tr('Integrity review')}</span>
             </Link>
           </>
         }
@@ -339,50 +340,50 @@ export function EventConsole() {
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <TopAccentKpiCard
           accent="cobalt"
-          eyebrow="Cohort Roster"
+          eyebrow={tr('Cohort Roster')}
           icon="groups"
           value={data.participant_count}
-          unit="Participants"
+          unit={tr('Participants')}
           description={`${submissions.length} project submissions received so far.`}
-          footerLeft="VISIBILITY"
+          footerLeft={tr('VISIBILITY')}
           footerRight={VISIBILITY_LABEL[event.visibility].toUpperCase()}
         />
         <TopAccentKpiCard
           accent="emerald"
-          eyebrow="Evaluation Pipeline"
+          eyebrow={tr('Evaluation Pipeline')}
           icon="memory"
           value={`${done} / ${submissions.length}`}
-          unit="Judged"
+          unit={tr('Judged')}
           description={
             failed > 0
-              ? `${failed} submission${failed === 1 ? '' : 's'} encountered an error and can be retried.`
-              : 'Automated repository map & rubric scoring.'
+              ? trn('{count} submission encountered an error and can be retried.', '{count} submissions encountered an error and can be retried.', failed)
+              : tr('Automated repository map & rubric scoring.')
           }
           progress={progressPct}
         />
         <TopAccentKpiCard
           accent="neutral"
-          eyebrow="Oral Defense"
+          eyebrow={tr('Oral Defense')}
           icon="record_voice_over"
           value={event.interviews_enabled ? voiceCompleted : 'OFF'}
           unit={event.interviews_enabled ? `/ ${submissions.length} Verified` : undefined}
           description={
             event.interviews_enabled
               ? '3-minute live voice interviews completed by authors.'
-              : 'Voice interviews are disabled for this event.'
+              : tr('Voice interviews are disabled for this event.')
           }
-          footerLeft="VOICE ENGINE"
+          footerLeft={tr('VOICE ENGINE')}
           footerRight={event.interviews_enabled ? 'ENABLED' : 'SKIPPED'}
         />
         <TopAccentKpiCard
           accent="amber"
-          eyebrow="Forensic Signals"
+          eyebrow={tr('Forensic Signals')}
           icon="policy"
           value={data.similarity_flags.length}
-          unit="Flags"
-          description="Shared repositories, common forks, or structural overlap signals."
-          footerLeft="INTEGRITY STATUS"
-          footerRight={data.similarity_flags.length === 0 ? 'CLEAN' : 'CHECK SIGNALS'}
+          unit={tr('Flags')}
+          description={tr('Shared repositories, common forks, or structural overlap signals.')}
+          footerLeft={tr('INTEGRITY STATUS')}
+          footerRight={data.similarity_flags.length === 0 ? 'CLEAN' : tr('CHECK SIGNALS')}
         />
       </section>
 
@@ -392,13 +393,13 @@ export function EventConsole() {
           <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
             <div className="space-y-1">
               <div className="font-mono-code text-[11px] font-bold text-warn uppercase">
-                STAGE 01 // DRAFT ASSESSMENT
+                {tr('STAGE 01 // DRAFT ASSESSMENT')}
               </div>
               <h2 className="font-serif-heading text-[22px] font-medium text-ink">
-                This event is currently a draft
+                {tr('This event is currently a draft')}
               </h2>
               <p className="text-[13px] text-muted">
-                Participants cannot view or join the event until you open it.
+                {tr('Participants cannot view or join the event until you open it.')}
               </p>
             </div>
             <Button
@@ -407,12 +408,12 @@ export function EventConsole() {
                 void act(
                   'open',
                   `/api/events/${event.id}/open`,
-                  'The event is open. Share the link with participants.',
+                  tr('The event is open. Share the link with participants.'),
                 )
               }
             >
               <span className="material-symbols-outlined text-[17px]">lock_open</span>
-              <span>{busy === 'open' ? 'Opening…' : 'Open the event'}</span>
+              <span>{busy === 'open' ? tr('Opening…') : tr('Open the event')}</span>
             </Button>
           </div>
         )}
@@ -422,26 +423,25 @@ export function EventConsole() {
             <div className="space-y-1">
               <div className="font-mono-code flex items-center gap-2 text-[11px] font-bold text-accent uppercase">
                 <LiveDot tone="accent" />
-                <span>STAGE 02 // SUBMISSIONS OPEN</span>
+                <span>{tr('STAGE 02 // SUBMISSIONS OPEN')}</span>
               </div>
               <h2 className="font-serif-heading text-[22px] font-medium text-ink">
-                Accepting repository submissions until {formatDate(event.submission_deadline)}
+                {tr('Accepting repository submissions until')}{' '}{formatDate(event.submission_deadline)}
               </h2>
               <p className="max-w-2xl text-[13px] text-muted">
-                At the deadline SkillProof records the latest commit SHA of every repository and judges that exact
-                snapshot. Commits pushed after the cutoff are ignored.
+                {tr('At the deadline SkillProof records the latest commit SHA of every repository and judges that exact snapshot. Commits pushed after the cutoff are ignored.')}
               </p>
             </div>
 
             {!confirmClose ? (
               <Button variant="secondary" onClick={() => setConfirmClose(true)}>
                 <span className="material-symbols-outlined text-[16px]">lock_clock</span>
-                <span>Close and judge now</span>
+                <span>{tr('Close and judge now')}</span>
               </Button>
             ) : (
               <div className="flex flex-wrap items-center gap-2.5 rounded-[4px] border border-bad/30 bg-bad-soft/40 p-3">
                 <span className="text-[13px] font-medium text-ink">
-                  Close submissions and freeze commits now? This cannot be undone.
+                  {tr('Close submissions and freeze commits now? This cannot be undone.')}
                 </span>
                 <Button
                   variant="danger"
@@ -450,14 +450,14 @@ export function EventConsole() {
                     void act(
                       'close',
                       `/api/events/${event.id}/close`,
-                      'Submissions are closed. Judging has started.',
+                      tr('Submissions are closed. Judging has started.'),
                     )
                   }
                 >
-                  {busy === 'close' ? 'Closing…' : 'Yes, close and judge'}
+                  {busy === 'close' ? tr('Closing…') : tr('Yes, close and judge')}
                 </Button>
                 <Button variant="secondary" disabled={!!busy} onClick={() => setConfirmClose(false)}>
-                  Cancel
+                  {tr('Cancel')}
                 </Button>
               </div>
             )}
@@ -468,27 +468,26 @@ export function EventConsole() {
           <div className="space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-3">
-                <Spinner label="Judging in progress" />
+                <Spinner label={tr('Judging in progress')} />
                 <span className="text-[13px] text-ink">
-                  <strong>{done}</strong> of <strong>{submissions.length}</strong> submissions judged. This page updates
-                  automatically every 5 seconds.
+                  <strong>{done}</strong> of <strong>{submissions.length}</strong>{' '}{tr('submissions judged. This page updates automatically every 5 seconds.')}
                 </span>
               </div>
-              <span className="font-mono-code text-[12px] font-bold text-accent">{progressPct}% COMPLETE</span>
+              <span className="font-mono-code text-[12px] font-bold text-accent">{progressPct}{tr('% COMPLETE')}</span>
             </div>
             <ScoreBar value={progressPct} max={100} tone="accent" heightClass="h-2" />
             {canManage && (
               <div className="flex flex-wrap items-center gap-2">
                 {event.judging_paused_at ? (
                   <>
-                    <span className="font-mono-code rounded-[3px] bg-warn px-2 py-0.5 text-[11px] font-bold text-on-warn uppercase">Judging paused</span>
-                    <Button disabled={!!busy} loading={busy === 'resume-all'} onClick={() => void act('resume-all', `/api/events/${event.id}/judging/resume`, 'Judging resumed.')}>
-                      Resume judging
+                    <span className="font-mono-code rounded-[3px] bg-warn px-2 py-0.5 text-[11px] font-bold text-on-warn uppercase">{tr('Judging paused')}</span>
+                    <Button disabled={!!busy} loading={busy === 'resume-all'} onClick={() => void act('resume-all', `/api/events/${event.id}/judging/resume`, tr('Judging resumed.'))}>
+                      {tr('Resume judging')}
                     </Button>
                   </>
                 ) : (
-                  <Button variant="secondary" disabled={!!busy} loading={busy === 'pause-all'} onClick={() => void act('pause-all', `/api/events/${event.id}/judging/pause`, 'Judging paused. Running submissions stop at their next checkpoint.')}>
-                    Pause judging
+                  <Button variant="secondary" disabled={!!busy} loading={busy === 'pause-all'} onClick={() => void act('pause-all', `/api/events/${event.id}/judging/pause`, tr('Judging paused. Running submissions stop at their next checkpoint.'))}>
+                    {tr('Pause judging')}
                   </Button>
                 )}
                 <Button
@@ -498,12 +497,12 @@ export function EventConsole() {
                     void act(
                       'cancel-all',
                       `/api/events/${event.id}/judging/cancel`,
-                      'Judging canceled. The event moved to review; canceled submissions can be judged again.',
-                      `Cancel judging for every submission not judged yet (${submissions.length - done})? The event moves to review and you can judge them again later.`,
+                      tr('Judging canceled. The event moved to review; canceled submissions can be judged again.'),
+                      tr('Cancel judging for every submission not judged yet ({n})? The event moves to review and you can judge them again later.', { n: submissions.length - done }),
                     )
                   }
                 >
-                  Cancel judging
+                  {tr('Cancel judging')}
                 </Button>
               </div>
             )}
@@ -514,21 +513,20 @@ export function EventConsole() {
           <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
             <div className="space-y-1">
               <div className="font-mono-code text-[11px] font-bold text-warn uppercase">
-                STAGE 03 // ORGANIZER &amp; JUDGE CALIBRATION
+                {tr('STAGE 03 // ORGANIZER & JUDGE CALIBRATION')}
               </div>
               <h2 className="font-serif-heading text-[22px] font-medium text-ink">
-                AI judging has finished{failed > 0 ? ` (${failed} failed)` : ''} — Ready for score review
+                {tr('AI judging has finished')}{failed > 0 ? ` (${failed} failed)` : ''}{' '}{tr('— Ready for score review')}
               </h2>
               <p className="max-w-2xl text-[13px] text-muted">
-                Click any team below to open the Judge Workspace, inspect the cited files, override any criterion score
-                you disagree with, and then publish the final standings. Participants see nothing until you publish.
+                {tr('Click any team below to open the Judge Workspace, inspect the cited files, override any criterion score you disagree with, and then publish the final standings. Participants see nothing until you publish.')}
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2.5">
               {submissions[0] && (
                 <Link to={`/org/events/${event.id}/s/${submissions[0].id}`} className={linkButtonSecondary}>
                   <span className="material-symbols-outlined text-[16px]">gavel</span>
-                  <span>Calibrate in Judge Workspace</span>
+                  <span>{tr('Calibrate in Judge Workspace')}</span>
                 </Link>
               )}
               <Button
@@ -537,12 +535,12 @@ export function EventConsole() {
                   void act(
                     'publish',
                     `/api/events/${event.id}/publish`,
-                    'Results are published. Participants can see them now.',
+                    tr('Results are published. Participants can see them now.'),
                   )
                 }
               >
                 <span className="material-symbols-outlined text-[17px]">verified</span>
-                <span>{busy === 'publish' ? 'Publishing…' : 'Publish results'}</span>
+                <span>{busy === 'publish' ? tr('Publishing…') : tr('Publish results')}</span>
               </Button>
             </div>
           </div>
@@ -554,16 +552,15 @@ export function EventConsole() {
               <span className="material-symbols-outlined text-[24px] text-good">verified</span>
               <div>
                 <h2 className="font-serif-heading text-[20px] font-medium text-ink">
-                  Official standings are published
+                  {tr('Official standings are published')}
                 </h2>
                 <p className="text-[13px] text-muted">
-                  Published {event.published_at ? formatDate(event.published_at) : ''}. Participants can now inspect
-                  their rubric breakdown, feedback, and leaderboard rank.
+                  {tr('Published')}{' '}{event.published_at ? formatDate(event.published_at) : ''}{tr('. Participants can now inspect their rubric breakdown, feedback, and leaderboard rank.')}
                 </p>
               </div>
             </div>
             <Link to={`/e/${event.slug}`} className={linkButtonSecondary}>
-              View Public Leaderboard →
+              {tr('View Public Leaderboard →')}
             </Link>
           </div>
         )}
@@ -579,9 +576,9 @@ export function EventConsole() {
         <NumberedSectionCard
           number="FS"
           icon="warning"
-          title="Forensic Similarity & Duplicate Signals"
-          subtitle="These are automated signals for human judges to inspect, not automatic disqualifications."
-          sectionTag={`${data.similarity_flags.length} SIGNALS DETECTED`}
+          title={tr('Forensic Similarity & Duplicate Signals')}
+          subtitle={tr('These are automated signals for human judges to inspect, not automatic disqualifications.')}
+          sectionTag={tr('{n} SIGNALS DETECTED', { n: data.similarity_flags.length })}
           theme="warn"
         >
           <ul className="space-y-2.5">
@@ -612,7 +609,7 @@ export function EventConsole() {
                     to={`/org/events/${event.id}/compare?a=${f.submission_a}&b=${f.submission_b}&flag=${f.id}`}
                     className="btn-tactile font-mono-code inline-flex items-center gap-1 rounded-[3px] border border-warn/40 bg-surface px-2.5 py-1 text-[11px] font-semibold text-warn hover:bg-warn hover:text-on-warn"
                   >
-                    <span>Compare Side-by-Side</span>
+                    <span>{tr('Compare Side-by-Side')}</span>
                     <span>→</span>
                   </Link>
                 </div>
@@ -625,10 +622,10 @@ export function EventConsole() {
       {/* 6. Submissions & Official Leaderboard Table */}
       <section className="space-y-4 rounded-[6px] border border-line bg-surface p-6">
         <SectionHeader
-          eyebrow={ranked ? 'RANKED RESULTS' : 'LIVE SUBMISSIONS'}
+          eyebrow={ranked ? tr('RANKED RESULTS') : tr('LIVE SUBMISSIONS')}
           eyebrowTone="accent"
-          title={ranked ? 'Leaderboard & Adjudication Docket' : 'Cohort Submissions'}
-          subtitle="Click any team to open the 3-column Judge Workspace with full repository analysis, rubric sliders, and voice defense evidence."
+          title={ranked ? tr('Leaderboard & Adjudication Docket') : tr('Cohort Submissions')}
+          subtitle={tr('Click any team to open the 3-column Judge Workspace with full repository analysis, rubric sliders, and voice defense evidence.')}
           rightSlot={
             <div className="relative">
               <span className="material-symbols-outlined pointer-events-none absolute top-2 left-2.5 text-[16px] text-muted">
@@ -637,7 +634,7 @@ export function EventConsole() {
               <Input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Filter team, author, SHA…"
+                placeholder={tr('Filter team, author, SHA…')}
                 className="h-9 w-56 bg-paper pl-8 text-[12px]"
               />
             </div>
@@ -646,17 +643,17 @@ export function EventConsole() {
 
         {filteredSubmissions.length === 0 ? (
           <div className="space-y-3 py-8 text-center">
-            <p className="text-[14px] font-semibold text-ink">{submissions.length === 0 ? 'No submissions yet' : 'No submissions match your search'}</p>
+            <p className="text-[14px] font-semibold text-ink">{submissions.length === 0 ? tr('No submissions yet') : tr('No submissions match your search')}</p>
             <p className="mx-auto max-w-md text-[13px] text-muted">
               {submissions.length === 0
                 ? event.status === 'draft'
-                  ? 'Open the event so participants can join and submit their repositories.'
-                  : 'Share the event link: participants join and submit a GitHub repository before the deadline.'
-                : 'Clear the search to see every submission.'}
+                  ? tr('Open the event so participants can join and submit their repositories.')
+                  : tr('Share the event link: participants join and submit a GitHub repository before the deadline.')
+                : tr('Clear the search to see every submission.')}
             </p>
             {submissions.length === 0 && event.status !== 'draft' && (
               <div className="flex justify-center">
-                <CopyLinkButton value={link} label="Copy event link" />
+                <CopyLinkButton value={link} label={tr('Copy event link')} />
               </div>
             )}
           </div>
@@ -666,12 +663,12 @@ export function EventConsole() {
               <thead className="font-mono-code border-b border-line bg-paper text-[11px] tracking-wider text-muted uppercase">
                 <tr>
                   {ranked && <th className="px-4 py-3">#</th>}
-                  <th className="px-4 py-3">Team &amp; Author</th>
-                  <th className="px-4 py-3">Repository &amp; Commit</th>
-                  <th className="px-4 py-3">Pipeline Status</th>
-                  <th className="px-4 py-3 text-right">Rubric Score</th>
-                  {event.interviews_enabled && <th className="px-4 py-3 text-right">Ownership</th>}
-                  <th className="px-4 py-3 text-right">Actions</th>
+                  <th className="px-4 py-3">{tr('Team & Author')}</th>
+                  <th className="px-4 py-3">{tr('Repository & Commit')}</th>
+                  <th className="px-4 py-3">{tr('Pipeline Status')}</th>
+                  <th className="px-4 py-3 text-right">{tr('Rubric Score')}</th>
+                  {event.interviews_enabled && <th className="px-4 py-3 text-right">{tr('Ownership')}</th>}
+                  <th className="px-4 py-3 text-right">{tr('Actions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -720,7 +717,7 @@ export function EventConsole() {
                                 @{s.locked_commit_sha.slice(0, 7)}
                               </code>
                             )}
-                            {flagged.has(s.id) && <Badge tone="warn">Check</Badge>}
+                            {flagged.has(s.id) && <Badge tone="warn">{tr('Check')}</Badge>}
                           </div>
                         </td>
                         <td className="px-4 py-3.5">
@@ -738,7 +735,7 @@ export function EventConsole() {
                                 aria-expanded={expanded}
                                 onClick={() => toggleSteps(s.id)}
                               >
-                                {expanded ? 'Hide steps' : `View ${s.step_count} steps`}
+                                {expanded ? tr('Hide steps') : tr('View {n} steps', { n: s.step_count })}
                               </button>
                             )}
                           </div>
@@ -752,12 +749,12 @@ export function EventConsole() {
                             <div className="font-mono-code mt-1 max-w-xs text-[11px] text-muted">
                               {latest ? (
                                 <>
-                                  Step {s.step_count}: {latest.text}
+                                  {tr('Step')}{' '}{s.step_count}: {latest.text}
                                 </>
                               ) : s.status === 'queued' ? (
-                                'Waiting for a free slot. Submissions are judged a few at a time.'
+                                tr('Waiting for a free slot. Submissions are judged a few at a time.')
                               ) : (
-                                'Starting…'
+                                tr('Starting…')
                               )}
                             </div>
                           )}
@@ -800,7 +797,7 @@ export function EventConsole() {
                               to={`/org/events/${event.id}/s/${s.id}`}
                               className="btn-tactile font-mono-code inline-flex items-center gap-1 rounded-[4px] border border-line bg-surface px-2.5 py-1 text-[11px] font-semibold text-ink hover:border-accent hover:text-accent"
                             >
-                              <span>Judge</span>
+                              <span>{tr('Judge')}</span>
                               <span>→</span>
                             </Link>
                           </div>
@@ -817,7 +814,7 @@ export function EventConsole() {
                               to={`/org/events/${event.id}/s/${s.id}`}
                               className="font-mono-code mt-2 inline-block text-[11px] font-semibold text-accent hover:underline"
                             >
-                              Open the Judge Workspace for the full history and the AI&apos;s reasoning →
+                              {tr('Open the Judge Workspace for the full history and the AI\'s reasoning →')}
                             </Link>
                           </td>
                         </tr>
@@ -832,10 +829,10 @@ export function EventConsole() {
       </section>
 
       <LedgerAnchorBanner
-        badge="COMMIT-LOCKED AUDIT"
-        meta={`EVENT ID: ${event.id.slice(0, 8).toUpperCase()} // ${event.rubric_json.length} RUBRIC VECTORS`}
-        title="Frozen Commits & Override Trail"
-        description="Every AI score includes cited repository files, and every manual judge override is tracked with user attribution and timestamp."
+        badge={tr('COMMIT-LOCKED AUDIT')}
+        meta={tr('EVENT ID: {id} // {n} RUBRIC VECTORS', { id: event.id.slice(0, 8).toUpperCase(), n: event.rubric_json.length })}
+        title={tr('Frozen Commits & Override Trail')}
+        description={tr('Every AI score includes cited repository files, and every manual judge override is tracked with user attribution and timestamp.')}
       />
     </div>
   );

@@ -1,3 +1,4 @@
+import { tr, trn } from '../i18n';
 import { useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { one, type ReportView } from '../components/Report';
@@ -104,13 +105,13 @@ export function PublicProfile() {
     a.download = `${profile.slug}-skillproof-dossier.json`;
     a.click();
     URL.revokeObjectURL(url);
-    toast.success('Exported the dossier as JSON.');
+    toast.success(tr('Exported the dossier as JSON.'));
   }
 
   return (
     <div className="space-y-8">
       <PrintMasthead
-        kind="Public candidate dossier"
+        kind={tr('Public candidate dossier')}
         name={profile.display_name || profile.slug}
         repo={profile.github_login ? `github.com/${profile.github_login}` : null}
         date={new Date().toISOString()}
@@ -121,13 +122,13 @@ export function PublicProfile() {
         <div className="flex flex-wrap items-center gap-3">
           <div className="font-mono-code flex items-center gap-2 rounded-[4px] border border-accent/40 bg-accent/20 px-3 py-1.5 text-[11px] font-bold tracking-wider text-accent-soft">
             <span className="material-symbols-outlined text-[16px] text-accent">verified_user</span>
-            <span>PUBLIC DOSSIER // /P/{profile.slug.toUpperCase()}</span>
+            <span>{tr('PUBLIC DOSSIER // /P/')}{profile.slug.toUpperCase()}</span>
           </div>
           <span className="hidden text-white/30 sm:inline">|</span>
           <div className="flex items-center gap-2">
             <LiveDot tone="mint" />
             <span className="text-[12px] font-medium text-dark-ink sm:text-[13px]">
-              Public Candidate Verification Dossier • Read-Only Recruiter Access
+              {tr('Public Candidate Verification Dossier • Read-Only Recruiter Access')}
             </span>
           </div>
         </div>
@@ -139,16 +140,16 @@ export function PublicProfile() {
             className="btn-tactile font-mono-code flex cursor-pointer items-center gap-1.5 rounded-[4px] border border-white/15 bg-white/10 px-3 py-1.5 text-[11px] font-medium text-white hover:bg-white/20"
           >
             <span className="material-symbols-outlined text-[15px] text-accent-soft">picture_as_pdf</span>
-            <span>Print / Save PDF</span>
+            <span>{tr('Print / Save PDF')}</span>
           </button>
 
           <CopyLinkButton
             value={window.location.href}
-            label="Copy Dossier Link"
-            copiedLabel="Copied Link!"
+            label={tr('Copy Dossier Link')}
+            copiedLabel={tr('Copied Link!')}
             icon="link"
             variant="dark"
-            onCopied={() => toast.success('Dossier link copied to clipboard.')}
+            onCopied={() => toast.success(tr('Dossier link copied to clipboard.'))}
           />
 
           <a
@@ -156,7 +157,7 @@ export function PublicProfile() {
             className="btn-tactile font-mono-code flex items-center gap-1.5 rounded-[4px] border border-accent bg-accent px-3 py-1.5 text-[11px] font-semibold text-on-accent hover:bg-accent-hover"
           >
             <span className="material-symbols-outlined text-[15px]">token</span>
-            <span>Verification Standard</span>
+            <span>{tr('Verification Standard')}</span>
           </a>
         </div>
       </DarkBanner>
@@ -167,34 +168,34 @@ export function PublicProfile() {
           <div>
             <div className="mb-3 flex flex-wrap items-center gap-2">
               <Badge tone="good" dot>
-                INTERVIEWED BY SKILLPROOF
+                {tr('INTERVIEWED BY SKILLPROOF')}
               </Badge>
-              <Badge>HANDLE: /p/{profile.slug}</Badge>
-              <Badge tone="accent">COMMIT-ANCHORED EVIDENCE</Badge>
+              <Badge>{tr('HANDLE: /p/')}{profile.slug}</Badge>
+              <Badge tone="accent">{tr('COMMIT-ANCHORED EVIDENCE')}</Badge>
             </div>
 
             <div className="mt-1 flex items-center gap-2.5">
               <h1 className="font-serif-heading text-[32px] leading-tight font-medium tracking-tight text-ink sm:text-[38px]">
                 {profile.display_name}
               </h1>
-              <span className="material-symbols-outlined text-[26px] text-accent" title="Verified SkillProof Candidate">
+              <span className="material-symbols-outlined text-[26px] text-accent" title={tr('Verified SkillProof Candidate')}>
                 verified
               </span>
             </div>
 
             <p className="mt-1.5 text-[15px] leading-[23px] text-muted sm:text-[16px]">
-              {profile.headline || 'Software Engineering Candidate • Verified Repository & Oral Defense Dossier'}
+              {profile.headline || tr('Software Engineering Candidate • Verified Repository & Oral Defense Dossier')}
             </p>
 
             {/* Candidate Metadata Grid Strip */}
             <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
               <MetricTile
-                label="Dossier Slug"
+                label={tr('Dossier Slug')}
                 value={profile.slug}
                 valueClassName="font-mono-code truncate text-[12px] font-semibold text-ink"
               />
               <MetricTile
-                label="GitHub Origin"
+                label={tr('GitHub Origin')}
                 value={
                   githubHandle ? (
                     <a
@@ -206,18 +207,18 @@ export function PublicProfile() {
                       @{githubHandle}
                     </a>
                   ) : (
-                    'Verified Author'
+                    tr('Verified Author')
                   )
                 }
                 valueClassName="font-mono-code truncate text-[12px] font-semibold text-ink"
               />
               <MetricTile
-                label="Oral Exams"
-                value={`${verified.length} ${verified.length === 1 ? 'Session' : 'Sessions'}`}
+                label={tr('Oral Exams')}
+                value={trn('{count} Session', '{count} Sessions', verified.length)}
                 valueClassName="font-mono-code text-[12px] font-semibold text-ink"
               />
               <MetricTile
-                label="Latest Audit"
+                label={tr('Latest Audit')}
                 value={verified[0] ? new Date(verified[0].created_at).toLocaleDateString() : '—'}
                 valueClassName="font-mono-code truncate text-[12px] font-semibold text-ink"
               />
@@ -227,11 +228,11 @@ export function PublicProfile() {
           <div className="mt-6 flex flex-col justify-between gap-2 rounded-[4px] border border-good/30 bg-good-soft/65 px-4 py-2.5 sm:flex-row sm:items-center">
             <span className="font-mono-code flex items-center gap-1.5 text-[11px] font-semibold tracking-wider text-good uppercase">
               <span className="material-symbols-outlined text-[16px]">shield_lock</span>
-              RECRUITER DISCLOSURE STATUS
+              {tr('RECRUITER DISCLOSURE STATUS')}
             </span>
             <span className="font-mono-code flex items-center gap-1.5 text-[11px] font-bold text-good">
               <LiveDot tone="good" />
-              Quotes from the candidate's own interview
+              {tr('Quotes from the candidate\'s own interview')}
             </span>
           </div>
         </div>
@@ -241,10 +242,10 @@ export function PublicProfile() {
           <div>
             <div className="mb-4 flex items-center justify-between border-b border-line pb-3">
               <span className="font-mono-code text-[11px] font-semibold tracking-wider text-muted uppercase">
-                Aggregate Verification Score
+                {tr('Aggregate Verification Score')}
               </span>
               <Badge tone={avgScore != null ? scoreTone(avgScore, 100) : 'neutral'} dot>
-                {latestReport ? `${latestReport.confidence.toUpperCase()} CONFIDENCE` : 'AWAITING RUNS'}
+                {latestReport ? tr('{level} CONFIDENCE', { level: latestReport.confidence.toUpperCase() }) : tr('AWAITING RUNS')}
               </Badge>
             </div>
 
@@ -257,15 +258,15 @@ export function PublicProfile() {
               </div>
               <span className="font-mono-code inline-flex items-center gap-1 rounded-[3px] border border-good/30 bg-good-soft px-2 py-1 text-[11px] font-bold text-good-ink">
                 <span className="material-symbols-outlined text-[14px]">psychology</span>
-                CODE + VOICE
+                {tr('CODE + VOICE')}
               </span>
             </div>
 
             <div className="mt-4 space-y-1.5">
               <div className="font-mono-code flex justify-between text-[11px]">
-                <span className="text-muted">Ownership from interviews</span>
+                <span className="text-muted">{tr('Ownership from interviews')}</span>
                 <span className="font-bold text-good">
-                  {avgScore != null && avgScore >= 75 ? 'High Distinction' : 'Interview record'}
+                  {avgScore != null && avgScore >= 75 ? tr('High Distinction') : tr('Interview record')}
                 </span>
               </div>
               <ScoreBar value={avgScore} max={100} tone="good" heightClass="h-2" />
@@ -274,11 +275,11 @@ export function PublicProfile() {
             <div className="mt-5 rounded-[4px] border border-line bg-paper p-4 text-[13px] leading-relaxed text-ink">
               <div className="font-mono-code mb-1 flex items-center gap-1.5 text-[11px] font-bold text-good uppercase">
                 <span className="material-symbols-outlined text-[15px]">gavel</span>
-                Examiner Consensus
+                {tr('Examiner Consensus')}
               </div>
               <p className="text-[12px] leading-[19px] text-muted">
                 {latestReport?.summary ||
-                  'Each report below comes from a three-minute live voice interview about the author’s own repository at the frozen commit shown.'}
+                  tr('Each report below comes from a three-minute live voice interview about the author’s own repository at the frozen commit shown.')}
               </p>
             </div>
           </div>
@@ -286,11 +287,11 @@ export function PublicProfile() {
           <div className="font-mono-code mt-5 flex items-center justify-between border-t border-line pt-3 text-[11px] text-muted">
             <span className="flex items-center gap-1.5">
               <LiveDot tone="accent" pulse={false} />
-              3:00 Oral Defense Protocol
+              {tr('3:00 Oral Defense Protocol')}
             </span>
             <span className="flex items-center gap-1.5">
               <LiveDot tone="good" pulse={false} />
-              Judged on a fixed commit
+              {tr('Judged on a fixed commit')}
             </span>
           </div>
         </div>
@@ -304,14 +305,14 @@ export function PublicProfile() {
           </div>
           <div>
             <h2 className="font-serif-heading text-[20px] leading-none font-medium text-ink">
-              Interview history
+              {tr('Interview history')}
             </h2>
             <span className="mt-1 inline-block text-[12px] text-muted">
-              Audited GitHub repositories with verbatim oral defense citations
+              {tr('Audited GitHub repositories with verbatim oral defense citations')}
             </span>
           </div>
           <span className="font-mono-code rounded-[3px] border border-line bg-paper px-2.5 py-1 text-[11px] font-semibold text-ink">
-            {verified.length} {verified.length === 1 ? 'Frozen Artifact' : 'Frozen Artifacts'}
+            {verified.length} {verified.length === 1 ? tr('Frozen Artifact') : tr('Frozen Artifacts')}
           </span>
         </div>
 
@@ -321,11 +322,11 @@ export function PublicProfile() {
             onClick={() => setSortBy((prev) => (prev === 'recent' ? 'score' : 'recent'))}
             className="btn-tactile cursor-pointer rounded-[4px] border border-line bg-paper px-3 py-1.5 font-semibold text-ink hover:border-accent"
           >
-            {sortBy === 'recent' ? 'Sort: Recency (Desc) ↕' : 'Sort: Ownership Score (Desc) ↕'}
+            {sortBy === 'recent' ? tr('Sort: Recency (Desc) ↕') : tr('Sort: Ownership Score (Desc) ↕')}
           </button>
           <span className="hidden items-center gap-1 rounded-[3px] border border-good/30 bg-good-soft px-2.5 py-1.5 font-semibold text-good-ink sm:flex">
             <span className="material-symbols-outlined text-[14px]">check_circle</span>
-            From transcripts
+            {tr('From transcripts')}
           </span>
         </div>
       </div>
@@ -333,9 +334,9 @@ export function PublicProfile() {
       {/* 4. Repository Artifact Stack */}
       {sortedVerified.length === 0 ? (
         <div className="rounded-[6px] border border-line bg-surface p-10 text-center">
-          <div className="font-serif-heading text-[20px] font-medium text-ink">No verified interviews published yet</div>
+          <div className="font-serif-heading text-[20px] font-medium text-ink">{tr('No verified interviews published yet')}</div>
           <p className="mt-1 text-[13px] text-muted">
-            Completed 3-minute voice interviews will appear here automatically once evaluated.
+            {tr('Completed 3-minute voice interviews will appear here automatically once evaluated.')}
           </p>
         </div>
       ) : (
@@ -365,11 +366,11 @@ export function PublicProfile() {
                         {i.repos.owner}/{i.repos.name}
                       </a>
                     ) : (
-                      <span className="font-mono-code text-[15px] font-bold text-ink">Verified Repository</span>
+                      <span className="font-mono-code text-[15px] font-bold text-ink">{tr('Verified Repository')}</span>
                     )}
                     {sha && (
                       <span className="font-mono-code rounded-[3px] border border-line bg-surface px-2 py-0.5 text-[11px] font-semibold text-muted">
-                        commit @{sha.slice(0, 7)}
+                        {tr('commit @')}{sha.slice(0, 7)}
                       </span>
                     )}
                     <span className="font-mono-code rounded-[3px] border border-line bg-surface px-2 py-0.5 text-[11px] text-muted">
@@ -378,9 +379,9 @@ export function PublicProfile() {
                   </div>
 
                   <div className="flex flex-wrap items-center gap-3">
-                    <span className="font-mono-code text-[11px] text-muted">Frozen: {formatDate(i.created_at)}</span>
+                    <span className="font-mono-code text-[11px] text-muted">{tr('Frozen:')}{' '}{formatDate(i.created_at)}</span>
                     <span className={`font-mono-code rounded-[4px] px-3 py-1 text-[11px] font-bold ${theme.badgeBg}`}>
-                      {report.ownership_score} / 100 OWNERSHIP • {report.confidence.toUpperCase()} CONFIDENCE
+                      {report.ownership_score}{' '}{tr('/ 100 OWNERSHIP •')}{' '}{report.confidence.toUpperCase()}{' '}{tr('CONFIDENCE')}
                     </span>
                   </div>
                 </div>
@@ -389,7 +390,7 @@ export function PublicProfile() {
                   {report.skills_json.length > 0 && (
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="font-mono-code mr-1 text-[11px] font-bold tracking-wider text-muted uppercase">
-                        Evaluated Dimensions:
+                        {tr('Evaluated Dimensions:')}
                       </span>
                       {report.skills_json.map((s) => (
                         <span
@@ -416,7 +417,7 @@ export function PublicProfile() {
 
                   <div className={`rounded-r-[4px] border border-line border-l-[4px] p-4 text-[13px] leading-relaxed text-ink ${theme.noteBorder}`}>
                     <strong className={`font-mono-code mr-2 text-[11px] font-bold tracking-wider uppercase ${theme.noteTitle}`}>
-                      Examiner Synthesis:
+                      {tr('Examiner Synthesis:')}
                     </strong>
                     <span>{report.summary}</span>
                   </div>
@@ -440,12 +441,12 @@ export function PublicProfile() {
                           {s.evidence_quote ? (
                             <EditorialQuoteBlock
                               quote={s.evidence_quote}
-                              attribution="Verbatim Oral Defense Excerpt • Confirmed"
+                              attribution={tr('Verbatim Oral Defense Excerpt • Confirmed')}
                               theme={theme.key}
                             />
                           ) : (
                             <p className="text-[12px] text-muted italic">
-                              No direct quote pinned for this dimension during the session.
+                              {tr('No direct quote pinned for this dimension during the session.')}
                             </p>
                           )}
                         </div>
@@ -454,7 +455,7 @@ export function PublicProfile() {
                   )}
 
                   <div className="font-mono-code flex flex-wrap items-center justify-between gap-2 border-t border-line pt-3 text-[11px] text-muted">
-                    <span>ARTIFACT ID: #{i.id.slice(0, 8).toUpperCase()}</span>
+                    <span>{tr('ARTIFACT ID: #')}{i.id.slice(0, 8).toUpperCase()}</span>
                     {i.repos && (
                       <a
                         href={i.repos.url}
@@ -462,7 +463,7 @@ export function PublicProfile() {
                         rel="noreferrer"
                         className="font-semibold text-accent hover:underline"
                       >
-                        Inspect Source Repository on GitHub ↗
+                        {tr('Inspect Source Repository on GitHub ↗')}
                       </a>
                     )}
                   </div>
@@ -480,33 +481,31 @@ export function PublicProfile() {
             <div className="flex flex-wrap items-center gap-2">
               <span className="material-symbols-outlined text-[20px] text-warn-on-dark">verified</span>
               <span className="font-mono-code text-[11px] font-bold tracking-widest text-warn-on-dark uppercase">
-                How SkillProof checks
+                {tr('How SkillProof checks')}
               </span>
               <span className="font-mono-code rounded-[3px] border border-warn-on-dark/30 bg-warn-on-dark/15 px-2 py-0.5 text-[10px] text-warn-on-dark">
-                COMMIT-LOCKED
+                {tr('COMMIT-LOCKED')}
               </span>
             </div>
 
             <h3 className="font-serif-heading text-[24px] font-medium text-white sm:text-[28px]">
-              Code Reading &amp; Voice Interview
+              {tr('Code Reading & Voice Interview')}
             </h3>
 
             <p className="max-w-2xl text-[13px] leading-relaxed text-dark-muted sm:text-[14px]">
-              Every report on this dossier is produced by selective Git tree analysis and a live 3-minute Gemini voice
-              interview about the candidate&apos;s own repository. The question plan and expected points never leave the
-              server, and every skill rating is backed by the candidate&apos;s verbatim spoken words.
+              {tr('Every report on this dossier is produced by selective Git tree analysis and a live 3-minute Gemini voice interview about the candidate\'s own repository. The question plan and expected points never leave the server, and every skill rating is backed by the candidate\'s verbatim spoken words.')}
             </p>
 
             <div className="font-mono-code flex flex-wrap items-center gap-3 pt-1 text-[11px] text-dark-muted">
               <div className="rounded-[4px] border border-dark-hairline bg-dark-surface px-3 py-1.5">
-                Dossier Slug: <code className="font-semibold text-warn-on-dark">/p/{profile.slug}</code>
+                {tr('Dossier Slug:')}{' '}<code className="font-semibold text-warn-on-dark">/p/{profile.slug}</code>
               </div>
               <div className="rounded-[4px] border border-dark-hairline bg-dark-surface px-3 py-1.5">
-                Completed interviews: <code className="font-semibold text-accent-soft">{verified.length}</code>
+                {tr('Completed interviews:')}{' '}<code className="font-semibold text-accent-soft">{verified.length}</code>
               </div>
               <span className="flex items-center gap-1.5 rounded-[4px] border border-good/40 bg-good/20 px-3 py-1.5 font-semibold text-good-on-dark">
                 <span className="material-symbols-outlined text-[14px]">lock</span>
-                Answer key stays on the server
+                {tr('Answer key stays on the server')}
               </span>
             </div>
           </div>
@@ -514,19 +513,19 @@ export function PublicProfile() {
           <div className="no-print flex flex-col gap-3.5 rounded-[6px] border border-line bg-surface p-6 text-ink lg:col-span-5">
             <div className="flex items-center justify-between border-b border-line pb-2.5">
               <span className="font-mono-code text-[11px] font-bold tracking-wider text-muted uppercase">
-                Recruiter Actions for {profile.display_name}
+                {tr('Recruiter Actions for')}{' '}{profile.display_name}
               </span>
-              <Badge tone="accent">READ-ONLY</Badge>
+              <Badge tone="accent">{tr('READ-ONLY')}</Badge>
             </div>
 
             <CopyLinkButton
               value={window.location.href}
-              label="Copy Direct Candidate Dossier Link"
-              copiedLabel="Copied Dossier URL!"
+              label={tr('Copy Direct Candidate Dossier Link')}
+              copiedLabel={tr('Copied Dossier URL!')}
               icon="link"
               variant="primary"
               className="w-full py-2.5 text-[12px]"
-              onCopied={() => toast.success('Dossier link copied to clipboard.')}
+              onCopied={() => toast.success(tr('Dossier link copied to clipboard.'))}
             />
 
             <div className="grid grid-cols-2 gap-2.5">
@@ -535,21 +534,21 @@ export function PublicProfile() {
                 onClick={exportJsonAttestation}
                 className="btn-tactile font-mono-code cursor-pointer rounded-[4px] border border-line bg-paper px-3 py-2 text-center text-[11px] font-semibold text-ink hover:border-muted hover:bg-surface"
               >
-                Export JSON Payload
+                {tr('Export JSON Payload')}
               </button>
               <button
                 type="button"
                 onClick={() => window.print()}
                 className="btn-tactile font-mono-code cursor-pointer rounded-[4px] border border-line bg-paper px-3 py-2 text-center text-[11px] font-semibold text-ink hover:border-muted hover:bg-surface"
               >
-                Print / Export PDF
+                {tr('Print / Export PDF')}
               </button>
             </div>
 
             <div className="flex items-center justify-center gap-2 border-t border-line pt-2.5">
               <LiveDot tone="good" pulse={false} />
               <p className="font-mono-code text-[11px] text-muted">
-                Verified by <span className="font-semibold text-ink">SkillProof Audit Engine</span>
+                {tr('Verified by')}{' '}<span className="font-semibold text-ink">{tr('SkillProof Audit Engine')}</span>
               </p>
             </div>
           </div>

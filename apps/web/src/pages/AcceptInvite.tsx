@@ -1,3 +1,4 @@
+import { tr } from '../i18n';
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Button, DossierPageHeader, Notice, linkButtonSecondary } from '../components/shared';
@@ -21,7 +22,7 @@ export function AcceptInvite() {
     try {
       await api(`/api/invitations/accept`, { body: { token } });
       await refresh();
-      toast.success('You joined the organization.');
+      toast.success(tr('You joined the organization.'));
       navigate('/org/events');
     } catch (err) {
       setError(errorMessage(err));
@@ -33,19 +34,19 @@ export function AcceptInvite() {
   return (
     <div className="mx-auto max-w-xl space-y-6">
       <DossierPageHeader
-        eyebrow="ORGANIZATION INVITATION"
-        title="Join an organization"
-        subtitle="Accept to get the role you were invited with. The invitation only works for the email it was sent to."
+        eyebrow={tr('ORGANIZATION INVITATION')}
+        title={tr('Join an organization')}
+        subtitle={tr('Accept to get the role you were invited with. The invitation only works for the email it was sent to.')}
       />
       <p className="text-[14px] text-muted">
-        You are signed in as <strong className="text-ink">{me?.email ?? 'unknown'}</strong>.
+        {tr('You are signed in as')}{' '}<strong className="text-ink">{me?.email ?? 'unknown'}</strong>.
       </p>
       {error && <Notice tone="error">{error}</Notice>}
       <div className="flex flex-wrap gap-3">
         <Button onClick={() => void accept()} disabled={busy || !token} loading={busy}>
-          {busy ? 'Joining…' : 'Accept invitation'}
+          {busy ? tr('Joining…') : tr('Accept invitation')}
         </Button>
-        <Link to="/events" className={linkButtonSecondary}>Not now</Link>
+        <Link to="/events" className={linkButtonSecondary}>{tr('Not now')}</Link>
       </div>
     </div>
   );

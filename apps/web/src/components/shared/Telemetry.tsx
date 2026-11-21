@@ -1,3 +1,4 @@
+import { tr } from '../../i18n';
 import type { ReactNode } from 'react';
 
 const TONE_DOT: Record<'good' | 'accent' | 'warn' | 'bad' | 'muted' | 'mint', string> = {
@@ -216,7 +217,7 @@ export function WaveformVisualizer({
 }) {
   if (variant === 'dark') {
     return (
-      <div className="flex h-11 items-center justify-between gap-1 px-1" aria-label="Audio Waveform Visualizer">
+      <div className="flex h-11 items-center justify-between gap-1 px-1" aria-label={tr('Audio Waveform Visualizer')}>
         {bars.map((h, i) => (
           <div
             key={i}
@@ -230,7 +231,7 @@ export function WaveformVisualizer({
 
   return (
     <div
-      aria-label="Microphone Amplitude Visualizer"
+      aria-label={tr('Microphone Amplitude Visualizer')}
       className="flex h-8 items-end justify-between gap-1 rounded-[3px] border border-line bg-accent-soft p-1"
     >
       {bars.map((h, i) => (

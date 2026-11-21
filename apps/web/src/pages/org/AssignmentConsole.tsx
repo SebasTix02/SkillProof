@@ -1,3 +1,4 @@
+import { t, tr } from '../../i18n';
 /**
  * The console of one course assignment (its own screen, not the event console):
  *   /org/courses/:courseId/assignments/:id          status, actions, submissions, groups, missing, similarity
@@ -56,7 +57,7 @@ function useAction(reload: () => unknown) {
   const confirm = useConfirm();
   const [busy, setBusy] = useState<string | null>(null);
   async function act(key: string, path: string, success: string, question?: string, body?: unknown) {
-    if (question && !(await confirm({ title: question, confirmLabel: 'Continue' }))) return;
+    if (question && !(await confirm({ title: question, confirmLabel: tr('Continue') }))) return;
     setBusy(key);
     try {
       await api(path, body === undefined ? { method: 'POST' } : { body });
@@ -93,12 +94,12 @@ export function AssignmentConsole() {
   const groupsReady = groups.filter((g) => g.members.filter((m) => m.status === 'accepted').length >= (a.group_min ?? 1)).length;
 
   const tiles = [
-    { label: 'Submitted', value: `${submissions.length}`, hint: isGroup ? `${groups.length} groups formed` : `of ${a.student_count} students` },
-    { label: 'Graded', value: `${graded.length}`, hint: `${submissions.filter((s) => WORKING.has(s.status)).length} being graded` },
-    { label: 'Average', value: average != null ? average.toFixed(1) : '—', hint: 'out of 10' },
+    { label: tr('Submitted'), value: `${submissions.length}`, hint: isGroup ? tr('{n} groups formed', { n: groups.length }) : tr('of {n} students', { n: a.student_count }) },
+    { label: tr('Graded'), value: `${graded.length}`, hint: tr('{n} being graded', { n: submissions.filter((s) => WORKING.has(s.status)).length }) },
+    { label: tr('Average'), value: average != null ? average.toFixed(1) : '—', hint: tr('out of 10') },
     isGroup
-      ? { label: 'Without a group', value: `${ungrouped.length}`, hint: `${groupsReady} groups can submit` }
-      : { label: 'Missing', value: `${missing.length}`, hint: 'no submission yet' },
+      ? { label: tr('Without a group'), value: `${ungrouped.length}`, hint: tr('{n} groups can submit', { n: groupsReady }) }
+      : { label: tr('Missing'), value: `${missing.length}`, hint: tr('no submission yet') },
   ];
 
   return (
@@ -107,7 +108,7 @@ export function AssignmentConsole() {
         eyebrow={
           <>
             <Link to={`/org/courses/${course.id}/assignments`} className="text-accent-ink hover:underline">
-              ← {course.name.toUpperCase()} · ASSIGNMENTS
+              ← {course.name.toUpperCase()}{' '}{tr('· ASSIGNMENTS')}
             </Link>
             <Badge tone={COURSE_STATUS_TONE[a.status]}>{STATUS_LABEL[a.status]}</Badge>
             <span className="text-muted">{groupSizeLabel(a)}</span>
@@ -116,8 +117,8 @@ export function AssignmentConsole() {
         title={a.title}
         subtitle={
           <>
-            Opens {formatDate(a.opens_at)} · due {formatDate(a.due_at)}
-            {isGroup && a.groups_close_at && ` · groups close ${formatDate(a.groups_close_at)}`}
+            {tr('Opens')}{' '}{formatDate(a.opens_at)}{' '}{tr('· due')}{' '}{formatDate(a.due_at)}
+            {isGroup && a.groups_close_at && ` · ${tr('groups close {date}', { date: formatDate(a.groups_close_at) })}`}
             {a.interviews_enabled && ' · voice interview after grading'}
           </>
         }
@@ -127,12 +128,12 @@ export function AssignmentConsole() {
               {(a.status === 'draft' || a.status === 'open') && !editing && (
                 <Button variant="secondary" onClick={() => setEditing(true)}>
                   <span className="material-symbols-outlined text-[17px]">edit</span>
-                  <span>Edit</span>
+                  <span>{tr('Edit')}</span>
                 </Button>
               )}
               {a.status === 'draft' && (
-                <Button loading={busy === 'open'} disabled={!!busy} onClick={() => void act('open', `/api/assignments/${a.id}/open`, 'The assignment is open to the students on the roster.')}>
-                  Open to students
+                <Button loading={busy === 'open'} disabled={!!busy} onClick={() => void act('open', `/api/assignments/${a.id}/open`, tr('The assignment is open to the students on the roster.'))}>
+                  {tr('Open to students')}
                 </Button>
               )}
               {a.status === 'open' && (
@@ -143,22 +144,22 @@ export function AssignmentConsole() {
                     void act(
                       'close',
                       `/api/assignments/${a.id}/close`,
-                      'Submissions closed. Grading started.',
-                      `Close ${a.title} now? Every repository is frozen at its latest commit and grading starts. Students can no longer submit.`,
+                      tr('Submissions closed. Grading started.'),
+                      tr('Close {title} now? Every repository is frozen at its latest commit and grading starts. Students can no longer submit.', { title: a.title }),
                     )
                   }
                 >
-                  Close and grade now
+                  {tr('Close and grade now')}
                 </Button>
               )}
               {a.status === 'judging' &&
                 (a.judging_paused_at ? (
-                  <Button loading={busy === 'resume-all'} disabled={!!busy} onClick={() => void act('resume-all', `/api/assignments/${a.id}/judging/resume`, 'Grading resumed.')}>
-                    Resume grading
+                  <Button loading={busy === 'resume-all'} disabled={!!busy} onClick={() => void act('resume-all', `/api/assignments/${a.id}/judging/resume`, tr('Grading resumed.'))}>
+                    {tr('Resume grading')}
                   </Button>
                 ) : (
-                  <Button variant="secondary" loading={busy === 'pause-all'} disabled={!!busy} onClick={() => void act('pause-all', `/api/assignments/${a.id}/judging/pause`, 'Grading paused. Running submissions stop at their next checkpoint.')}>
-                    Pause grading
+                  <Button variant="secondary" loading={busy === 'pause-all'} disabled={!!busy} onClick={() => void act('pause-all', `/api/assignments/${a.id}/judging/pause`, tr('Grading paused. Running submissions stop at their next checkpoint.'))}>
+                    {tr('Pause grading')}
                   </Button>
                 ))}
               {a.status === 'judging' && (
@@ -167,19 +168,19 @@ export function AssignmentConsole() {
                   loading={busy === 'cancel-all'}
                   disabled={!!busy}
                   onClick={() =>
-                    void act('cancel-all', `/api/assignments/${a.id}/judging/cancel`, 'Grading canceled. What was graded stays.', 'Cancel the grading that is left? Graded submissions keep their scores; the rest can be graded again later.')
+                    void act('cancel-all', `/api/assignments/${a.id}/judging/cancel`, tr('Grading canceled. What was graded stays.'), tr('Cancel the grading that is left? Graded submissions keep their scores; the rest can be graded again later.'))
                   }
                 >
-                  Cancel grading
+                  {tr('Cancel grading')}
                 </Button>
               )}
               {a.status === 'review' && (
                 <Button
                   loading={busy === 'publish'}
                   disabled={!!busy}
-                  onClick={() => void act('publish', `/api/assignments/${a.id}/publish`, 'Results published. Students see their grades and feedback.', 'Publish the results? Each student sees their grade and feedback.')}
+                  onClick={() => void act('publish', `/api/assignments/${a.id}/publish`, tr('Results published. Students see their grades and feedback.'), tr('Publish the results? Each student sees their grade and feedback.'))}
                 >
-                  Publish results
+                  {tr('Publish results')}
                 </Button>
               )}
             </div>
@@ -187,7 +188,7 @@ export function AssignmentConsole() {
         }
       />
 
-      {a.judging_paused_at && a.status === 'judging' && <Notice tone="warn">Grading is paused since {formatDate(a.judging_paused_at)}.</Notice>}
+      {a.judging_paused_at && a.status === 'judging' && <Notice tone="warn">{tr('Grading is paused since')}{' '}{formatDate(a.judging_paused_at)}.</Notice>}
 
       {editing && <EditAssignment assignment={a} onDone={() => { setEditing(false); void data.reload(); }} />}
 
@@ -203,10 +204,10 @@ export function AssignmentConsole() {
 
       <TabStrip
         tabs={[
-          { key: 'submissions' as const, label: 'Submissions', count: submissions.length, icon: 'inventory_2' },
-          ...(isGroup ? [{ key: 'groups' as const, label: 'Groups', count: groups.length, icon: 'groups' }] : []),
-          { key: 'missing' as const, label: 'Missing', count: missing.length, icon: 'person_off' },
-          { key: 'similarity' as const, label: 'Similarity', count: flags.length, icon: 'schema' },
+          { key: 'submissions' as const, label: tr('Submissions'), count: submissions.length, icon: 'inventory_2' },
+          ...(isGroup ? [{ key: 'groups' as const, label: tr('Groups'), count: groups.length, icon: 'groups' }] : []),
+          { key: 'missing' as const, label: tr('Missing'), count: missing.length, icon: 'person_off' },
+          { key: 'similarity' as const, label: tr('Similarity'), count: flags.length, icon: 'schema' },
         ]}
         active={tab}
         onChange={setTab}
@@ -220,22 +221,22 @@ export function AssignmentConsole() {
       {tab === 'similarity' && (
         <section className="rounded-[6px] border border-line bg-surface p-5">
           {flags.length === 0 ? (
-            <p className="text-[13px] text-muted">No similarity between submissions was found.</p>
+            <p className="text-[13px] text-muted">{tr('No similarity between submissions was found.')}</p>
           ) : (
             <ul className="space-y-2">
               {flags.map((f) => (
                 <li key={f.id} className="flex flex-wrap items-center gap-2 rounded-[4px] border border-line bg-paper p-3 text-[13px]">
                   <Badge tone="warn">{f.signal.replace(/_/g, ' ')}</Badge>
-                  <strong className="text-ink">{submissions.find((s) => s.id === f.submission_a)?.label ?? 'Submission'}</strong>
+                  <strong className="text-ink">{submissions.find((s) => s.id === f.submission_a)?.label ?? tr('Submission')}</strong>
                   <span className="text-muted">↔</span>
-                  <strong className="text-ink">{submissions.find((s) => s.id === f.submission_b)?.label ?? 'Submission'}</strong>
+                  <strong className="text-ink">{submissions.find((s) => s.id === f.submission_b)?.label ?? tr('Submission')}</strong>
                   {f.explanation && <span className="text-muted">· {f.explanation}</span>}
                 </li>
               ))}
             </ul>
           )}
           <Link to={`/org/integrity?assignment=${a.id}`} className={`${linkButtonSecondary} mt-4`}>
-            Open in Integrity
+            {tr('Open in Integrity')}
           </Link>
         </section>
       )}
@@ -261,7 +262,7 @@ function SubmissionsTable({
   if (rows.length === 0)
     return (
       <section className="rounded-[6px] border border-line bg-surface p-8 text-center text-[13px] text-muted">
-        {a.status === 'draft' ? 'Open the assignment so students can submit.' : 'No submissions yet.'}
+        {a.status === 'draft' ? tr('Open the assignment so students can submit.') : tr('No submissions yet.')}
       </section>
     );
   return (
@@ -269,11 +270,11 @@ function SubmissionsTable({
       <table className="w-full text-left text-[13px]">
         <thead className="font-mono-code bg-paper text-[11px] text-muted uppercase">
           <tr>
-            <th className="px-5 py-2.5 font-semibold">{a.mode === 'group' ? 'Group' : 'Student'}</th>
-            <th className="px-3 py-2.5 font-semibold">Repository</th>
-            <th className="px-3 py-2.5 font-semibold">Status</th>
-            <th className="px-3 py-2.5 text-right font-semibold">Grade</th>
-            {a.interviews_enabled && <th className="px-3 py-2.5 text-right font-semibold">Ownership</th>}
+            <th className="px-5 py-2.5 font-semibold">{a.mode === 'group' ? tr('Group') : tr('Student')}</th>
+            <th className="px-3 py-2.5 font-semibold">{tr('Repository')}</th>
+            <th className="px-3 py-2.5 font-semibold">{tr('Status')}</th>
+            <th className="px-3 py-2.5 text-right font-semibold">{tr('Grade')}</th>
+            {a.interviews_enabled && <th className="px-3 py-2.5 text-right font-semibold">{tr('Ownership')}</th>}
             <th className="px-5 py-2.5" />
           </tr>
         </thead>
@@ -337,7 +338,7 @@ function SubmissionsTable({
                       />
                     )}
                     <Link to={`/org/courses/${courseId}/assignments/${a.id}/s/${s.id}`} className={`${linkButtonSecondary} px-2.5 py-1 text-[11px]`}>
-                      Open
+                      {t('common.open')}
                     </Link>
                   </div>
                 </td>
@@ -351,11 +352,11 @@ function SubmissionsTable({
 }
 
 function MissingList({ people, isGroup }: { people: Person[]; isGroup: boolean }) {
-  if (people.length === 0) return <Notice tone="good">Every student on the roster has {isGroup ? 'a submission through their group' : 'submitted'}.</Notice>;
+  if (people.length === 0) return <Notice tone="good">{tr('Every student on the roster has')}{' '}{isGroup ? tr('a submission through their group') : 'submitted'}.</Notice>;
   return (
     <section className="rounded-[6px] border border-line bg-surface">
       <p className="border-b border-line px-5 py-3 text-[13px] text-muted">
-        Students on the roster {isGroup ? 'whose group has not submitted (or who have no group)' : 'without a submission'}.
+        {tr('Students on the roster')}{' '}{isGroup ? tr('whose group has not submitted (or who have no group)') : tr('without a submission')}.
       </p>
       <ul className="divide-y divide-line">
         {people.map((p) => (
@@ -397,32 +398,32 @@ function GroupsPanel({ assignment: a, groups, ungrouped, canManage, reload }: { 
 
   async function createGroup(e: FormEvent) {
     e.preventDefault();
-    await run('create', () => api(`/api/assignments/${a.id}/groups`, { body: { name: newName.trim(), member_ids: newMembers } }), `Group ${newName.trim()} created.`);
+    await run('create', () => api(`/api/assignments/${a.id}/groups`, { body: { name: newName.trim(), member_ids: newMembers } }), tr('Group {name} created.', { name: newName.trim() }));
     setNewName('');
     setNewMembers([]);
   }
 
   async function remove(g: GroupView, userId: string, name: string) {
-    if (!(await confirm({ title: `Remove ${name} from ${g.name}?`, body: 'They can join or be placed in another group.', confirmLabel: 'Remove' }))) return;
+    if (!(await confirm({ title: tr('Remove {name} from {group}?', { name, group: g.name }), body: tr('They can join or be placed in another group.'), confirmLabel: tr('Remove') }))) return;
     await run(`rm-${g.id}-${userId}`, () => api(`/api/assignment-groups/${g.id}/members/${userId}`, { method: 'DELETE' }), `${name} removed from ${g.name}.`);
   }
 
   return (
     <div className="space-y-6">
       <Notice tone="info">
-        {groupSizeLabel(a)}. Students form groups by inviting classmates until {a.groups_close_at ? formatDate(a.groups_close_at) : 'the due date'}; a group also closes when it first
+        {groupSizeLabel(a)}{tr('. Students form groups by inviting classmates until')}{' '}{a.groups_close_at ? formatDate(a.groups_close_at) : tr('the due date')}; a group also closes when it first
         submits. You can move or place students at any time.
       </Notice>
 
       {ungrouped.length > 0 && (
         <section className="rounded-[6px] border border-warn-ui bg-warn-soft p-4 text-[13px]">
-          <p className="font-semibold text-warn-ink">Without a group ({ungrouped.length})</p>
+          <p className="font-semibold text-warn-ink">{tr('Without a group (')}{ungrouped.length})</p>
           <p className="mt-1 text-ink">{ungrouped.map((p) => p.display_name).join(', ')}</p>
         </section>
       )}
 
       {groups.length === 0 ? (
-        <section className="rounded-[6px] border border-line bg-surface p-8 text-center text-[13px] text-muted">No groups yet.</section>
+        <section className="rounded-[6px] border border-line bg-surface p-8 text-center text-[13px] text-muted">{tr('No groups yet.')}</section>
       ) : (
         <ul className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {groups.map((g) => {
@@ -434,21 +435,21 @@ function GroupsPanel({ assignment: a, groups, ungrouped, canManage, reload }: { 
                   <div>
                     <p className="text-[15px] font-semibold text-ink">{g.name}</p>
                     <p className="text-[12px] text-muted">
-                      {accepted.length}/{a.group_max} members{g.locked_at && ` · closed ${formatDate(g.locked_at)}`}
+                      {accepted.length}/{a.group_max} {tr('members')}{g.locked_at && ` · ${tr('closed {date}', { date: formatDate(g.locked_at) })}`}
                     </p>
                   </div>
-                  <Badge tone={ready ? 'good' : 'warn'}>{ready ? 'Can submit' : 'Too small'}</Badge>
+                  <Badge tone={ready ? 'good' : 'warn'}>{ready ? tr('Can submit') : tr('Too small')}</Badge>
                 </div>
                 <ul className="mt-3 space-y-1.5 text-[13px]">
                   {g.members.map((m) => (
                     <li key={m.user_id} className="flex items-center justify-between gap-2">
                       <span className={m.status === 'invited' ? 'text-muted' : 'text-ink'}>
                         {m.display_name}
-                        {m.status === 'invited' && <span className="ml-1.5 text-[11px]">(invited)</span>}
+                        {m.status === 'invited' && <span className="ml-1.5 text-[11px]">{tr('(invited)')}</span>}
                       </span>
                       {canManage && (
                         <Button variant="ghost" className="px-2 py-0.5 text-[11px]" loading={busy === `rm-${g.id}-${m.user_id}`} disabled={!!busy} onClick={() => void remove(g, m.user_id, m.display_name)}>
-                          Remove
+                          {tr('Remove')}
                         </Button>
                       )}
                     </li>
@@ -456,8 +457,8 @@ function GroupsPanel({ assignment: a, groups, ungrouped, canManage, reload }: { 
                 </ul>
                 {canManage && accepted.length < (a.group_max ?? 0) && everyone.length > 0 && (
                   <div className="mt-3 flex gap-2 border-t border-line pt-3">
-                    <Select aria-label={`Place a student in ${g.name}`} value={placing[g.id] ?? ''} onChange={(e) => setPlacing({ ...placing, [g.id]: e.target.value })} className="h-8 text-[12px]">
-                      <option value="">Place a student…</option>
+                    <Select aria-label={tr('Place a student in {group}', { group: g.name })} value={placing[g.id] ?? ''} onChange={(e) => setPlacing({ ...placing, [g.id]: e.target.value })} className="h-8 text-[12px]">
+                      <option value="">{tr('Place a student…')}</option>
                       {everyone
                         .filter((p) => !accepted.some((m) => m.user_id === p.user_id))
                         .map((p) => (
@@ -472,12 +473,12 @@ function GroupsPanel({ assignment: a, groups, ungrouped, canManage, reload }: { 
                       disabled={!placing[g.id] || !!busy}
                       loading={busy === `place-${g.id}`}
                       onClick={() =>
-                        void run(`place-${g.id}`, () => api(`/api/assignment-groups/${g.id}/place`, { body: { user_id: placing[g.id] } }), `Student placed in ${g.name}.`).then(() =>
+                        void run(`place-${g.id}`, () => api(`/api/assignment-groups/${g.id}/place`, { body: { user_id: placing[g.id] } }), tr('Student placed in {group}.', { group: g.name })).then(() =>
                           setPlacing({ ...placing, [g.id]: '' }),
                         )
                       }
                     >
-                      Place
+                      {tr('Place')}
                     </Button>
                   </div>
                 )}
@@ -488,15 +489,15 @@ function GroupsPanel({ assignment: a, groups, ungrouped, canManage, reload }: { 
       )}
 
       {canManage && (
-        <NumberedSectionCard number="+" icon="group_add" title="New group" subtitle="Create a group and put students in it. Students already in a group are moved." theme="accent">
+        <NumberedSectionCard number="+" icon="group_add" title={tr('New group')} subtitle={tr('Create a group and put students in it. Students already in a group are moved.')} theme="accent">
           <form onSubmit={(e) => void createGroup(e)} className="grid gap-3 md:grid-cols-[1fr_2fr_auto] md:items-end">
-            <Field label="Name">
-              <Input required maxLength={80} value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Team 4" />
+            <Field label={tr('Name')}>
+              <Input required maxLength={80} value={newName} onChange={(e) => setNewName(e.target.value)} placeholder={tr('Team 4')} />
             </Field>
-            <Field label="Members" hint={`Up to ${a.group_max}. Hold Ctrl or ⌘ to pick several.`}>
+            <Field label={tr('Members')} hint={tr('Up to {n}. Hold Ctrl or ⌘ to pick several.', { n: a.group_max })}>
               <select
                 multiple
-                aria-label="Members"
+                aria-label={tr('Members')}
                 value={newMembers}
                 onChange={(e) => setNewMembers([...e.target.selectedOptions].map((o) => o.value).slice(0, a.group_max ?? 20))}
                 className="h-24 w-full rounded-[4px] border border-line-strong bg-surface p-1.5 text-[13px]"
@@ -509,7 +510,7 @@ function GroupsPanel({ assignment: a, groups, ungrouped, canManage, reload }: { 
               </select>
             </Field>
             <Button type="submit" loading={busy === 'create'} disabled={!newName.trim()}>
-              Create group
+              {tr('Create group')}
             </Button>
           </form>
         </NumberedSectionCard>
@@ -549,13 +550,13 @@ function EditAssignment({ assignment: a, onDone }: { assignment: AssignmentView;
       interviews_enabled: form.interviews_enabled,
     });
     if (!parsed.success) {
-      setError(parsed.error.issues[0]?.message ?? 'Check the form.');
+      setError(parsed.error.issues[0]?.message ?? tr('Check the form.'));
       return;
     }
     setBusy(true);
     try {
       await api(`/api/assignments/${a.id}`, { method: 'PATCH', body: parsed.data });
-      toast.success('Assignment updated.');
+      toast.success(tr('Assignment updated.'));
       onDone();
     } catch (err) {
       setError(errorMessage(err));
@@ -564,45 +565,45 @@ function EditAssignment({ assignment: a, onDone }: { assignment: AssignmentView;
   }
 
   return (
-    <NumberedSectionCard number="✎" icon="edit" title="Edit assignment" subtitle="Changes reach the students right away. The kind of work and the group sizes stay as they are." theme="accent">
+    <NumberedSectionCard number="✎" icon="edit" title={tr('Edit assignment')} subtitle={tr('Changes reach the students right away. The kind of work and the group sizes stay as they are.')} theme="accent">
       <form onSubmit={(e) => void save(e)} className="space-y-4">
-        <Field label="Title">
+        <Field label={tr('Title')}>
           <Input required minLength={3} maxLength={120} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
         </Field>
-        <Field label="Instructions">
+        <Field label={tr('Instructions')}>
           <Textarea rows={3} maxLength={4000} value={form.instructions} onChange={(e) => setForm({ ...form, instructions: e.target.value })} />
         </Field>
-        <Field label="Learning goals">
+        <Field label={tr('Learning goals')}>
           <Textarea rows={2} maxLength={2000} value={form.learning_goals} onChange={(e) => setForm({ ...form, learning_goals: e.target.value })} />
         </Field>
         <div className="grid gap-4 md:grid-cols-3">
-          <Field label="Opens" hint={a.status === 'draft' ? undefined : 'Already open.'}>
+          <Field label={tr('Opens')} hint={a.status === 'draft' ? undefined : tr('Already open.')}>
             <Input type="datetime-local" disabled={a.status !== 'draft'} value={form.opens_at} onChange={(e) => setForm({ ...form, opens_at: e.target.value })} />
           </Field>
-          <Field label="Due">
+          <Field label={tr('Due')}>
             <Input type="datetime-local" required value={form.due_at} onChange={(e) => setForm({ ...form, due_at: e.target.value })} />
           </Field>
           {a.mode === 'group' && (
-            <Field label="Groups close" hint="Empty: at the due date.">
+            <Field label={tr('Groups close')} hint={tr('Empty: at the due date.')}>
               <Input type="datetime-local" value={form.group_lock_at} onChange={(e) => setForm({ ...form, group_lock_at: e.target.value })} />
             </Field>
           )}
         </div>
         <div className="flex flex-wrap items-center gap-6">
           <label className="flex items-center gap-2 text-[13px] text-ink">
-            <ToggleSwitch checked={form.unlimited} onChange={(v) => setForm({ ...form, unlimited: v })} /> Unlimited versions
+            <ToggleSwitch checked={form.unlimited} onChange={(v) => setForm({ ...form, unlimited: v })} />{' '}{tr('Unlimited versions')}
           </label>
           {!form.unlimited && (
-            <Input type="number" min={1} max={100} aria-label="Versions allowed" value={form.max_submissions} onChange={(e) => setForm({ ...form, max_submissions: Number(e.target.value) })} className="w-24" />
+            <Input type="number" min={1} max={100} aria-label={tr('Versions allowed')} value={form.max_submissions} onChange={(e) => setForm({ ...form, max_submissions: Number(e.target.value) })} className="w-24" />
           )}
           <label className="flex items-center gap-2 text-[13px] text-ink">
-            <ToggleSwitch checked={form.interviews_enabled} onChange={(v) => setForm({ ...form, interviews_enabled: v })} /> Voice interview
+            <ToggleSwitch checked={form.interviews_enabled} onChange={(v) => setForm({ ...form, interviews_enabled: v })} />{' '}{tr('Voice interview')}
           </label>
         </div>
         {error && <Notice tone="error">{error}</Notice>}
         <div className="flex gap-2">
-          <Button type="submit" loading={busy}>Save changes</Button>
-          <Button type="button" variant="ghost" onClick={onDone}>Cancel</Button>
+          <Button type="submit" loading={busy}>{tr('Save changes')}</Button>
+          <Button type="button" variant="ghost" onClick={onDone}>{tr('Cancel')}</Button>
         </div>
       </form>
     </NumberedSectionCard>
@@ -639,13 +640,13 @@ interface SubmissionDetailResponse {
 }
 
 export const VERDICT_LABEL: Record<string, string> = {
-  clear: 'Cleared',
-  live_defense: 'Live defense required',
-  code_of_conduct: 'Referred to committee',
-  collusion: 'Collusion',
-  direct_plagiarism: 'Direct plagiarism',
-  independent_invention: 'Independent work',
-  starter_template: 'Shared starter code',
+  clear: tr('Cleared'),
+  live_defense: tr('Live defense required'),
+  code_of_conduct: tr('Referred to committee'),
+  collusion: tr('Collusion'),
+  direct_plagiarism: tr('Direct plagiarism'),
+  independent_invention: tr('Independent work'),
+  starter_template: tr('Shared starter code'),
 };
 
 export function AssignmentSubmissionPage() {
@@ -667,7 +668,7 @@ export function AssignmentSubmissionPage() {
   const analysis = one(sub.repo_analyses);
   const latest = sub.assignment_submission_versions.slice().sort((x, y) => y.version_no - x.version_no)[0];
   const repoUrl = latest?.repos?.url ?? null;
-  const label = group?.name ?? student?.display_name ?? 'Submission';
+  const label = group?.name ?? student?.display_name ?? tr('Submission');
   const working = WORKING.has(sub.status);
   const canOverride = canManage && (a.status === 'review' || a.status === 'published');
   const ownershipOf = (userId: string) => {
@@ -690,7 +691,7 @@ export function AssignmentSubmissionPage() {
         title={label}
         subtitle={
           <>
-            {group ? `Group of ${group.members.filter((m) => m.status === 'accepted').length}` : 'Individual submission'}
+            {group ? tr('Group of {n}', { n: group.members.filter((m) => m.status === 'accepted').length }) : tr('Individual submission')}
             {latest?.repos && (
               <>
                 {' · '}
@@ -730,7 +731,7 @@ export function AssignmentSubmissionPage() {
       <div className="grid gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
         <div className="space-y-6">
           {scores.length > 0 ? (
-            <NumberedSectionCard number="01" icon="fact_check" title="Scores" subtitle={canOverride ? 'Change a score if you disagree; the total updates.' : 'Scores can be changed once grading is done.'} theme="accent">
+            <NumberedSectionCard number="01" icon="fact_check" title={tr('Scores')} subtitle={canOverride ? tr('Change a score if you disagree; the total updates.') : tr('Scores can be changed once grading is done.')} theme="accent">
               <ul className="space-y-2.5">
                 {rubric.map((c, i) => {
                   const sc = scores.find((x) => x.criterion_key === c.key);
@@ -751,21 +752,21 @@ export function AssignmentSubmissionPage() {
               </ul>
             </NumberedSectionCard>
           ) : (
-            <Notice tone="info">{working ? 'Being graded…' : a.status === 'open' ? 'Grading starts when the assignment closes.' : 'No scores yet.'}</Notice>
+            <Notice tone="info">{working ? tr('Being graded…') : a.status === 'open' ? tr('Grading starts when the assignment closes.') : tr('No scores yet.')}</Notice>
           )}
 
           {feedback && (
-            <NumberedSectionCard number="02" icon="rate_review" title="Feedback for the student" subtitle="What they see once results are published." theme="good">
+            <NumberedSectionCard number="02" icon="rate_review" title={tr('Feedback for the student')} subtitle={tr('What they see once results are published.')} theme="good">
               <div className="space-y-4 text-[13px]">
                 {feedback.strengths_json.length > 0 && (
                   <div>
-                    <p className="font-semibold text-ink">Strengths</p>
+                    <p className="font-semibold text-ink">{tr('Strengths')}</p>
                     <ul className="mt-1 list-disc space-y-1 pl-5 text-muted">{feedback.strengths_json.map((x) => <li key={x}>{x}</li>)}</ul>
                   </div>
                 )}
                 {feedback.improvements_json.length > 0 && (
                   <div>
-                    <p className="font-semibold text-ink">To improve</p>
+                    <p className="font-semibold text-ink">{tr('To improve')}</p>
                     <ul className="mt-1 space-y-2">
                       {feedback.improvements_json.map((x) => (
                         <li key={x.what} className="rounded-[4px] border border-line bg-paper p-2.5">
@@ -779,7 +780,7 @@ export function AssignmentSubmissionPage() {
                 )}
                 {feedback.next_steps_json?.length > 0 && (
                   <div>
-                    <p className="font-semibold text-ink">Next steps</p>
+                    <p className="font-semibold text-ink">{tr('Next steps')}</p>
                     <ol className="mt-1 list-decimal space-y-1 pl-5 text-muted">{feedback.next_steps_json.map((x) => <li key={x}>{x}</li>)}</ol>
                   </div>
                 )}
@@ -788,14 +789,14 @@ export function AssignmentSubmissionPage() {
           )}
 
           {analysis && (
-            <NumberedSectionCard number="03" icon="account_tree" title="What the grader read" subtitle={`${analysis.file_count} files at commit ${analysis.commit_sha.slice(0, 7)}.`} theme="neutral">
+            <NumberedSectionCard number="03" icon="account_tree" title={tr('What the grader read')} subtitle={`${analysis.file_count} files at commit ${analysis.commit_sha.slice(0, 7)}.`} theme="neutral">
               <p className="text-[13px] leading-relaxed text-ink">{analysis.map_json.summary}</p>
             </NumberedSectionCard>
           )}
 
           <section className="rounded-[6px] border border-line bg-surface p-5">
             <div className="mb-3 flex items-center justify-between">
-              <p className="text-[14px] font-semibold text-ink">Grading activity</p>
+              <p className="text-[14px] font-semibold text-ink">{tr('Grading activity')}</p>
               <ModelsUsed models={sub.models_used} primary={data.data.primary_models} />
             </div>
             <AiActivity entries={sub.activity_json ?? []} live={working} />
@@ -804,7 +805,7 @@ export function AssignmentSubmissionPage() {
 
         <div className="space-y-6">
           <section className="rounded-[6px] border border-line bg-surface p-5">
-            <p className="text-[14px] font-semibold text-ink">{group ? 'Members' : 'Student'}</p>
+            <p className="text-[14px] font-semibold text-ink">{group ? tr('Members') : tr('Student')}</p>
             <ul className="mt-3 space-y-3 text-[13px]">
               {(group ? group.members.filter((m) => m.status === 'accepted') : student ? [{ user_id: sub.student_id!, display_name: student.display_name, github_login: student.github_login }] : []).map((m) => {
                 const adj = adjustments.find((x) => x.user_id === m.user_id);
@@ -827,13 +828,13 @@ export function AssignmentSubmissionPage() {
                     {adj?.note && <p className="text-[12px] text-muted">{adj.note}</p>}
                     {a.interviews_enabled && (
                       <p className="text-[12px] text-muted">
-                        Interview:{' '}
+                        {tr('Interview:')}{' '}
                         {interview ? (
                           <Link to={`/interview/${interview.id}`} className="text-accent-ink hover:underline">
                             {report ? `ownership ${report.ownership_score}/100 (${report.confidence})` : interview.status.replace(/_/g, ' ')}
                           </Link>
                         ) : (
-                          'not taken'
+                          tr('not taken')
                         )}
                       </p>
                     )}
@@ -851,7 +852,7 @@ export function AssignmentSubmissionPage() {
                         />
                       ) : (
                         <button type="button" onClick={() => setAdjusting(m.user_id)} className="cursor-pointer text-[12px] font-semibold text-accent-ink hover:underline">
-                          {adj ? 'Change their grade' : 'Adjust their grade'}
+                          {adj ? tr('Change their grade') : tr('Adjust their grade')}
                         </button>
                       ))}
                   </li>
@@ -861,7 +862,7 @@ export function AssignmentSubmissionPage() {
           </section>
 
           <section className="rounded-[6px] border border-line bg-surface p-5">
-            <p className="text-[14px] font-semibold text-ink">Versions</p>
+            <p className="text-[14px] font-semibold text-ink">{tr('Versions')}</p>
             <ul className="mt-2 space-y-2 text-[12px]">
               {sub.assignment_submission_versions
                 .slice()
@@ -878,29 +879,29 @@ export function AssignmentSubmissionPage() {
           </section>
 
           <section className="rounded-[6px] border border-line bg-surface p-5">
-            <p className="text-[14px] font-semibold text-ink">Integrity</p>
+            <p className="text-[14px] font-semibold text-ink">{tr('Integrity')}</p>
             {canDecide && (
               <div className="mt-3 space-y-2">
-                <Select aria-label="Verdict" value={verdict} onChange={(e) => setVerdict(e.target.value as typeof verdict)}>
-                  <option value="clear">Cleared: the work is theirs</option>
-                  <option value="live_defense">Live defense required</option>
-                  <option value="code_of_conduct">Refer to committee</option>
+                <Select aria-label={tr('Verdict')} value={verdict} onChange={(e) => setVerdict(e.target.value as typeof verdict)}>
+                  <option value="clear">{tr('Cleared: the work is theirs')}</option>
+                  <option value="live_defense">{tr('Live defense required')}</option>
+                  <option value="code_of_conduct">{tr('Refer to committee')}</option>
                 </Select>
-                <Textarea rows={2} aria-label="Note" placeholder="Note (kept in the history)" value={note} onChange={(e) => setNote(e.target.value)} />
+                <Textarea rows={2} aria-label={tr('Note')} placeholder={tr('Note (kept in the history)')} value={note} onChange={(e) => setNote(e.target.value)} />
                 <Button
                   variant={verdict === 'code_of_conduct' ? 'danger' : 'secondary'}
                   loading={busy === 'verdict'}
                   disabled={!!busy}
                   onClick={() =>
-                    void act('verdict', '/api/integrity-decisions', 'Verdict saved.', undefined, { assignment_submission_id: sub.id, verdict, note }).then(() => setNote(''))
+                    void act('verdict', '/api/integrity-decisions', tr('Verdict saved.'), undefined, { assignment_submission_id: sub.id, verdict, note }).then(() => setNote(''))
                   }
                 >
-                  Save verdict
+                  {tr('Save verdict')}
                 </Button>
               </div>
             )}
             {decisions.length === 0 ? (
-              <p className="mt-2 text-[12px] text-muted">No verdict recorded.</p>
+              <p className="mt-2 text-[12px] text-muted">{tr('No verdict recorded.')}</p>
             ) : (
               <ul className="mt-3 space-y-1.5 border-t border-line pt-3 text-[12px]">
                 {decisions.map((d) => (

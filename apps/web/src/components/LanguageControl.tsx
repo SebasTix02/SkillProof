@@ -19,8 +19,8 @@ export function LanguageSelect({ onDark = false, id }: { onDark?: boolean; id?: 
         onChange={(e) => setLocale(e.target.value as Locale)}
         className={
           onDark
-            ? 'cursor-pointer appearance-none rounded-[4px] border border-dark-hairline bg-transparent py-1.5 pr-2 pl-7 text-[12px] font-medium text-dark-muted hover:text-dark-ink focus-visible:outline-2 focus-visible:outline-accent-on-dark'
-            : 'cursor-pointer appearance-none rounded-[4px] border border-line bg-surface py-1 pr-2 pl-7 text-[12px] font-medium text-muted hover:border-muted hover:text-ink'
+            ? 'cursor-pointer appearance-none rounded-[4px] border border-dark-hairline bg-transparent py-1.5 pr-2 pl-8 text-[12px] font-medium text-dark-muted hover:text-dark-ink focus-visible:outline-2 focus-visible:outline-accent-on-dark'
+            : 'cursor-pointer appearance-none rounded-[4px] border border-line bg-surface py-1 pr-2 pl-8 text-[12px] font-medium text-muted hover:border-muted hover:text-ink'
         }
       >
         {LOCALES.map((l) => (

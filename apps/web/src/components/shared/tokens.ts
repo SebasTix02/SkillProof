@@ -1,3 +1,4 @@
+import { lazy, tr } from '../../i18n';
 export type SkillLevel = 'not_shown' | 'basic' | 'solid' | 'strong';
 export type SemanticTone = 'neutral' | 'good' | 'warn' | 'bad' | 'accent';
 
@@ -26,22 +27,22 @@ export const COLOR_ROLE_GUIDE = [
 ] as const;
 
 /** Permission keys (supabase/migrations) in the user's words, for screens that show what someone can do. */
-export const PERMISSION_LABEL: Record<string, { label: string; description: string }> = {
-  'event.join': { label: 'Join events', description: 'Join open events and private ones by link.' },
-  'submission.create': { label: 'Submit repositories', description: 'Submit a GitHub repository to an event.' },
-  'interview.take': { label: 'Take voice interviews', description: 'Take a 3-minute voice interview about your code.' },
-  'profile.publish': { label: 'Publish a public profile', description: 'Share verified reports on a public page.' },
-  'event.create': { label: 'Create events', description: 'Create hackathons and capstones.' },
-  'event.manage': { label: 'Run events', description: 'Open, close and judge events, and edit their rubric.' },
-  'results.publish': { label: 'Publish results', description: 'Make final scores visible to participants.' },
-  'score.override': { label: 'Adjust scores', description: 'Change an AI score, with a reason in the audit log.' },
-  'submission.review': { label: 'Review submissions', description: 'Score the submissions assigned to you.' },
-  'integrity.decide': { label: 'Decide on integrity flags', description: 'Record a verdict on similar submissions.' },
-  'course.manage': { label: 'Manage courses', description: 'Create courses, add students and assignments.' },
-  'org.manage_members': { label: 'Manage members', description: 'Invite people, change roles and remove access.' },
-  'org.view_usage': { label: 'See AI usage', description: 'See Gemini calls, tokens and estimated cost.' },
-  'audit.read': { label: 'Read the audit log', description: 'See every sensitive change and who made it.' },
-};
+export const PERMISSION_LABEL: Record<string, { label: string; description: string }> = lazy(() => ({
+  'event.join': { label: tr('Join events'), description: tr('Join open events and private ones by link.') },
+  'submission.create': { label: tr('Submit repositories'), description: tr('Submit a GitHub repository to an event.') },
+  'interview.take': { label: tr('Take voice interviews'), description: tr('Take a 3-minute voice interview about your code.') },
+  'profile.publish': { label: tr('Publish a public profile'), description: tr('Share verified reports on a public page.') },
+  'event.create': { label: tr('Create events'), description: tr('Create hackathons and capstones.') },
+  'event.manage': { label: tr('Run events'), description: tr('Open, close and judge events, and edit their rubric.') },
+  'results.publish': { label: tr('Publish results'), description: tr('Make final scores visible to participants.') },
+  'score.override': { label: tr('Adjust scores'), description: tr('Change an AI score, with a reason in the audit log.') },
+  'submission.review': { label: tr('Review submissions'), description: tr('Score the submissions assigned to you.') },
+  'integrity.decide': { label: tr('Decide on integrity flags'), description: tr('Record a verdict on similar submissions.') },
+  'course.manage': { label: tr('Manage courses'), description: tr('Create courses, add students and assignments.') },
+  'org.manage_members': { label: tr('Manage members'), description: tr('Invite people, change roles and remove access.') },
+  'org.view_usage': { label: tr('See AI usage'), description: tr('See Gemini calls, tokens and estimated cost.') },
+  'audit.read': { label: tr('Read the audit log'), description: tr('See every sensitive change and who made it.') },
+}));
 
 /** Readable names for a list of permission keys, in the order of PERMISSION_LABEL; unknown keys are kept as they are. */
 export function permissionLabels(keys: string[]): string[] {
@@ -50,12 +51,12 @@ export function permissionLabels(keys: string[]): string[] {
   return [...known, ...unknown];
 }
 
-export const SKILL_LEVEL_LABEL: Record<SkillLevel, string> = {
-  not_shown: 'NOT SHOWN',
-  basic: 'BASIC',
-  solid: 'SOLID',
-  strong: 'STRONG',
-};
+export const SKILL_LEVEL_LABEL: Record<SkillLevel, string> = lazy(() => ({
+  not_shown: tr('NOT SHOWN'),
+  basic: tr('BASIC'),
+  solid: tr('SOLID'),
+  strong: tr('STRONG'),
+}));
 
 export const SKILL_LEVEL_TONE: Record<SkillLevel, SemanticTone> = {
   not_shown: 'neutral',
@@ -163,13 +164,12 @@ export interface RoleCapabilitySpec {
   avatarBgClass: string;
 }
 
-export const ORG_ROLE_SPECS: Record<OrgRoleKey, RoleCapabilitySpec> = {
+export const ORG_ROLE_SPECS: Record<OrgRoleKey, RoleCapabilitySpec> = lazy(() => ({
   owner: {
     key: 'owner',
-    label: 'OWNER',
-    tier: 'ADMIN ROOT',
-    description:
-      'Manages members, invitations, roles and organization settings, plus everything an organizer can do.',
+    label: tr('OWNER'),
+    tier: tr('ADMIN ROOT'),
+    description: tr('Manages members, invitations, roles and organization settings, plus everything an organizer can do.'),
     badgeClass: 'border-bad/30 bg-bad-soft text-bad',
     cardClass: 'border-bad/25 bg-bad-soft/40 text-ink',
     pillBgClass: 'bg-bad text-on-bad',
@@ -177,10 +177,9 @@ export const ORG_ROLE_SPECS: Record<OrgRoleKey, RoleCapabilitySpec> = {
   },
   organizer: {
     key: 'organizer',
-    label: 'ORGANIZER',
-    tier: 'STAGE OPS',
-    description:
-      'Create hackathons, freeze candidate repositories, synthesize AST runs, and publish official leaderboards.',
+    label: tr('ORGANIZER'),
+    tier: tr('STAGE OPS'),
+    description: tr('Create hackathons, freeze candidate repositories, synthesize AST runs, and publish official leaderboards.'),
     badgeClass: 'border-accent/25 bg-accent-soft text-accent-ink',
     cardClass: 'border-accent/25 bg-accent-soft/45 text-ink',
     pillBgClass: 'bg-accent text-on-accent',
@@ -188,10 +187,9 @@ export const ORG_ROLE_SPECS: Record<OrgRoleKey, RoleCapabilitySpec> = {
   },
   judge: {
     key: 'judge',
-    label: 'JUDGE',
-    tier: 'VERIFICATION',
-    description:
-      'Read-only access to submissions, submit rubric score overrides, and inspect AI voice defense audits.',
+    label: tr('JUDGE'),
+    tier: tr('VERIFICATION'),
+    description: tr('Read-only access to submissions, submit rubric score overrides, and inspect AI voice defense audits.'),
     badgeClass: 'border-good/30 bg-good-soft text-good-ink',
     cardClass: 'border-good/25 bg-good-soft/45 text-ink',
     pillBgClass: 'bg-good text-on-good',
@@ -199,16 +197,16 @@ export const ORG_ROLE_SPECS: Record<OrgRoleKey, RoleCapabilitySpec> = {
   },
   auditor: {
     key: 'auditor',
-    label: 'AUDITOR',
-    tier: 'COMPLIANCE',
-    description:
-      'Reads the audit log and AI usage, and records integrity decisions on flagged submissions.',
+    label: tr('AUDITOR'),
+    tier: tr('COMPLIANCE'),
+    description: tr('Reads the audit log and AI usage, and records integrity decisions on flagged submissions.'),
     badgeClass: 'border-accent-200 bg-accent-soft text-accent-ink',
     cardClass: 'border-accent-200 bg-accent-soft/50 text-ink',
     pillBgClass: 'bg-accent text-on-accent',
     avatarBgClass: 'bg-accent text-on-accent ring-2 ring-accent-soft',
   },
-};
+}));
+
 
 export function normalizeOrgRole(raw: string | undefined): OrgRoleKey {
   const lower = (raw ?? '').toLowerCase();
@@ -220,24 +218,24 @@ export function normalizeOrgRole(raw: string | undefined): OrgRoleKey {
 
 export type SimilaritySignal = 'same_repo' | 'same_fork_parent' | 'identical_files' | 'embedding';
 
-export const SIMILARITY_SIGNAL_LABEL: Record<SimilaritySignal, string> = {
-  same_repo: 'Same repository',
-  same_fork_parent: 'Forks of the same project',
-  identical_files: 'Identical files',
-  embedding: 'Very similar code',
-};
+export const SIMILARITY_SIGNAL_LABEL: Record<SimilaritySignal, string> = lazy(() => ({
+  same_repo: tr('Same repository'),
+  same_fork_parent: tr('Forks of the same project'),
+  identical_files: tr('Identical files'),
+  embedding: tr('Very similar code'),
+}));
 
 export type SubmissionPipelineStatus = 'submitted' | 'queued' | 'analyzing' | 'scored' | 'error' | 'paused' | 'canceled';
 
-export const SUBMISSION_STATUS_LABEL: Record<SubmissionPipelineStatus, string> = {
-  submitted: 'Submitted',
-  queued: 'Queued',
-  analyzing: 'Being judged',
-  scored: 'Scored',
-  error: 'Failed',
-  paused: 'Paused',
-  canceled: 'Canceled',
-};
+export const SUBMISSION_STATUS_LABEL: Record<SubmissionPipelineStatus, string> = lazy(() => ({
+  submitted: tr('Submitted'),
+  queued: tr('Queued'),
+  analyzing: tr('Being judged'),
+  scored: tr('Scored'),
+  error: tr('Failed'),
+  paused: tr('Paused'),
+  canceled: tr('Canceled'),
+}));
 
 export function formatClock(seconds: number): string {
   const safe = Math.max(0, Math.floor(seconds));
@@ -246,8 +244,8 @@ export function formatClock(seconds: number): string {
 
 export function formatAudioDuration(
   seconds: number | null | undefined,
-  suffix = 'Recorded',
-  fallback = '03:00 Window',
+  suffix = tr('Recorded'),
+  fallback = tr('03:00 Window'),
 ): string {
   if (seconds == null || seconds <= 0) return fallback;
   return `${formatClock(seconds)} ${suffix}`;
@@ -255,20 +253,20 @@ export function formatAudioDuration(
 
 export function formatCountdown(deadlineIso: string): { label: string; urgent: boolean; closed: boolean } {
   const diffMs = Date.parse(deadlineIso) - Date.now();
-  if (diffMs <= 0) return { label: 'DEADLINE PASSED', urgent: false, closed: true };
+  if (diffMs <= 0) return { label: tr('DEADLINE PASSED'), urgent: false, closed: true };
   const totalHours = Math.floor(diffMs / 3_600_000);
   const days = Math.floor(totalHours / 24);
   const hours = totalHours % 24;
   const mins = Math.floor((diffMs % 3_600_000) / 60_000);
   if (days > 0) {
     return {
-      label: `ENDS IN ${String(days).padStart(2, '0')}D : ${String(hours).padStart(2, '0')}H`,
+      label: tr('ENDS IN {d}D : {h}H', { d: String(days).padStart(2, '0'), h: String(hours).padStart(2, '0') }),
       urgent: days <= 2,
       closed: false,
     };
   }
   return {
-    label: `ENDS IN ${String(hours).padStart(2, '0')}H : ${String(mins).padStart(2, '0')}M`,
+    label: tr('ENDS IN {h}H : {m}M', { h: String(hours).padStart(2, '0'), m: String(mins).padStart(2, '0') }),
     urgent: true,
     closed: false,
   };

@@ -10,6 +10,7 @@ import { DEFAULT_LOCALE, isLocale, pickLocale, type Locale } from '@skillproof/s
 import { createContext, createElement, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { en } from './en';
 import { es } from './es';
+import { esText } from './esText';
 
 export type { Locale };
 
@@ -56,24 +57,54 @@ function lookup(locale: Locale, key: string): Leaf | undefined {
   return node as Leaf | undefined;
 }
 
-function fill(text: string, vars?: Record<string, string | number>): string {
+function fill(text: string, vars?: Record<string, string | number | null | undefined>): string {
   if (!vars) return text;
-  return text.replace(/\{(\w+)\}/g, (m, name: string) => (name in vars ? String(vars[name]) : m));
+  return text.replace(/\{(\w+)\}/g, (m, name: string) => (name in vars ? String(vars[name] ?? "") : m));
 }
 
 /** The text for a key in the current language (English when missing, then the key itself). */
-export function t(key: Key, vars?: Record<string, string | number>): string {
+export function t(key: Key, vars?: Record<string, string | number | null | undefined>): string {
   const v = lookup(current, key) ?? lookup(DEFAULT_LOCALE, key);
   if (v == null) return key;
   return fill(typeof v === 'string' ? v : v.other, vars);
 }
 
 /** A counted text: tn('courses.students', 3) → "3 students" / "3 alumnos". `{count}` is filled in. */
-export function tn(key: PluralKey, count: number, vars?: Record<string, string | number>): string {
+export function tn(key: PluralKey, count: number, vars?: Record<string, string | number | null | undefined>): string {
   const v = (lookup(current, key) ?? lookup(DEFAULT_LOCALE, key)) as Plural | undefined;
   if (!v) return key;
   const form = new Intl.PluralRules(current).select(count) === 'one' ? v.one : v.other;
   return fill(form, { count, ...vars });
+}
+
+/**
+ * Screen text, keyed by its English: tr('Save changes'), tr('Due {date}', { date }). Spanish comes from esText;
+ * i18n.test.ts fails when a tr() text in the code has no Spanish.
+ */
+export function tr(text: string, vars?: Record<string, string | number | null | undefined>): string {
+  return fill(current === 'es' ? (esText[text] ?? text) : text, vars);
+}
+
+/**
+ * A module-level map of labels that follows the language: built again on every read, so
+ * `STATUS_LABEL[s]` is in the current language. lazy(() => ({ draft: tr('Draft') })).
+ */
+export function lazy<T extends object>(build: () => T): T {
+  return new Proxy({} as T, {
+    get: (_t, p) => (build() as Record<string | symbol, unknown>)[p],
+    has: (_t, p) => p in build(),
+    ownKeys: () => Reflect.ownKeys(build()),
+    getOwnPropertyDescriptor: (_t, p) => {
+      const d = Object.getOwnPropertyDescriptor(build(), p);
+      return d ? { ...d, configurable: true } : undefined;
+    },
+  });
+}
+
+/** A counted screen text: trn('{count} student', '{count} students', n). */
+export function trn(one: string, other: string, count: number, vars?: Record<string, string | number | null | undefined>): string {
+  const isOne = new Intl.PluralRules(current).select(count) === 'one';
+  return tr(isOne ? one : other, { count, ...vars });
 }
 
 /** Translates a message that came from the API or a shared schema, by its error code first, then its English text. */
@@ -81,7 +112,7 @@ export function translateMessage(message: string, code?: string): string {
   if (current === DEFAULT_LOCALE) return message;
   const byCode = code ? lookup(current, `apiErrors.${code}`) : undefined;
   if (typeof byCode === 'string') return byCode;
-  const known = (DICTS[current].messages as Record<string, string> | undefined)?.[message];
+  const known = (DICTS[current].messages as Record<string, string> | undefined)?.[message] ?? esText[message];
   return known ?? message;
 }
 

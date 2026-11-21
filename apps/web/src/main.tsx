@@ -1,3 +1,4 @@
+import { I18nProvider, type Locale, t, tr } from './i18n';
 import { StrictMode, useCallback, type ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Navigate, Route, Routes, useLocation, useParams } from 'react-router-dom';
@@ -5,7 +6,6 @@ import { ConfirmProvider } from './components/shared/ConfirmDialog';
 import { ToastProvider } from './components/toast';
 import { Layout, Notice, PageState } from './components/ui';
 import './index.css';
-import { I18nProvider, t, type Locale } from './i18n';
 import { api } from './lib/api';
 import { AuthProvider, useAuth } from './lib/auth';
 import { configured } from './lib/supabase';
@@ -34,7 +34,7 @@ function Private({ children, organizer = false }: { children: ReactNode; organiz
   const location = useLocation();
   if (loading) return <PageState loading error={null} />;
   if (!session) return <Navigate to={`/login?next=${encodeURIComponent(location.pathname + location.search)}`} replace />;
-  if (organizer && !org) return <Notice tone="error">This area is for organizers. Create an organizer account to run events.</Notice>;
+  if (organizer && !org) return <Notice tone="error">{tr('This area is for organizers. Create an organizer account to run events.')}</Notice>;
   return <>{children}</>;
 }
 
@@ -63,7 +63,7 @@ function Localized({ children }: { children: ReactNode }) {
 function App() {
   return (
     <Layout>
-      {!configured && <div className="mb-4"><Notice tone="warn">Supabase is not configured. Copy apps/web/.env.example to .env and fill it in.</Notice></div>}
+      {!configured && <div className="mb-4"><Notice tone="warn">{tr('Supabase is not configured. Copy apps/web/.env.example to .env and fill it in.')}</Notice></div>}
       <Routes>
         <Route path="/" element={<Landing />} />
         <Route path="/signup" element={<SignUp />} />
