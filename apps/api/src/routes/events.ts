@@ -132,6 +132,7 @@ export async function eventRoutes(app: FastifyInstance): Promise<void> {
           visibility: input.visibility,
           access_code_hash: input.visibility === 'code' ? hashAccessCode(input.access_code!) : null,
           interviews_enabled: input.interviews_enabled,
+          language: input.language,
           max_submissions: input.max_submissions,
           rubric_json: input.rubric,
           status: input.publish ? 'open' : 'draft',

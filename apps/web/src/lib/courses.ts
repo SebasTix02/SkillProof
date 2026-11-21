@@ -24,6 +24,8 @@ export interface AssignmentView {
   groups_close_at: string | null;
   max_submissions: number | null;
   interviews_enabled: boolean;
+  /** Language of the grader's feedback and of the interviews. */
+  language: 'en' | 'es';
   rubric_json: Rubric;
   judging_paused_at: string | null;
   submission_count: number;

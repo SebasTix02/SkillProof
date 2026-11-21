@@ -1,5 +1,5 @@
 import { LOCALES, LOCALE_NAME, type Locale } from '@skillproof/shared';
-import { t, useI18n } from '../i18n';
+import { t, tr, useI18n } from '../i18n';
 
 /** English / Español. `onDark`: on the dark side menu. Signed in, the choice is saved to the account. */
 export function LanguageSelect({ onDark = false, id }: { onDark?: boolean; id?: string }) {
@@ -30,5 +30,31 @@ export function LanguageSelect({ onDark = false, id }: { onDark?: boolean; id?: 
         ))}
       </select>
     </label>
+  );
+}
+
+/** The language an event or an assignment uses for the AI's feedback and for interviews about its submissions. */
+export function ContestLanguageField({ value, onChange }: { value: Locale; onChange: (l: Locale) => void }) {
+  return (
+    <div className="flex flex-wrap items-start justify-between gap-4 rounded-[4px] border border-line bg-paper p-3.5">
+      <div className="max-w-md">
+        <label htmlFor="contest-language" className="text-[13px] font-semibold text-ink">
+          {tr('Language of feedback and interviews')}
+        </label>
+        <p className="mt-0.5 text-[12px] text-muted">{tr('The AI writes the scores and feedback, and runs the voice interviews, in this language.')}</p>
+      </div>
+      <select
+        id="contest-language"
+        value={value}
+        onChange={(e) => onChange(e.target.value as Locale)}
+        className="cursor-pointer rounded-[4px] border border-line-strong bg-surface px-2.5 py-1.5 text-[13px] text-ink"
+      >
+        {LOCALES.map((l) => (
+          <option key={l} value={l}>
+            {LOCALE_NAME[l]}
+          </option>
+        ))}
+      </select>
+    </div>
   );
 }

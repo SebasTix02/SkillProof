@@ -55,7 +55,7 @@ describe('assignments as the client sees them', () => {
   const row: AssignmentRow = {
     id: 'a1', organization_id: 'o1', course_id: 'c1', title: 'Team project', instructions: 'Build it', learning_goals: 'Teamwork',
     opens_at: '2026-11-20T10:00:00Z', due_at: '2026-11-27T10:00:00Z', status: 'open', mode: 'group', group_min: 2, group_max: 3,
-    group_lock_at: null, max_submissions: null, interviews_enabled: true, rubric_json: DEFAULT_RUBRIC, judging_paused_at: null,
+    group_lock_at: null, max_submissions: null, interviews_enabled: true, language: 'en', rubric_json: DEFAULT_RUBRIC, judging_paused_at: null,
     closed_at: null, published_at: null, created_at: '2026-11-19T10:00:00Z',
   };
 

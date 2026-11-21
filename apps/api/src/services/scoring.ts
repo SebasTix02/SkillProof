@@ -1,3 +1,4 @@
+import { languageNote } from './language.js';
 import { CourseScoreResultSchema, ScoreResultSchema, type CourseScoreResult, type Rubric } from '@skillproof/shared';
 import type { Part } from '@google/genai';
 import type { AnalysisRow } from '../engine/analyze.js';
@@ -11,6 +12,8 @@ import { HACKATHON_SYSTEM, scoringSystem, subjectBlock, type CourseContext, type
 export const SCORE_SYSTEM = HACKATHON_SYSTEM;
 
 export interface ScoreInput {
+  /** Language of the feedback: the event's or the assignment's. */
+  language?: 'en' | 'es';
   submissionId: string;
   organizationId: string;
   rubric: Rubric;
@@ -81,7 +84,7 @@ async function runScoring(input: ScoreInput, withVideo: boolean): Promise<Course
     model: analysisModel(),
     // Course specs also return next_steps; the hackathon result is the original schema.
     schema: spec === 'hackathon' ? ScoreResultSchema : CourseScoreResultSchema,
-    system: scoringSystem(spec),
+    system: scoringSystem(spec) + languageNote(input.language, 'every text you return (justifications, strengths, improvements and next steps)'),
     parts: buildParts(input, withVideo),
     usage: { ...input.usage, kind: withVideo ? 'score_with_video' : 'score' },
     temperature: 0.1,

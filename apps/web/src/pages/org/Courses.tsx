@@ -1,4 +1,5 @@
-import { t, tr, trn, translateMessage } from '../../i18n';
+import { getLocale, t, tr, trn, translateMessage, type Locale } from '../../i18n';
+import { ContestLanguageField } from '../../components/LanguageControl';
 /**
  * Courses, apart from events. A course has a roster (instructors, TAs, students by section) and assignments that only
  * its students can see and submit to. Screens:
@@ -738,6 +739,7 @@ export function NewAssignment() {
   const [unlimited, setUnlimited] = useState(true);
   const [maxSubmissions, setMaxSubmissions] = useState(3);
   const [interviews, setInterviews] = useState(false);
+  const [language, setLanguage] = useState<Locale>(() => getLocale());
   const [rubric, setRubric] = useState<Rubric>(() => DEFAULT_RUBRIC.map((c) => ({ ...c, anchors: { ...c.anchors } })));
   const [busy, setBusy] = useState<'draft' | 'open' | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -761,6 +763,7 @@ export function NewAssignment() {
       due_at: new Date(dueAt).toISOString(),
       max_submissions: unlimited ? null : maxSubmissions,
       interviews_enabled: interviews,
+      language,
       rubric: rubric.map((c) => ({ ...c, key: c.key || keyFromName(c.name) })),
       publish,
     });
@@ -876,7 +879,7 @@ export function NewAssignment() {
           )}
           <div className="flex items-start justify-between gap-4 rounded-[4px] border border-line bg-paper p-4">
             <div>
-              <p className="text-[13px] font-semibold text-ink">{mode === 'group' ? tr('Short voice interview for each member') : '3-minute voice interview'}</p>
+              <p className="text-[13px] font-semibold text-ink">{mode === 'group' ? tr('Short voice interview for each member') : tr('3-minute voice interview')}</p>
               <p className="text-[12px] text-muted">
                 {mode === 'group'
                   ? tr('After grading, each member answers up to 2 questions (about 90 seconds) on the files they wrote.')
@@ -885,6 +888,7 @@ export function NewAssignment() {
             </div>
             <ToggleSwitch checked={interviews} onChange={setInterviews} />
           </div>
+          <ContestLanguageField value={language} onChange={setLanguage} />
         </div>
       </NumberedSectionCard>
 

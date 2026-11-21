@@ -1,3 +1,4 @@
+import { LOCALES } from './locale.js';
 import { z } from 'zod';
 import { RubricSchema } from './rubric.js';
 
@@ -24,6 +25,8 @@ export const CreateEventSchema = z
     access_code: z.string().min(4).max(64).optional(),
     max_submissions: z.number().int().min(1).max(100).nullable().default(null),
     interviews_enabled: z.boolean().default(false),
+    /** Language of the judge's feedback and of the interviews about the submissions. */
+    language: z.enum(LOCALES).default('en'),
     rubric: RubricSchema,
     publish: z.boolean().default(true).describe('Open the event right away instead of leaving it as a draft'),
   })

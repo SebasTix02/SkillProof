@@ -1,4 +1,5 @@
 import { t, tr } from '../../i18n';
+import { ContestLanguageField } from '../../components/LanguageControl';
 /**
  * The console of one course assignment (its own screen, not the event console):
  *   /org/courses/:courseId/assignments/:id          status, actions, submissions, groups, missing, similarity
@@ -532,6 +533,7 @@ function EditAssignment({ assignment: a, onDone }: { assignment: AssignmentView;
     unlimited: a.max_submissions == null,
     max_submissions: a.max_submissions ?? 3,
     interviews_enabled: a.interviews_enabled,
+    language: a.language,
   });
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -548,6 +550,7 @@ function EditAssignment({ assignment: a, onDone }: { assignment: AssignmentView;
       ...(a.mode === 'group' ? { group_lock_at: form.group_lock_at ? new Date(form.group_lock_at).toISOString() : null } : {}),
       max_submissions: form.unlimited ? null : form.max_submissions,
       interviews_enabled: form.interviews_enabled,
+      language: form.language,
     });
     if (!parsed.success) {
       setError(parsed.error.issues[0]?.message ?? tr('Check the form.'));
@@ -600,6 +603,7 @@ function EditAssignment({ assignment: a, onDone }: { assignment: AssignmentView;
             <ToggleSwitch checked={form.interviews_enabled} onChange={(v) => setForm({ ...form, interviews_enabled: v })} />{' '}{tr('Voice interview')}
           </label>
         </div>
+        <ContestLanguageField value={form.language} onChange={(l) => setForm({ ...form, language: l })} />
         {error && <Notice tone="error">{error}</Notice>}
         <div className="flex gap-2">
           <Button type="submit" loading={busy}>{tr('Save changes')}</Button>
