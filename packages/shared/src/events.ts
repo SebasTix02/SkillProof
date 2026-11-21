@@ -27,6 +27,8 @@ export const CreateEventSchema = z
     interviews_enabled: z.boolean().default(false),
     /** Language of the judge's feedback and of the interviews about the submissions. */
     language: z.enum(LOCALES).default('en'),
+    /** Code every participant starts from: it never counts as a copy in the similarity check. */
+    starter_repo_url: z.string().trim().regex(GITHUB_REPO_URL, 'Use a public GitHub repository URL, like https://github.com/owner/repo').nullable().default(null),
     rubric: RubricSchema,
     publish: z.boolean().default(true).describe('Open the event right away instead of leaving it as a draft'),
   })

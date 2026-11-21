@@ -1,3 +1,4 @@
+import { computeAssignmentSimilarity, computeEventSimilarity } from './services/similarity.js';
 import cors from '@fastify/cors';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { env } from './env.js';
@@ -39,6 +40,8 @@ export async function buildApp(): Promise<FastifyInstance> {
   registerJob('judge-assignment', judgeAssignmentSubmission);
   registerJob('interview-prepare', prepareInterview);
   registerJob('interview-evaluate', evaluateInterview);
+  registerJob('similarity-event', computeEventSimilarity);
+  registerJob('similarity-assignment', computeAssignmentSimilarity);
 
   // Serverless instances have no timer of their own, so API traffic drives the scheduler too.
   if (onVercel()) {

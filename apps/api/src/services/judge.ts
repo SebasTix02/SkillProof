@@ -1,3 +1,4 @@
+import { enqueue } from './queue.js';
 import { RubricSchema, type ActivityEntry } from '@skillproof/shared';
 import { analyzeRepo, type RepoRow } from '../engine/analyze.js';
 import { Activity, withActivity } from '../lib/activity.js';
@@ -109,8 +110,13 @@ export async function settleContest(store: ContestStore, contestId: string): Pro
     .in('status', ['queued', 'analyzing', 'paused']);
   if (error) throw new Error(`Database error: ${error.message}`);
   // Paused submissions keep it in judging; canceled ones do not.
-  if ((count ?? 0) === 0)
-    must(await db().from(store.contests).update({ status: 'review', judging_paused_at: null }).eq('id', contestId).eq('status', 'judging'));
+  if ((count ?? 0) === 0) {
+    const moved = must(
+      await db().from(store.contests).update({ status: 'review', judging_paused_at: null }).eq('id', contestId).eq('status', 'judging').select('id'),
+    ) as unknown[];
+    // Every submission is judged: compare their code (in the background; it only reads fingerprints).
+    if (moved.length) await enqueue(store.kind === 'event' ? 'similarity-event' : 'similarity-assignment', contestId).catch((err) => console.warn('Similarity job not queued:', err));
+  }
 }
 
 /**

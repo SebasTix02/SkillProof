@@ -1,3 +1,4 @@
+import { storeFingerprints } from '../services/similarity.js';
 import { RepoMapSchema, pruneUnknownPaths, type CommitProfile, type RepoMap } from '@skillproof/shared';
 import { z } from 'zod';
 import { env } from '../env.js';
@@ -290,6 +291,9 @@ export async function analyzeRepo(owner: string, name: string, opts: AnalyzeOpti
     output_tokens: usage.outputTokens,
   };
   const inserted = await db().from('repo_analyses').insert(row).select('*').single();
+  // Fingerprints for content similarity: CPU only, and never a reason for the analysis to fail.
+  if (!inserted.error)
+    await storeFingerprints((inserted.data as AnalysisRow).id, files).catch((err) => console.warn('Fingerprints were not stored:', err));
   if (inserted.error) {
     const again = must(
       await db().from('repo_analyses').select('*').eq('repo_id', repo.id).eq('commit_sha', sha).single(),

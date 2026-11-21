@@ -30,6 +30,8 @@ const assignmentFields = {
   interviews_enabled: z.boolean().default(false),
   /** Language of the grader's feedback and of the interviews about the submissions. */
   language: z.enum(LOCALES).default('en'),
+  /** Code every student starts from: it never counts as a copy in the similarity check. */
+  starter_repo_url: z.string().trim().regex(GITHUB_REPO_URL, 'Use a public GitHub repository URL, like https://github.com/owner/repo').nullable().default(null),
   rubric: RubricSchema,
 };
 
@@ -62,6 +64,7 @@ export const UpdateAssignmentSchema = z
     max_submissions: z.number().int().min(1).max(100).nullable(),
     interviews_enabled: z.boolean(),
     language: z.enum(LOCALES),
+    starter_repo_url: z.string().trim().regex(GITHUB_REPO_URL, 'Use a public GitHub repository URL, like https://github.com/owner/repo').nullable(),
     rubric: RubricSchema,
   })
   .partial()

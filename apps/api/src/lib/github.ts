@@ -138,6 +138,11 @@ export interface RepoEntries {
   downloadedBytes: number;
 }
 
+/** The text of one file at one exact commit. */
+export async function getFileText(owner: string, name: string, sha: string, path: string): Promise<string> {
+  return new TextDecoder().decode(await rawFile(owner, name, sha, path));
+}
+
 async function rawFile(owner: string, name: string, sha: string, path: string): Promise<Uint8Array> {
   const url = `https://raw.githubusercontent.com/${enc(owner)}/${enc(name)}/${sha}/${path.split('/').map(enc).join('/')}`;
   const res = await fetch(url, { headers: { 'User-Agent': 'skillproof' }, signal: AbortSignal.timeout(30_000) });
