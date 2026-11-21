@@ -1,4 +1,5 @@
-import { lazy, tr, trn } from '../i18n';
+import { lazy, tr, trn, useI18n, type Locale } from '../i18n';
+import { InterviewLanguageField } from '../components/LanguageControl';
 import { useMemo, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
@@ -66,6 +67,8 @@ export function InterviewHome() {
   const list = useLoad<{ interviews: InterviewRow[] }>('/api/me/interviews');
 
   const [repoUrl, setRepoUrl] = useState('');
+  const { locale: uiLocale } = useI18n();
+  const [interviewLocale, setInterviewLocale] = useState<Locale>(uiLocale);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [existingId, setExistingId] = useState<string | null>(null);
@@ -81,7 +84,7 @@ export function InterviewHome() {
     setExistingId(null);
     try {
       const res = await api<{ interview: { id: string } }>('/api/interviews', {
-        body: { repo_url: repoUrl.trim() },
+        body: { repo_url: repoUrl.trim(), locale: interviewLocale },
       });
       navigate(`/interview/${res.interview.id}`);
     } catch (err) {
@@ -231,6 +234,8 @@ export function InterviewHome() {
                     />
                   </div>
                 </div>
+
+                <InterviewLanguageField value={interviewLocale} onChange={setInterviewLocale} hint={tr('The questions, the interviewer and the report use it.')} />
 
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-12">
                   <div className="flex items-center rounded-[4px] border border-line bg-paper px-3 py-2 sm:col-span-7">

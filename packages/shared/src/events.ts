@@ -63,6 +63,11 @@ export const CreateInterviewSchema = z
     submission_id: z.uuid().optional(),
     /** A course assignment submission: each student (each group member) takes their own interview. */
     assignment_submission_id: z.uuid().optional(),
+    /**
+     * Language of the interview, for a personal interview or an individual course assignment. Event and group
+     * assignment interviews always use the language their organizer set, so sending one there is refused.
+     */
+    locale: z.enum(LOCALES).optional(),
   })
   .refine((v) => [v.repo_url, v.submission_id, v.assignment_submission_id].filter(Boolean).length === 1, 'Give a repo URL, a submission or an assignment submission');
 

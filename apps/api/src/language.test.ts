@@ -2,7 +2,7 @@ import { CreateAssignmentSchema, CreateEventSchema, DEFAULT_RUBRIC, UpdateAssign
 import { describe, expect, it } from 'vitest';
 import { INTERVIEW_SPECS } from './services/interviewSpecs.js';
 import { PLAN_SYSTEM, REPORT_SYSTEM, interviewerInstruction, planSystem } from './services/interviews.js';
-import { inLanguage, languageNote } from './services/language.js';
+import { inLanguage, interviewLocale, languageNote } from './services/language.js';
 import { HACKATHON_SYSTEM, scoringSystem } from './services/scoringSpecs.js';
 
 const q = (i: number) => ({ id: `q${i}`, kind: 'why' as const, question: `Q${i}?`, path: 'src/a.ts', start_line: 1, end_line: 5, expected_points: ['p'], skill: 's' });
@@ -14,6 +14,22 @@ describe('English prompts do not change', () => {
     expect(inLanguage(PLAN_SYSTEM, undefined)).toBe(PLAN_SYSTEM);
     expect(languageNote('en', 'x')).toBe('');
     expect(interviewerInstruction(plan, 'a/b', 'hackathon', 'en')).toBe(interviewerInstruction(plan, 'a/b'));
+  });
+});
+
+describe('who chooses the language of an interview', () => {
+  it('events and group assignments use the language their organizer set', () => {
+    expect(interviewLocale('event', undefined, 'es')).toBe('es');
+    expect(interviewLocale('event', 'es', 'es')).toBe('es');
+    expect(interviewLocale('event', 'en', 'es')).toBeNull();
+    expect(interviewLocale('group_assignment', 'es', 'en')).toBeNull();
+  });
+
+  it('an individual assignment and a personal interview take the candidate\'s choice', () => {
+    expect(interviewLocale('individual_assignment', 'en', 'es')).toBe('en');
+    expect(interviewLocale('individual_assignment', undefined, 'es')).toBe('es');
+    expect(interviewLocale('personal', 'es', 'en')).toBe('es');
+    expect(interviewLocale('personal', undefined, 'en')).toBe('en');
   });
 });
 

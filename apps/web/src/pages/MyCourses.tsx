@@ -1,4 +1,6 @@
-import { t, tr, trn } from '../i18n';
+import { t, tr, trn, type Locale } from '../i18n';
+import { InterviewLanguageField } from '../components/LanguageControl';
+import { LOCALE_NAME } from '@skillproof/shared';
 /**
  * For students, inside My courses (courses are not events: nothing to join, the roster decides):
  *   /courses               my courses, each assignment with what to do next, and group invitations waiting
@@ -708,12 +710,16 @@ function InterviewCard({ data: d }: { data: MyAssignmentResponse }) {
   const toast = useToast();
   const [busy, setBusy] = useState(false);
   const isGroup = d.assignment.mode === 'group';
+  // Group interviews use the language the teacher set; in an individual assignment the student may choose.
+  const [locale, setLocale] = useState<Locale>(d.assignment.language);
 
   async function start() {
     if (!d.submission) return;
     setBusy(true);
     try {
-      const res = await api<{ interview: { id: string } }>('/api/interviews', { body: { assignment_submission_id: d.submission.id } });
+      const res = await api<{ interview: { id: string } }>('/api/interviews', {
+        body: { assignment_submission_id: d.submission.id, ...(isGroup ? {} : { locale }) },
+      });
       navigate(`/interview/${res.interview.id}`);
     } catch (err) {
       const existing = existingInterviewId(err);
@@ -736,10 +742,17 @@ function InterviewCard({ data: d }: { data: MyAssignmentResponse }) {
           {d.interview.status === 'completed' ? tr('See my interview report') : tr('Open my interview')}
         </Link>
       ) : (
-        <Button loading={busy} onClick={() => void start()}>
-          <span className="material-symbols-outlined text-[17px]">mic</span>
-          <span>{tr('Prepare my interview')}</span>
-        </Button>
+        <div className="space-y-3">
+          {isGroup ? (
+            <p className="text-[12px] text-muted">{tr('Interview language: {language} (set by your instructor).', { language: LOCALE_NAME[d.assignment.language] })}</p>
+          ) : (
+            <InterviewLanguageField value={locale} onChange={setLocale} />
+          )}
+          <Button loading={busy} onClick={() => void start()}>
+            <span className="material-symbols-outlined text-[17px]">mic</span>
+            <span>{tr('Prepare my interview')}</span>
+          </Button>
+        </div>
       )}
     </NumberedSectionCard>
   );

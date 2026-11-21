@@ -58,3 +58,24 @@ export function ContestLanguageField({ value, onChange }: { value: Locale; onCha
     </div>
   );
 }
+
+/** The language of the interview the candidate is about to start (where they may choose it). */
+export function InterviewLanguageField({ value, onChange, hint }: { value: Locale; onChange: (l: Locale) => void; hint?: string }) {
+  return (
+    <label className="flex flex-wrap items-center gap-2 text-[12px] text-muted">
+      <span className="font-semibold text-ink">{tr('Interview language')}</span>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value as Locale)}
+        className="cursor-pointer rounded-[4px] border border-line-strong bg-surface px-2 py-1 text-[12px] text-ink"
+      >
+        {LOCALES.map((l) => (
+          <option key={l} value={l}>
+            {LOCALE_NAME[l]}
+          </option>
+        ))}
+      </select>
+      {hint && <span>{hint}</span>}
+    </label>
+  );
+}

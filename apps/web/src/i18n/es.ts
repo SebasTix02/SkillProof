@@ -86,6 +86,7 @@ export const es: typeof en = {
     rubric_locked: 'La rúbrica solo puede cambiar mientras la tarea es un borrador.',
     not_a_judge: 'Esa persona no puede revisar entregas en esta organización.',
     published: 'Los resultados ya se publicaron, así que las revisiones no pueden cambiar.',
+    language_fixed: 'El organizador eligió el idioma de esta entrevista, así que no se puede cambiar.',
   },
   messages: {
     'Assignment not found': 'No se encontró la tarea.',

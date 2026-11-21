@@ -19,3 +19,17 @@ export function languageNote(locale: Locale | null | undefined, what: string): s
   if (!locale || locale === 'en') return '';
   return `\n\nWrite ${what} in ${LANGUAGE_NAME[locale]}. Keep file paths, code identifiers and quotes from the candidate exactly as they are.`;
 }
+
+/**
+ * The language of a new interview. Events and group assignments decide it (a different choice is refused, null);
+ * an individual assignment and a personal interview take the candidate's choice, else the assignment's or the
+ * candidate's own language.
+ */
+export function interviewLocale(
+  target: 'event' | 'group_assignment' | 'individual_assignment' | 'personal',
+  chosen: Locale | undefined,
+  fallback: Locale,
+): Locale | null {
+  if (target === 'event' || target === 'group_assignment') return !chosen || chosen === fallback ? fallback : null;
+  return chosen ?? fallback;
+}

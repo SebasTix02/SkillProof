@@ -1,3 +1,4 @@
+import { interviewLocale } from '../services/language.js';
 import { CreateInterviewSchema, FinishInterviewSchema, describeFocusEvents, MAX_INTERVIEW_PAUSE_MS, parseGithubUrl, type QuestionPlan } from '@skillproof/shared';
 import type { FastifyInstance } from 'fastify';
 import { env } from '../env.js';
@@ -49,6 +50,11 @@ async function interviewsOnCommit(userId: string, repoId: string, commitSha: str
   ) as ExistingInterview[];
 }
 
+/** The candidate tried to choose the language of an interview whose organizer already set it. */
+const languageFixed = (): never => {
+  throw badRequest('language_fixed', 'The organizer set the language of this interview, so it cannot be changed.');
+};
+
 const interviewExists = (id: string | null, commitSha: string) =>
   conflict(
     'interview_exists_for_commit',
@@ -94,7 +100,8 @@ export async function interviewRoutes(app: FastifyInstance): Promise<void> {
       commitSha = sub.locked_commit_sha;
       submissionId = sub.id;
       organizationId = sub.organization_id;
-      locale = sub.events.language;
+      // An event decides the language of its interviews.
+      locale = interviewLocale('event', input.locale, sub.events.language) ?? languageFixed();
     } else if (input.assignment_submission_id) {
       // A course assignment: the student, or each member of the group, takes their own interview.
       const sub = must(
@@ -128,7 +135,8 @@ export async function interviewRoutes(app: FastifyInstance): Promise<void> {
       commitSha = sub.locked_commit_sha;
       assignmentSubmissionId = sub.id;
       organizationId = sub.organization_id;
-      locale = sub.course_assignments.language;
+      // A group assignment keeps the language its teacher set; in an individual one the student may choose.
+      locale = interviewLocale(sub.group_id ? 'group_assignment' : 'individual_assignment', input.locale, sub.course_assignments.language) ?? languageFixed();
     } else {
       const ref = parseGithubUrl(input.repo_url!);
       if (!ref) throw badRequest('invalid_repo', 'Use a public GitHub repository URL.');
@@ -146,7 +154,7 @@ export async function interviewRoutes(app: FastifyInstance): Promise<void> {
       // A personal interview is about the code as it is now: the head of the default branch.
       commitSha = await getHeadSha(meta.owner, meta.name, meta.defaultBranch);
       const me = must(await db().from('profiles').select('locale').eq('id', user.id).single()) as { locale: 'en' | 'es' };
-      locale = me.locale;
+      locale = interviewLocale('personal', input.locale, me.locale)!;
     }
 
     // One interview per repository and commit: after seeing the answer key, a second one would be answered from it.
