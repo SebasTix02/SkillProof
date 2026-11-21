@@ -100,7 +100,7 @@ function StageController({
   ];
 
   return (
-    <section className="rounded-[6px] border border-line bg-white p-4 sm:px-6">
+    <section className="rounded-[6px] border border-line bg-surface p-4 sm:px-6">
       <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
         <div className="font-mono-code flex flex-wrap items-center gap-2 text-[11px]">
           {stages.map((st, idx) => {
@@ -139,7 +139,7 @@ function StageController({
         <div className="font-mono-code flex items-center gap-2 rounded-[4px] border border-line bg-paper p-1 text-[11px]">
           <span
             className={`inline-flex items-center gap-1.5 rounded-[3px] px-3 py-1 font-semibold ${
-              status !== 'completed' ? 'border border-line bg-white text-accent' : 'text-muted'
+              status !== 'completed' ? 'border border-line bg-surface text-accent' : 'text-muted'
             }`}
           >
             {status !== 'completed' && <span className="h-1.5 w-1.5 rounded-full bg-bad" />}
@@ -547,7 +547,7 @@ function Room({
 
   if (phase === 'sending') {
     return (
-      <section className="rounded-[6px] border border-line bg-white p-12 text-center">
+      <section className="rounded-[6px] border border-line bg-surface p-12 text-center">
         <Spinner label="Saving your interview transcript and dispatching evaluation…" />
       </section>
     );
@@ -561,15 +561,15 @@ function Room({
   return (
     <section
       id="live-examination-cockpit"
-      className="relative overflow-hidden rounded-[6px] border border-line bg-white"
+      className="relative overflow-hidden rounded-[6px] border border-line bg-surface"
       onCopy={(e) => phase === 'live' && e.preventDefault()}
       onCut={(e) => phase === 'live' && e.preventDefault()}
       onContextMenu={(e) => phase === 'live' && e.preventDefault()}
     >
       {/* Cobalt & Cyan Live Cockpit Header */}
-      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-line bg-accent-50 px-5 py-3">
+      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-line bg-accent-soft px-5 py-3">
         <div className="flex min-w-0 flex-wrap items-center gap-2.5">
-          <span className="font-mono-code inline-flex items-center gap-1.5 rounded-[3px] border border-line bg-white px-2.5 py-1 text-[11px] font-semibold tracking-wider text-accent uppercase">
+          <span className="font-mono-code inline-flex items-center gap-1.5 rounded-[3px] border border-line bg-surface px-2.5 py-1 text-[11px] font-semibold tracking-wider text-accent uppercase">
             <LiveDot tone="accent" />
             <span>AI INTERVIEWER</span>
           </span>
@@ -584,7 +584,7 @@ function Room({
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-2 rounded-[3px] border border-line bg-white px-3 py-1">
+          <div className="flex items-center gap-2 rounded-[3px] border border-line bg-surface px-3 py-1">
             <span
               className={`h-2 w-2 rounded-full ${
                 phase === 'live' ? 'bg-bad animate-ping' : phase === 'connecting' ? 'bg-warn animate-pulse' : 'bg-muted'
@@ -607,7 +607,7 @@ function Room({
             <button
               type="button"
               onClick={() => (phase === 'live' ? confirmEnd() : void finish())}
-              className="btn-tactile font-mono-code cursor-pointer rounded-[4px] border border-bad/40 bg-white px-3 py-1.5 text-[11px] font-semibold text-bad hover:bg-bad hover:text-white"
+              className="btn-tactile font-mono-code cursor-pointer rounded-[4px] border border-bad/40 bg-surface px-3 py-1.5 text-[11px] font-semibold text-bad hover:bg-bad hover:text-on-bad"
             >
               {phase === 'live' ? 'End Interview & Score' : 'Finish & Score Recorded Audio'}
             </button>
@@ -618,8 +618,8 @@ function Room({
       {/* Visual Telemetry & Spectral Analysis Hero Strip */}
       <div className="border-b border-line bg-paper/45 p-5">
         <div className="grid grid-cols-1 items-center gap-5 lg:grid-cols-12">
-          <div className="overflow-hidden rounded-[4px] border border-line bg-white lg:col-span-8">
-            <div className="font-mono-code flex h-8 items-center justify-between border-b border-line bg-accent-50 px-4 text-[11px] text-muted">
+          <div className="overflow-hidden rounded-[4px] border border-line bg-surface lg:col-span-8">
+            <div className="font-mono-code flex h-8 items-center justify-between border-b border-line bg-accent-soft px-4 text-[11px] text-muted">
               <div className="flex items-center gap-2">
                 <span className="h-2 w-2 rounded-full bg-accent" />
                 <span className="font-semibold text-ink uppercase">
@@ -630,7 +630,7 @@ function Room({
                 {phase === 'live' ? 'STREAMING LIVE AUDIO' : `${questions.length} CODE HOOKS MAPPED`}
               </span>
             </div>
-            <div className="bg-white">
+            <div className="bg-surface">
               <img
                 src={SPECTROGRAM_ASSET}
                 alt="Real-time audio spectrogram waveform and synchronized code inspector"
@@ -640,7 +640,7 @@ function Room({
           </div>
 
           <div className="flex flex-col justify-between space-y-3.5 lg:col-span-4">
-            <div className="space-y-2 rounded-[4px] border border-line bg-white p-4">
+            <div className="space-y-2 rounded-[4px] border border-line bg-surface p-4">
               <div className="font-mono-code flex items-center justify-between text-[11px]">
                 <span className="text-muted uppercase">Repository Hook Sync</span>
                 <span className="font-bold text-good">SYNCHRONIZED (100%)</span>
@@ -653,7 +653,7 @@ function Room({
               </p>
             </div>
 
-            <div className="space-y-2 rounded-[4px] border border-line bg-white p-4">
+            <div className="space-y-2 rounded-[4px] border border-line bg-surface p-4">
               <div className="font-mono-code flex items-center justify-between text-[11px] text-muted">
                 <span className="uppercase">Acoustic Input Stream</span>
                 <span className="font-semibold text-ink">{phase === 'live' ? 'MIC ACTIVE' : 'MIC STANDBY'}</span>
@@ -669,15 +669,15 @@ function Room({
       </div>
 
       {/* The interview stage: the only part that goes full screen (code, conversation, clock and controls). */}
-      <div ref={stageRef} id="interview-stage" className="interview-stage relative flex flex-col bg-white">
+      <div ref={stageRef} id="interview-stage" className="interview-stage relative flex flex-col bg-surface">
       {(phase === 'live' || phase === 'connecting') && (
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line bg-accent-50 px-4 py-2">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line bg-accent-soft px-4 py-2">
           <div className="font-mono-code flex items-center gap-3 text-[12px]">
             <span className="font-bold text-accent uppercase">Question {activeIdx + 1} of {Math.max(1, questions.length)}</span>
             <span className="font-bold text-ink" aria-label="Time left">{formatClock(left)}</span>
-            {paused && <span className="rounded-[3px] bg-warn px-2 py-0.5 text-[10px] font-bold text-white uppercase">Paused</span>}
+            {paused && <span className="rounded-[3px] bg-warn px-2 py-0.5 text-[10px] font-bold text-on-warn uppercase">Paused</span>}
             {wrapping && (
-              <span className="rounded-[3px] bg-accent px-2 py-0.5 text-[10px] font-bold text-white">
+              <span className="rounded-[3px] bg-accent px-2 py-0.5 text-[10px] font-bold text-on-accent">
                 {wrapping === 'time' ? 'Time is up. The interviewer is wrapping up…' : 'Ending: the interviewer is finishing what it is saying…'}
               </span>
             )}
@@ -707,7 +707,7 @@ function Room({
       )}
       {phase === 'live' && (away || paused) && (
         <div className="absolute inset-0 z-30 flex items-center justify-center bg-[rgba(20,22,26,0.92)] p-6" role="alertdialog" aria-label={paused ? 'Interview paused' : 'You left the interview'}>
-          <div className="max-w-md space-y-3 rounded-[6px] border border-line bg-white p-6 text-center">
+          <div className="max-w-md space-y-3 rounded-[6px] border border-line bg-surface p-6 text-center">
             {paused ? (
               <>
                 <h3 className="font-serif-heading text-[20px] font-medium text-ink">Interview paused</h3>
@@ -737,7 +737,7 @@ function Room({
         {/* Left Pane: Code & AST Inspector (7 cols) */}
         <div className="flex flex-col border-b border-line bg-paper lg:col-span-7 lg:border-r lg:border-b-0">
           {/* File Navigation Subheader */}
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line bg-white px-5 py-2.5 text-muted">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line bg-surface px-5 py-2.5 text-muted">
             <div className="font-mono-code flex items-center gap-2 text-[12px]">
               <span className="material-symbols-outlined text-[16px] text-accent">code</span>
               <span className="font-semibold text-ink">
@@ -799,7 +799,7 @@ function Room({
           </div>
 
           {/* Code Inspector Baseline Status */}
-          <footer className="font-mono-code flex items-center justify-between border-t border-line bg-white px-5 py-2.5 text-[11px] text-muted">
+          <footer className="font-mono-code flex items-center justify-between border-t border-line bg-surface px-5 py-2.5 text-[11px] text-muted">
             <div className="flex items-center gap-2">
               <span className="h-2 w-2 rounded-full bg-accent" />
               <span className="font-medium text-ink">
@@ -813,7 +813,7 @@ function Room({
         </div>
 
         {/* Right Pane: Pre-Flight Briefing OR Live Examiner Dialogue (5 cols) */}
-        <div className="flex min-h-0 flex-col justify-between space-y-5 bg-white p-6 lg:col-span-5">
+        <div className="flex min-h-0 flex-col justify-between space-y-5 bg-surface p-6 lg:col-span-5">
           {phase === 'idle' ? (
             <div className="space-y-4">
               <div className="flex items-center justify-between border-b border-line pb-2.5">
@@ -895,7 +895,7 @@ function Room({
                 <span className="font-mono-code text-[11px] font-bold tracking-wider text-accent uppercase">
                   QUESTION {activeIdx + 1} OF {Math.max(1, questions.length)} • ORAL DEFENSE
                 </span>
-                <span className="font-mono-code rounded-[3px] border border-accent-200 bg-accent-soft px-2 py-0.5 text-[10px] font-semibold text-accent">
+                <span className="font-mono-code rounded-[3px] border border-accent/30 bg-accent-soft px-2 py-0.5 text-[10px] font-semibold text-accent">
                   {phase === 'connecting' ? 'HANDSHAKE…' : 'LIVE AUDIO'}
                 </span>
               </div>
@@ -907,13 +907,13 @@ function Room({
               )}
 
               {/* Examiner Audio Question Box */}
-              <div className="space-y-2 rounded-[4px] border border-accent-200 bg-accent-50 p-4">
+              <div className="space-y-2 rounded-[4px] border border-accent/30 bg-accent-soft p-4">
                 <div className="flex items-center justify-between">
                   <div className="font-mono-code flex items-center gap-1.5 text-[11px] font-bold text-accent uppercase">
                     <span className="status-dot-live bg-accent text-accent" />
                     <span>AI Technical Examiner</span>
                   </div>
-                  <span className="font-mono-code rounded-[2px] border border-line bg-white px-1.5 py-0.5 text-[10px] text-muted">
+                  <span className="font-mono-code rounded-[2px] border border-line bg-surface px-1.5 py-0.5 text-[10px] text-muted">
                     Gemini Live Audio
                   </span>
                 </div>
@@ -1034,7 +1034,7 @@ export function InterviewPage() {
             {interview.commit_sha && (
               <>
                 <span>•</span>
-                <span className="rounded-[3px] border border-line bg-white px-2 py-0.5 text-ink">
+                <span className="rounded-[3px] border border-line bg-surface px-2 py-0.5 text-ink">
                   COMMIT <code>{interview.commit_sha.slice(0, 7)}</code>
                 </span>
               </>
@@ -1048,7 +1048,7 @@ export function InterviewPage() {
             href={interview.repo.url}
             target="_blank"
             rel="noreferrer"
-            className="btn-tactile font-mono-code inline-flex shrink-0 items-center gap-1.5 rounded-[4px] border border-line bg-white px-3 py-1.5 text-[11px] font-semibold text-ink hover:border-accent hover:text-accent"
+            className="btn-tactile font-mono-code inline-flex shrink-0 items-center gap-1.5 rounded-[4px] border border-line bg-surface px-3 py-1.5 text-[11px] font-semibold text-ink hover:border-accent hover:text-accent"
           >
             <span>Inspect GitHub Repo</span>
             <span>↗</span>
@@ -1058,7 +1058,7 @@ export function InterviewPage() {
 
       {/* Stage 01: Preparing Repository & Questions */}
       {interview.status === 'preparing' && (
-        <section className="space-y-5 rounded-[6px] border border-line bg-white p-6">
+        <section className="space-y-5 rounded-[6px] border border-line bg-surface p-6">
           <div className="flex flex-col items-center justify-center space-y-2 py-4 text-center">
             <Spinner label="Reading the repository and preparing your code-anchored questions" />
             <p className="text-[13px] text-muted">
@@ -1088,7 +1088,7 @@ export function InterviewPage() {
       )}
 
       {(interview.status === 'report_paused' || interview.status === 'report_canceled') && (
-        <section className="space-y-4 rounded-[6px] border border-line bg-white p-6">
+        <section className="space-y-4 rounded-[6px] border border-line bg-surface p-6">
           <Notice tone="warn">
             {interview.status === 'report_paused'
               ? 'The report is paused. Your answers are saved; resume whenever you want.'
@@ -1130,7 +1130,7 @@ export function InterviewPage() {
 
       {/* Stage 04: Evaluating Transcript */}
       {interview.status === 'evaluating' && (
-        <section className="space-y-5 rounded-[6px] border border-line bg-white p-6">
+        <section className="space-y-5 rounded-[6px] border border-line bg-surface p-6">
           <div className="flex flex-col items-center justify-center space-y-2 py-4 text-center">
             <Spinner label="Synthesizing your ownership score and pinning verbatim transcript evidence" />
             <p className="text-[13px] text-muted">Usually completes in under a minute.</p>
@@ -1153,10 +1153,10 @@ export function InterviewPage() {
         <>
           <article
             id="verified-dossier-report"
-            className="overflow-hidden rounded-[6px] border border-line bg-white"
+            className="overflow-hidden rounded-[6px] border border-line bg-surface"
           >
             {/* Official Credential Header Block */}
-            <header className="space-y-4 border-b border-line bg-white p-6 sm:p-8">
+            <header className="space-y-4 border-b border-line bg-surface p-6 sm:p-8">
               <div className="font-mono-code flex flex-col justify-between gap-2 text-[11px] text-muted md:flex-row md:items-center">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="status-dot-live bg-good text-good" />
@@ -1216,12 +1216,12 @@ export function InterviewPage() {
             </div>
 
             {/* Attestation Footer Action Bar */}
-            <footer className="flex flex-col justify-between gap-4 border-t border-line bg-good-50 p-6 md:flex-row md:items-center">
+            <footer className="flex flex-col justify-between gap-4 border-t border-line bg-good-soft p-6 md:flex-row md:items-center">
               <div className="flex flex-wrap items-center gap-3">
                 {interview.is_owner && profile && (
                   <Link
                     to={profile.is_public ? `/p/${profile.slug}` : '/me'}
-                    className="btn-tactile inline-flex items-center gap-2 rounded-[4px] border border-ink bg-ink px-4 py-2 text-[13px] font-medium text-white hover:border-accent hover:bg-accent"
+                    className="btn-tactile inline-flex items-center gap-2 rounded-[4px] border border-ink bg-ink px-4 py-2 text-[13px] font-medium text-on-accent hover:border-accent hover:bg-accent"
                   >
                     <span className="material-symbols-outlined text-[16px]">public</span>
                     <span>
@@ -1233,7 +1233,7 @@ export function InterviewPage() {
                 <button
                   type="button"
                   onClick={() => window.print()}
-                  className="btn-tactile inline-flex cursor-pointer items-center gap-2 rounded-[4px] border border-line bg-white px-4 py-2 text-[13px] font-medium text-ink hover:border-muted hover:bg-paper"
+                  className="btn-tactile inline-flex cursor-pointer items-center gap-2 rounded-[4px] border border-line bg-surface px-4 py-2 text-[13px] font-medium text-ink hover:border-muted hover:bg-paper"
                 >
                   <span className="material-symbols-outlined text-[16px] text-good">print</span>
                   <span>Print / Save PDF Dossier</span>
@@ -1261,7 +1261,7 @@ export function InterviewPage() {
           )}
 
           {data.transcript && data.transcript.length > 0 && (
-            <section className="rounded-[6px] border border-line bg-white p-5">
+            <section className="rounded-[6px] border border-line bg-surface p-5">
               <details>
                 <summary className="font-mono-code cursor-pointer text-[12px] font-semibold tracking-wider text-ink uppercase">
                   Inspect Full Verbatim Transcript ({data.transcript.length} exchanges)
@@ -1271,7 +1271,7 @@ export function InterviewPage() {
                     <li
                       key={i}
                       className={`rounded-[4px] border border-line p-3 ${
-                        t.role === 'interviewer' ? 'bg-paper/60' : t.role === 'system' ? 'bg-warn-soft/40' : 'bg-white'
+                        t.role === 'interviewer' ? 'bg-paper/60' : t.role === 'system' ? 'bg-warn-soft/40' : 'bg-surface'
                       }`}
                     >
                       <div className="font-mono-code mb-1 flex items-center justify-between text-[10px] text-muted uppercase">

@@ -59,7 +59,7 @@ export function ScoreBar({
 export function KpiGrid({ children, className = '' }: { children: ReactNode; className?: string }) {
   return (
     <section
-      className={`grid grid-cols-1 divide-y divide-line overflow-hidden rounded-[6px] border border-line bg-white sm:grid-cols-2 sm:divide-x sm:divide-y-0 lg:grid-cols-4 ${className}`}
+      className={`grid grid-cols-1 divide-y divide-line overflow-hidden rounded-[6px] border border-line bg-surface sm:grid-cols-2 sm:divide-x sm:divide-y-0 lg:grid-cols-4 ${className}`}
     >
       {children}
     </section>
@@ -82,7 +82,7 @@ export function KpiCell({
   tinted?: boolean;
 }) {
   return (
-    <div className={`flex flex-col justify-between space-y-2.5 p-5 ${tinted ? 'bg-good-50' : ''}`}>
+    <div className={`flex flex-col justify-between space-y-2.5 p-5 ${tinted ? 'bg-good-soft' : ''}`}>
       <div className="flex items-center justify-between gap-2">
         <span className="font-mono-code text-[11px] font-semibold tracking-wider text-muted uppercase">{label}</span>
         {badge ?? (icon ? <span className="material-symbols-outlined text-[18px] text-accent">{icon}</span> : null)}
@@ -169,7 +169,7 @@ export function TopAccentKpiCard({
 
   return (
     <div
-      className={`relative flex flex-col justify-between space-y-3 overflow-hidden rounded-[6px] border bg-white p-4 ${palette.border}`}
+      className={`relative flex flex-col justify-between space-y-3 overflow-hidden rounded-[6px] border bg-surface p-4 ${palette.border}`}
     >
       <div className={`absolute top-0 right-0 left-0 h-[3px] ${palette.bar}`} />
       <div className="flex items-center justify-between pt-0.5">
@@ -231,7 +231,7 @@ export function WaveformVisualizer({
   return (
     <div
       aria-label="Microphone Amplitude Visualizer"
-      className="flex h-8 items-end justify-between gap-1 rounded-[3px] border border-line bg-accent-50 p-1"
+      className="flex h-8 items-end justify-between gap-1 rounded-[3px] border border-line bg-accent-soft p-1"
     >
       {bars.map((h, i) => (
         <span

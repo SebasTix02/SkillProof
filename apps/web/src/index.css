@@ -158,6 +158,55 @@
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+/*
+ * Dark mode (DESIGN.md v1.2). The same semantic names get dark values, so components need no changes: set by
+ * data-theme="dark" on <html> (lib/theme.ts; a script in index.html applies it before the first paint). Pairs checked
+ * for WCAG 2.2: text 4.5:1 or more on surface, paper and well; text on each tint 7:1 or more; control borders 3:1.
+ * Fills get one step lighter (400) and their text turns dark (on-<tone>). Printing is always light.
+ */
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --color-ink: var(--color-dark-ink);
+  --color-muted: var(--color-neutral-400);
+  --color-faint: #7f8794;
+  --color-line: var(--color-dark-hairline);
+  --color-line-strong: #646b78;
+  --color-paper: var(--color-dark-canvas);
+  --color-surface: var(--color-dark-surface);
+  --color-well: #101216;
+
+  --color-accent: var(--color-accent-400);
+  --color-accent-soft: #14244d;
+  --color-accent-hover: var(--color-accent-300);
+  --color-accent-ink: var(--color-accent-300);
+  --color-accent-ui: var(--color-accent-400);
+  --color-on-accent: var(--color-dark-canvas);
+
+  --color-good: var(--color-good-400);
+  --color-good-soft: #0d2a1f;
+  --color-good-ink: var(--color-good-300);
+  --color-good-ui: var(--color-good-400);
+  --color-on-good: var(--color-dark-canvas);
+
+  --color-warn: var(--color-warn-400);
+  --color-warn-soft: #33210c;
+  --color-warn-ink: var(--color-warn-300);
+  --color-warn-ui: var(--color-warn-400);
+  --color-on-warn: var(--color-dark-canvas);
+
+  --color-bad: var(--color-bad-400);
+  --color-bad-soft: #3a1513;
+  --color-bad-hover: var(--color-bad-300);
+  --color-bad-surface: #2a1110;
+  --color-bad-ink: var(--color-bad-300);
+  --color-bad-ui: var(--color-bad-400);
+  --color-on-bad: var(--color-dark-canvas);
+
+  /* The side menu and dark banners sit one step below the page so they still read as their own block. */
+  --color-sidebar: #08090b;
+  --color-dark-inset: #0a0c0f;
+}
+
 html {
   background: var(--color-paper);
   color: var(--color-ink);
@@ -177,7 +226,7 @@ body {
 
 ::selection {
   background-color: var(--color-accent);
-  color: #ffffff;
+  color: var(--color-on-accent);
 }
 
 :focus-visible {

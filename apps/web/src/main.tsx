@@ -7,6 +7,7 @@ import { Layout, Notice, PageState } from './components/ui';
 import './index.css';
 import { AuthProvider, useAuth } from './lib/auth';
 import { configured } from './lib/supabase';
+import { installPrintTheme } from './lib/theme';
 import { AcceptInvite } from './pages/AcceptInvite';
 import { AuthCallback, ForgotPassword, LogIn, MyAccount, ResetPassword, SignUp } from './pages/Account';
 import { EventPage } from './pages/EventPage';
@@ -83,6 +84,8 @@ function App() {
     </Layout>
   );
 }
+
+installPrintTheme();
 
 // Printing opens every folded section (transcripts, details), and folds them back afterwards.
 window.addEventListener('beforeprint', () => {

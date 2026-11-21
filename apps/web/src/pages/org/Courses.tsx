@@ -142,7 +142,7 @@ export function CoursesHome() {
       {list.loading || list.error ? (
         <PageState loading={list.loading} error={list.error} kind="cards" />
       ) : courses.length === 0 ? (
-        <section className="rounded-[6px] border border-line bg-white p-8 text-center">
+        <section className="rounded-[6px] border border-line bg-surface p-8 text-center">
           <p className="font-serif-heading text-[22px] text-ink">No courses yet</p>
           <p className="mx-auto mt-1 max-w-md text-[13px] text-muted">
             A course keeps a roster of students and the assignments only they can submit to, with a gradebook across all of them.
@@ -157,7 +157,7 @@ export function CoursesHome() {
         <ul className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {courses.map((c) => (
             <li key={c.id}>
-              <Link to={`/org/courses/${c.id}`} className="card-interactive block h-full rounded-[6px] border border-line bg-white p-5 hover:border-accent-ui">
+              <Link to={`/org/courses/${c.id}`} className="card-interactive block h-full rounded-[6px] border border-line bg-surface p-5 hover:border-accent-ui">
                 <p className="font-mono-code text-[11px] font-semibold tracking-wider text-muted uppercase">
                   {[c.code, c.term].filter(Boolean).join(' · ') || 'Course'}
                 </p>
@@ -289,7 +289,7 @@ function Overview({ detail }: { detail: CourseDetail }) {
     <div className="space-y-6">
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         {tiles.map((t) => (
-          <div key={t.label} className="rounded-[6px] border border-line bg-white p-4">
+          <div key={t.label} className="rounded-[6px] border border-line bg-surface p-4">
             <p className="font-mono-code text-[11px] font-semibold tracking-wider text-muted uppercase">{t.label}</p>
             <p className="font-serif-heading mt-1 text-[28px] leading-none text-ink">{t.value}</p>
             <p className="mt-1 text-[12px] text-muted">{t.hint}</p>
@@ -419,7 +419,7 @@ function Roster({ detail, onChanged, canManage }: { detail: CourseDetail; onChan
         </NumberedSectionCard>
       )}
 
-      <section className="rounded-[6px] border border-line bg-white">
+      <section className="rounded-[6px] border border-line bg-surface">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-3">
           <p className="text-[14px] font-semibold text-ink">
             {members.length} {members.length === 1 ? 'person' : 'people'}
@@ -482,7 +482,7 @@ function Roster({ detail, onChanged, canManage }: { detail: CourseDetail; onChan
 function Assignments({ courseId, assignments, canManage }: { courseId: string; assignments: AssignmentView[]; canManage: boolean }) {
   if (assignments.length === 0)
     return (
-      <section className="rounded-[6px] border border-line bg-white p-8 text-center">
+      <section className="rounded-[6px] border border-line bg-surface p-8 text-center">
         <p className="font-serif-heading text-[22px] text-ink">No assignments yet</p>
         <p className="mx-auto mt-1 max-w-md text-[13px] text-muted">
           An assignment is open to the students on the roster: they submit a repository before the due date and SkillProof grades it with your rubric.
@@ -495,7 +495,7 @@ function Assignments({ courseId, assignments, canManage }: { courseId: string; a
       </section>
     );
   return (
-    <section className="overflow-x-auto rounded-[6px] border border-line bg-white">
+    <section className="overflow-x-auto rounded-[6px] border border-line bg-surface">
       <table className="w-full text-left text-[13px]">
         <thead className="font-mono-code bg-paper text-[11px] text-muted uppercase">
           <tr>
@@ -577,12 +577,12 @@ function Gradebook({ courseId, canManage }: { courseId: string; canManage: boole
 
   if (students.length === 0 || assignments.length === 0)
     return (
-      <section className="rounded-[6px] border border-line bg-white p-8 text-center text-[13px] text-muted">
+      <section className="rounded-[6px] border border-line bg-surface p-8 text-center text-[13px] text-muted">
         The gradebook fills in once the course has students and assignments.
       </section>
     );
   return (
-    <section className="rounded-[6px] border border-line bg-white">
+    <section className="rounded-[6px] border border-line bg-surface">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-3">
         <p className="text-[13px] text-muted">
           Grade out of 10 per assignment. Group work: each member gets the group grade unless you adjust it (<span className="font-mono-code text-accent-ink">adj.</span>). Empty: no submission.
@@ -609,7 +609,7 @@ function Gradebook({ courseId, canManage }: { courseId: string; canManage: boole
           <tbody className="divide-y divide-line">
             {students.map((s) => (
               <tr key={s.user_id}>
-                <td className="sticky left-0 bg-white px-5 py-2.5 font-medium text-ink">{s.display_name}</td>
+                <td className="sticky left-0 bg-surface px-5 py-2.5 font-medium text-ink">{s.display_name}</td>
                 <td className="px-3 py-2.5 text-muted">{s.section || '—'}</td>
                 {assignments.map((a) => {
                   const g = s.grades[a.id];
@@ -893,7 +893,7 @@ export function NewAssignment() {
 
       {error && <Notice tone="error">{error}</Notice>}
 
-      <div className="flex flex-wrap justify-end gap-3 rounded-[6px] border border-line bg-white p-5">
+      <div className="flex flex-wrap justify-end gap-3 rounded-[6px] border border-line bg-surface p-5">
         <Button type="button" variant="secondary" disabled={busy !== null} loading={busy === 'draft'} onClick={(e) => void submit(e, false)}>
           Save as draft
         </Button>

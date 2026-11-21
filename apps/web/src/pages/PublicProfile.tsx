@@ -153,7 +153,7 @@ export function PublicProfile() {
 
           <a
             href="#ledger-audit"
-            className="btn-tactile font-mono-code flex items-center gap-1.5 rounded-[4px] border border-accent bg-accent px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-accent-hover"
+            className="btn-tactile font-mono-code flex items-center gap-1.5 rounded-[4px] border border-accent bg-accent px-3 py-1.5 text-[11px] font-semibold text-on-accent hover:bg-accent-hover"
           >
             <span className="material-symbols-outlined text-[15px]">token</span>
             <span>Verification Standard</span>
@@ -163,7 +163,7 @@ export function PublicProfile() {
 
       {/* 2. Candidate Hero & Executive Summary Section (Split 7 / 5) */}
       <section className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-        <div className="relative flex flex-col justify-between overflow-hidden rounded-[6px] border border-line border-t-[3px] border-t-accent bg-white p-6 sm:p-8 lg:col-span-7">
+        <div className="relative flex flex-col justify-between overflow-hidden rounded-[6px] border border-line border-t-[3px] border-t-accent bg-surface p-6 sm:p-8 lg:col-span-7">
           <div>
             <div className="mb-3 flex flex-wrap items-center gap-2">
               <Badge tone="good" dot>
@@ -237,7 +237,7 @@ export function PublicProfile() {
         </div>
 
         {/* Right 5 Cols: Executive Credential Summary Card */}
-        <div className="relative flex flex-col justify-between overflow-hidden rounded-[6px] border border-line border-t-[3px] border-t-good bg-white p-6 sm:p-8 lg:col-span-5">
+        <div className="relative flex flex-col justify-between overflow-hidden rounded-[6px] border border-line border-t-[3px] border-t-good bg-surface p-6 sm:p-8 lg:col-span-5">
           <div>
             <div className="mb-4 flex items-center justify-between border-b border-line pb-3">
               <span className="font-mono-code text-[11px] font-semibold tracking-wider text-muted uppercase">
@@ -297,7 +297,7 @@ export function PublicProfile() {
       </section>
 
       {/* 3. Chronological Verification Ledger Subheader & Sort Bar */}
-      <div className="flex flex-col justify-between gap-3 rounded-[6px] border border-line bg-white px-5 py-4 sm:flex-row sm:items-center">
+      <div className="flex flex-col justify-between gap-3 rounded-[6px] border border-line bg-surface px-5 py-4 sm:flex-row sm:items-center">
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex h-8 w-8 items-center justify-center rounded-[4px] border border-accent/25 bg-accent-soft text-accent-ink">
             <span className="material-symbols-outlined text-[18px]">account_tree</span>
@@ -332,7 +332,7 @@ export function PublicProfile() {
 
       {/* 4. Repository Artifact Stack */}
       {sortedVerified.length === 0 ? (
-        <div className="rounded-[6px] border border-line bg-white p-10 text-center">
+        <div className="rounded-[6px] border border-line bg-surface p-10 text-center">
           <div className="font-serif-heading text-[20px] font-medium text-ink">No verified interviews published yet</div>
           <p className="mt-1 text-[13px] text-muted">
             Completed 3-minute voice interviews will appear here automatically once evaluated.
@@ -348,7 +348,7 @@ export function PublicProfile() {
             return (
               <article
                 key={i.id}
-                className={`overflow-hidden rounded-[6px] border-2 bg-white transition-colors ${theme.cardBorder}`}
+                className={`overflow-hidden rounded-[6px] border-2 bg-surface transition-colors ${theme.cardBorder}`}
               >
                 <div className={`flex flex-col justify-between gap-4 p-5 sm:px-6 md:flex-row md:items-center ${theme.headerBg}`}>
                   <div className="flex flex-wrap items-center gap-2.5">
@@ -368,11 +368,11 @@ export function PublicProfile() {
                       <span className="font-mono-code text-[15px] font-bold text-ink">Verified Repository</span>
                     )}
                     {sha && (
-                      <span className="font-mono-code rounded-[3px] border border-line bg-white px-2 py-0.5 text-[11px] font-semibold text-muted">
+                      <span className="font-mono-code rounded-[3px] border border-line bg-surface px-2 py-0.5 text-[11px] font-semibold text-muted">
                         commit @{sha.slice(0, 7)}
                       </span>
                     )}
-                    <span className="font-mono-code rounded-[3px] border border-line bg-white px-2 py-0.5 text-[11px] text-muted">
+                    <span className="font-mono-code rounded-[3px] border border-line bg-surface px-2 py-0.5 text-[11px] text-muted">
                       {formatAudioDuration(i.duration_s, 'voice interview', '03:00 voice interview')}
                     </span>
                   </div>
@@ -426,7 +426,7 @@ export function PublicProfile() {
                       {report.skills_json.map((s, sIdx) => (
                         <div
                           key={s.skill}
-                          className="flex flex-col justify-between space-y-3 rounded-[4px] border border-line bg-white p-4"
+                          className="flex flex-col justify-between space-y-3 rounded-[4px] border border-line bg-surface p-4"
                         >
                           <div className="flex items-center justify-between gap-2 border-b border-line pb-2.5">
                             <span className="font-serif-heading text-[16px] font-medium text-ink">
@@ -511,7 +511,7 @@ export function PublicProfile() {
             </div>
           </div>
 
-          <div className="no-print flex flex-col gap-3.5 rounded-[6px] border border-line bg-white p-6 text-ink lg:col-span-5">
+          <div className="no-print flex flex-col gap-3.5 rounded-[6px] border border-line bg-surface p-6 text-ink lg:col-span-5">
             <div className="flex items-center justify-between border-b border-line pb-2.5">
               <span className="font-mono-code text-[11px] font-bold tracking-wider text-muted uppercase">
                 Recruiter Actions for {profile.display_name}
@@ -533,14 +533,14 @@ export function PublicProfile() {
               <button
                 type="button"
                 onClick={exportJsonAttestation}
-                className="btn-tactile font-mono-code cursor-pointer rounded-[4px] border border-line bg-paper px-3 py-2 text-center text-[11px] font-semibold text-ink hover:border-muted hover:bg-white"
+                className="btn-tactile font-mono-code cursor-pointer rounded-[4px] border border-line bg-paper px-3 py-2 text-center text-[11px] font-semibold text-ink hover:border-muted hover:bg-surface"
               >
                 Export JSON Payload
               </button>
               <button
                 type="button"
                 onClick={() => window.print()}
-                className="btn-tactile font-mono-code cursor-pointer rounded-[4px] border border-line bg-paper px-3 py-2 text-center text-[11px] font-semibold text-ink hover:border-muted hover:bg-white"
+                className="btn-tactile font-mono-code cursor-pointer rounded-[4px] border border-line bg-paper px-3 py-2 text-center text-[11px] font-semibold text-ink hover:border-muted hover:bg-surface"
               >
                 Print / Export PDF
               </button>

@@ -122,7 +122,7 @@ export function JudgeAssignments({ eventId, submissions }: { eventId: string; su
                   <span className="text-muted"> · {list.length} assigned</span>
                   <div className="mt-1 flex flex-wrap gap-1.5">
                     {list.map((a) => (
-                      <span key={a.submission_id} className="font-mono-code inline-flex items-center gap-1 rounded-[3px] border border-line bg-white px-1.5 py-0.5 text-[11px]">
+                      <span key={a.submission_id} className="font-mono-code inline-flex items-center gap-1 rounded-[3px] border border-line bg-surface px-1.5 py-0.5 text-[11px]">
                         {teamName(a.submission_id)}
                         <button
                           type="button"

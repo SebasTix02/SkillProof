@@ -61,7 +61,7 @@ export function LiveChat({ messages, questions, className = '' }: { messages: Tr
                 <div className={`flex ${m.role === 'candidate' ? 'justify-end' : 'justify-start'}`}>
                   <div
                     className={`max-w-[88%] rounded-[6px] border px-3 py-2 text-[13px] leading-[20px] break-words whitespace-pre-wrap ${
-                      m.role === 'candidate' ? 'border-good/30 bg-good-soft text-ink' : 'border-accent-200 bg-white text-ink'
+                      m.role === 'candidate' ? 'border-good/30 bg-good-soft text-ink' : 'border-accent/30 bg-surface text-ink'
                     }`}
                   >
                     <span className={`font-mono-code mb-0.5 block text-[10px] font-bold uppercase ${m.role === 'candidate' ? 'text-good' : 'text-accent'}`}>
@@ -79,7 +79,7 @@ export function LiveChat({ messages, questions, className = '' }: { messages: Tr
         <button
           type="button"
           onClick={() => setFollow(true)}
-          className="absolute right-3 bottom-3 rounded-full border border-line bg-white px-3 py-1 text-[11px] font-medium text-ink shadow hover:bg-paper"
+          className="absolute right-3 bottom-3 rounded-full border border-line bg-surface px-3 py-1 text-[11px] font-medium text-ink shadow hover:bg-paper"
         >
           Jump to latest ↓
         </button>

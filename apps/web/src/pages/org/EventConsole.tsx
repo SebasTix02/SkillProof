@@ -387,7 +387,7 @@ export function EventConsole() {
       </section>
 
       {/* 3. Lifecycle Control Banner */}
-      <section className="rounded-[6px] border border-line bg-white p-6">
+      <section className="rounded-[6px] border border-line bg-surface p-6">
         {event.status === 'draft' && (
           <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
             <div className="space-y-1">
@@ -481,7 +481,7 @@ export function EventConsole() {
               <div className="flex flex-wrap items-center gap-2">
                 {event.judging_paused_at ? (
                   <>
-                    <span className="font-mono-code rounded-[3px] bg-warn px-2 py-0.5 text-[11px] font-bold text-white uppercase">Judging paused</span>
+                    <span className="font-mono-code rounded-[3px] bg-warn px-2 py-0.5 text-[11px] font-bold text-on-warn uppercase">Judging paused</span>
                     <Button disabled={!!busy} loading={busy === 'resume-all'} onClick={() => void act('resume-all', `/api/events/${event.id}/judging/resume`, 'Judging resumed.')}>
                       Resume judging
                     </Button>
@@ -610,7 +610,7 @@ export function EventConsole() {
                 <div className="flex items-center gap-2.5">
                   <Link
                     to={`/org/events/${event.id}/compare?a=${f.submission_a}&b=${f.submission_b}&flag=${f.id}`}
-                    className="btn-tactile font-mono-code inline-flex items-center gap-1 rounded-[3px] border border-warn/40 bg-white px-2.5 py-1 text-[11px] font-semibold text-warn hover:bg-warn hover:text-white"
+                    className="btn-tactile font-mono-code inline-flex items-center gap-1 rounded-[3px] border border-warn/40 bg-surface px-2.5 py-1 text-[11px] font-semibold text-warn hover:bg-warn hover:text-on-warn"
                   >
                     <span>Compare Side-by-Side</span>
                     <span>→</span>
@@ -623,7 +623,7 @@ export function EventConsole() {
       )}
 
       {/* 6. Submissions & Official Leaderboard Table */}
-      <section className="space-y-4 rounded-[6px] border border-line bg-white p-6">
+      <section className="space-y-4 rounded-[6px] border border-line bg-surface p-6">
         <SectionHeader
           eyebrow={ranked ? 'RANKED RESULTS' : 'LIVE SUBMISSIONS'}
           eyebrowTone="accent"
@@ -798,7 +798,7 @@ export function EventConsole() {
                             )}
                             <Link
                               to={`/org/events/${event.id}/s/${s.id}`}
-                              className="btn-tactile font-mono-code inline-flex items-center gap-1 rounded-[4px] border border-line bg-white px-2.5 py-1 text-[11px] font-semibold text-ink hover:border-accent hover:text-accent"
+                              className="btn-tactile font-mono-code inline-flex items-center gap-1 rounded-[4px] border border-line bg-surface px-2.5 py-1 text-[11px] font-semibold text-ink hover:border-accent hover:text-accent"
                             >
                               <span>Judge</span>
                               <span>→</span>

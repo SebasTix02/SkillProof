@@ -7,7 +7,7 @@ export type SemanticTone = 'neutral' | 'good' | 'warn' | 'bad' | 'accent';
  * Use these instead of combining tone classes by hand.
  */
 export const TONE_CLASS: Record<SemanticTone, { chip: string; text: string; dot: string; onDark: string; fill: string }> = {
-  neutral: { chip: 'border-line bg-paper text-muted', text: 'text-muted', dot: 'bg-muted', onDark: 'text-dark-muted', fill: 'bg-ink text-white' },
+  neutral: { chip: 'border-line bg-paper text-muted', text: 'text-muted', dot: 'bg-muted', onDark: 'text-dark-muted', fill: 'bg-ink text-paper' },
   good: { chip: 'border-good/30 bg-good-soft text-good-ink', text: 'text-good', dot: 'bg-good', onDark: 'text-good-on-dark', fill: 'bg-good text-on-good' },
   warn: { chip: 'border-warn/30 bg-warn-soft text-warn-ink', text: 'text-warn', dot: 'bg-warn', onDark: 'text-warn-on-dark', fill: 'bg-warn text-on-warn' },
   bad: { chip: 'border-bad/30 bg-bad-soft text-bad-ink', text: 'text-bad', dot: 'bg-bad', onDark: 'text-bad-on-dark', fill: 'bg-bad text-on-bad' },
@@ -101,8 +101,8 @@ export const DOSSIER_THEMES: Record<DossierThemeKey, DossierAccentTheme> = {
     key: 'neutral',
     cardBorder: 'border-line hover:border-line-strong',
     headerBg: 'bg-paper border-b border-line',
-    iconBg: 'bg-ink text-white',
-    badgeBg: 'bg-ink text-white',
+    iconBg: 'bg-ink text-paper',
+    badgeBg: 'bg-ink text-paper',
     pillClass: 'border-line bg-paper text-muted',
     noteBorder: 'border-l-line-strong bg-paper',
     noteTitle: 'text-ink',
@@ -139,7 +139,7 @@ export const DOSSIER_THEMES: Record<DossierThemeKey, DossierAccentTheme> = {
     headerBg: 'bg-bad-soft border-b border-bad-200',
     iconBg: 'bg-bad text-on-bad',
     badgeBg: 'bg-bad text-on-bad',
-    pillClass: 'border-bad-200 bg-white text-bad-ink',
+    pillClass: 'border-bad-200 bg-surface text-bad-ink',
     noteBorder: 'border-l-bad-ui bg-bad-50',
     noteTitle: 'text-bad-ink',
     quoteBorder: 'border-l-bad-ui bg-bad-50',
@@ -172,8 +172,8 @@ export const ORG_ROLE_SPECS: Record<OrgRoleKey, RoleCapabilitySpec> = {
       'Manages members, invitations, roles and organization settings, plus everything an organizer can do.',
     badgeClass: 'border-bad/30 bg-bad-soft text-bad',
     cardClass: 'border-bad/25 bg-bad-soft/40 text-ink',
-    pillBgClass: 'bg-bad text-white',
-    avatarBgClass: 'bg-bad text-white ring-2 ring-bad-soft',
+    pillBgClass: 'bg-bad text-on-bad',
+    avatarBgClass: 'bg-bad text-on-bad ring-2 ring-bad-soft',
   },
   organizer: {
     key: 'organizer',
@@ -183,8 +183,8 @@ export const ORG_ROLE_SPECS: Record<OrgRoleKey, RoleCapabilitySpec> = {
       'Create hackathons, freeze candidate repositories, synthesize AST runs, and publish official leaderboards.',
     badgeClass: 'border-accent/25 bg-accent-soft text-accent-ink',
     cardClass: 'border-accent/25 bg-accent-soft/45 text-ink',
-    pillBgClass: 'bg-accent text-white',
-    avatarBgClass: 'bg-accent text-white ring-2 ring-accent-soft',
+    pillBgClass: 'bg-accent text-on-accent',
+    avatarBgClass: 'bg-accent text-on-accent ring-2 ring-accent-soft',
   },
   judge: {
     key: 'judge',
@@ -194,8 +194,8 @@ export const ORG_ROLE_SPECS: Record<OrgRoleKey, RoleCapabilitySpec> = {
       'Read-only access to submissions, submit rubric score overrides, and inspect AI voice defense audits.',
     badgeClass: 'border-good/30 bg-good-soft text-good-ink',
     cardClass: 'border-good/25 bg-good-soft/45 text-ink',
-    pillBgClass: 'bg-good text-white',
-    avatarBgClass: 'bg-good text-white ring-2 ring-good-soft',
+    pillBgClass: 'bg-good text-on-good',
+    avatarBgClass: 'bg-good text-on-good ring-2 ring-good-soft',
   },
   auditor: {
     key: 'auditor',
@@ -205,8 +205,8 @@ export const ORG_ROLE_SPECS: Record<OrgRoleKey, RoleCapabilitySpec> = {
       'Reads the audit log and AI usage, and records integrity decisions on flagged submissions.',
     badgeClass: 'border-accent-200 bg-accent-soft text-accent-ink',
     cardClass: 'border-accent-200 bg-accent-soft/50 text-ink',
-    pillBgClass: 'bg-accent text-white',
-    avatarBgClass: 'bg-accent text-white ring-2 ring-accent-soft',
+    pillBgClass: 'bg-accent text-on-accent',
+    avatarBgClass: 'bg-accent text-on-accent ring-2 ring-accent-soft',
   },
 };
 

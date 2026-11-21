@@ -71,6 +71,7 @@ export function navSections(me: Me | null, org: Organization | null): NavSection
       { key: 'account-profile', label: 'Profile', to: '/me#section-profile', icon: 'account' },
       { key: 'account-visibility', label: 'Public dossier', to: '/me#section-visibility', icon: 'account' },
       { key: 'account-integrations', label: 'Connections', to: '/me#section-integrations', icon: 'account' },
+      { key: 'account-appearance', label: 'Appearance', to: '/me#section-appearance', icon: 'account' },
       { key: 'account-privacy', label: 'Privacy', to: '/me#section-privacy', icon: 'account' },
       { key: 'account-security', label: 'Security & access', to: '/me#section-danger', icon: 'account' },
     ],

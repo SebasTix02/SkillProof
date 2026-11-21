@@ -139,7 +139,7 @@ export function ScoreCalibrationRow({
           )}
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="font-mono-code rounded-[3px] border border-line bg-white px-1.5 py-0.5 text-[10px] text-muted">
+          <span className="font-mono-code rounded-[3px] border border-line bg-surface px-1.5 py-0.5 text-[10px] text-muted">
             AI: {score.ai_score ?? '–'}
           </span>
           <Badge tone={scoreTone(effective)}>{effective ?? '–'}/10</Badge>
@@ -163,7 +163,7 @@ export function ScoreCalibrationRow({
             />
             <Select
               aria-label={`Your score for ${criterion?.name ?? score.criterion_key}`}
-              className="font-mono-code h-8 w-auto bg-white px-2 py-1 text-[11px] font-bold"
+              className="font-mono-code h-8 w-auto bg-surface px-2 py-1 text-[11px] font-bold"
               disabled={busy}
               value={score.override_score ?? ''}
               onChange={(e) => void save(e.target.value)}
@@ -191,14 +191,14 @@ export function ScoreCalibrationRow({
                 href={`${repoUrl}/blob/${sha}/${path}`}
                 target="_blank"
                 rel="noreferrer"
-                className="font-mono-code rounded-[2px] border border-line bg-white px-1.5 py-0.5 text-[11px] text-accent hover:underline"
+                className="font-mono-code rounded-[2px] border border-line bg-surface px-1.5 py-0.5 text-[11px] text-accent hover:underline"
               >
                 {path}
               </a>
             ) : (
               <code
                 key={path}
-                className="font-mono-code rounded-[2px] border border-line bg-white px-1.5 py-0.5 text-[11px] text-ink"
+                className="font-mono-code rounded-[2px] border border-line bg-surface px-1.5 py-0.5 text-[11px] text-ink"
               >
                 {path}
               </code>
@@ -453,7 +453,7 @@ export function SubmissionDetail() {
       {/* 2. 3-Column Ergonomic Workspace Layout */}
       <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-12">
         {/* PANEL 1: Assigned Submissions Queue (Left Rail, 3 Cols) */}
-        <aside className="flex flex-col gap-3.5 rounded-[6px] border border-line bg-white p-4 lg:col-span-3">
+        <aside className="flex flex-col gap-3.5 rounded-[6px] border border-line bg-surface p-4 lg:col-span-3">
           <div className="flex items-center justify-between border-b border-line pb-2.5">
             <div className="flex items-center gap-2">
               <span className="h-2 w-2 rounded-full bg-accent" />
@@ -489,7 +489,7 @@ export function SubmissionDetail() {
                     className={`flex flex-col gap-1.5 rounded-[4px] border p-3 transition-colors ${
                       isActive
                         ? 'border-2 border-accent bg-accent-soft/45'
-                        : 'border-line bg-paper/45 hover:border-muted hover:bg-white'
+                        : 'border-line bg-paper/45 hover:border-muted hover:bg-surface'
                     }`}
                   >
                     <div className="flex items-center justify-between gap-2">
@@ -501,7 +501,7 @@ export function SubmissionDetail() {
                         {item.team_name}
                       </span>
                       {isActive ? (
-                        <span className="font-mono-code rounded-[2px] bg-accent px-1.5 py-0.5 text-[9px] font-bold tracking-wider text-white uppercase">
+                        <span className="font-mono-code rounded-[2px] bg-accent px-1.5 py-0.5 text-[9px] font-bold tracking-wider text-on-accent uppercase">
                           ACTIVE
                         </span>
                       ) : item.total != null ? (
@@ -544,7 +544,7 @@ export function SubmissionDetail() {
               <div className="rounded-[4px] border border-accent bg-accent-soft/40 p-3">
                 <div className="flex items-center justify-between">
                   <span className="text-[13px] font-bold text-ink">{sub.team_name}</span>
-                  <span className="font-mono-code rounded-[2px] bg-accent px-1.5 py-0.5 text-[9px] font-bold text-white uppercase">
+                  <span className="font-mono-code rounded-[2px] bg-accent px-1.5 py-0.5 text-[9px] font-bold text-on-accent uppercase">
                     ACTIVE
                   </span>
                 </div>
@@ -562,8 +562,8 @@ export function SubmissionDetail() {
               <span className="text-good">J / K Ready</span>
             </div>
             <p className="mt-1 text-[11px] leading-snug text-muted">
-              Press <kbd className="rounded border border-line bg-white px-1">J</kbd> or{' '}
-              <kbd className="rounded border border-line bg-white px-1">K</kbd> to jump between cohort dossiers.
+              Press <kbd className="rounded border border-line bg-surface px-1">J</kbd> or{' '}
+              <kbd className="rounded border border-line bg-surface px-1">K</kbd> to jump between cohort dossiers.
             </p>
           </div>
         </aside>
@@ -571,7 +571,7 @@ export function SubmissionDetail() {
         {/* PANEL 2: Center Inspection Workspace (Forensic Artifacts, 5 Cols) */}
         <section className="flex flex-col gap-5 lg:col-span-5">
           {/* Submission Profile & Repo Map Card */}
-          <div className="space-y-4 rounded-[6px] border border-line bg-white p-5">
+          <div className="space-y-4 rounded-[6px] border border-line bg-surface p-5">
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div>
                 <span className="font-mono-code text-[11px] font-bold tracking-wider text-accent uppercase">
@@ -639,7 +639,7 @@ export function SubmissionDetail() {
                       <span>What the Project Is (AI Repo Map)</span>
                     </span>
                     {commits && (
-                      <span className="rounded-[2px] border border-good/30 bg-white px-1.5 py-0.2 text-[10px]">
+                      <span className="rounded-[2px] border border-good/30 bg-surface px-1.5 py-0.2 text-[10px]">
                         {commits.total_commits} commits · {commits.authors.length} author
                         {commits.authors.length === 1 ? '' : 's'}
                       </span>
@@ -695,7 +695,7 @@ export function SubmissionDetail() {
 
           {/* Syntactic Rubric Evidence Explorer */}
           {rubric.length > 0 && ordered.length > 0 && (
-            <div className="overflow-hidden rounded-[6px] border border-line bg-white">
+            <div className="overflow-hidden rounded-[6px] border border-line bg-surface">
               <div className="font-mono-code flex items-center overflow-x-auto border-b border-line bg-paper text-[11px]">
                 {rubric.map((c, idx) => {
                   const active = idx === activeCriterionIdx;
@@ -706,7 +706,7 @@ export function SubmissionDetail() {
                       onClick={() => setActiveCriterionIdx(idx)}
                       className={`cursor-pointer border-b-2 px-3.5 py-2.5 whitespace-nowrap transition-colors ${
                         active
-                          ? 'border-accent bg-white font-bold text-accent'
+                          ? 'border-accent bg-surface font-bold text-accent'
                           : 'border-transparent text-muted hover:bg-white/60 hover:text-ink'
                       }`}
                     >
@@ -768,7 +768,7 @@ export function SubmissionDetail() {
 
           {/* Oral Verification Evidence Card */}
           {data.interview && (
-            <div className="space-y-3 rounded-[6px] border border-accent-200 bg-accent-soft/60 p-5">
+            <div className="space-y-3 rounded-[6px] border border-accent/30 bg-accent-soft/60 p-5">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="font-mono-code flex items-center gap-2 text-[11px] font-bold text-accent-ink uppercase">
                   <span className="material-symbols-outlined text-[18px] text-accent">record_voice_over</span>
@@ -793,7 +793,7 @@ export function SubmissionDetail() {
 
           {/* How the AI Judged It (Activity & Reasoning) */}
           {(activity.length > 0 || working || models.length > 0) && (
-            <div className="space-y-3 rounded-[6px] border border-line bg-white p-5">
+            <div className="space-y-3 rounded-[6px] border border-line bg-surface p-5">
               <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line pb-2.5">
                 <h2 className="font-serif-heading text-[20px] font-medium text-ink">How the AI Judged It</h2>
                 {working && <Spinner label={sub.status === 'queued' ? 'Waiting to start' : 'Working'} />}
@@ -821,7 +821,7 @@ export function SubmissionDetail() {
 
           {/* Feedback the Team Will Receive */}
           {feedback && (
-            <div className="space-y-3 rounded-[6px] border border-line bg-white p-5">
+            <div className="space-y-3 rounded-[6px] border border-line bg-surface p-5">
               <h2 className="font-serif-heading text-[20px] font-medium text-ink">
                 Feedback the Team Will Receive
               </h2>
@@ -843,7 +843,7 @@ export function SubmissionDetail() {
           )}
 
           {/* Versions Sent */}
-          <div className="space-y-3 rounded-[6px] border border-line bg-white p-5">
+          <div className="space-y-3 rounded-[6px] border border-line bg-surface p-5">
             <h2 className="font-serif-heading text-[20px] font-medium text-ink">Versions Sent</h2>
             <ol className="space-y-2.5 text-[13px]">
               {versions.map((v, i) => (
@@ -892,7 +892,7 @@ export function SubmissionDetail() {
 
         {/* PANEL 3: Right Adjudication & Scoring Cockpit (4 Cols, Sticky) */}
         <aside className="flex flex-col gap-4 lg:sticky lg:top-20 lg:col-span-4">
-          <div className="space-y-4 rounded-[6px] border border-line bg-white p-5">
+          <div className="space-y-4 rounded-[6px] border border-line bg-surface p-5">
             <div className="space-y-1 border-b border-line pb-3">
               <div className="flex items-center justify-between">
                 <h2 className="font-serif-heading text-[22px] font-medium text-ink">
@@ -977,7 +977,7 @@ export function SubmissionDetail() {
                         ? 'border-good/30 bg-good-soft text-good-ink'
                         : delta < 0
                           ? 'border-warn/30 bg-warn-soft text-warn-ink'
-                          : 'border-line bg-white text-muted'
+                          : 'border-line bg-surface text-muted'
                     }`}
                   >
                     {delta > 0 ? `+${delta}` : delta} DELTA
@@ -1007,7 +1007,7 @@ export function SubmissionDetail() {
           {isManager && <JudgeReviewsList submissionId={sub.id} rubric={rubric} />}
 
           {/* Keyboard Shortcut Pill Bar */}
-          <div className="font-mono-code flex items-center justify-between rounded-[6px] border border-line bg-white p-3 text-[11px] text-muted">
+          <div className="font-mono-code flex items-center justify-between rounded-[6px] border border-line bg-surface p-3 text-[11px] text-muted">
             <span className="flex items-center gap-1.5">
               <kbd className="rounded border border-line bg-paper px-1.5 py-0.5 font-semibold text-ink">J</kbd>
               <span>/</span>

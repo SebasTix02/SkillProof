@@ -88,7 +88,7 @@ export function Landing() {
           <Badge tone="accent" dot>
             REAL-TIME REPO &amp; ORAL DEFENSE PIPELINE
           </Badge>
-          <span className="font-mono-code inline-flex items-center gap-1.5 rounded-[3px] border border-line bg-white px-2.5 py-0.5 text-[11px] text-muted">
+          <span className="font-mono-code inline-flex items-center gap-1.5 rounded-[3px] border border-line bg-surface px-2.5 py-0.5 text-[11px] text-muted">
             <span className="material-symbols-outlined text-[14px] text-good">verified_user</span>
             POWERED BY GOOGLE GEMINI
           </span>
@@ -124,7 +124,7 @@ export function Landing() {
               </Link>
               <a
                 href="#specimen"
-                className="btn-tactile font-mono-code inline-flex items-center gap-1.5 rounded-[4px] border border-transparent px-3 py-2.5 text-[12px] font-medium text-muted hover:border-line hover:bg-white hover:text-ink"
+                className="btn-tactile font-mono-code inline-flex items-center gap-1.5 rounded-[4px] border border-transparent px-3 py-2.5 text-[12px] font-medium text-muted hover:border-line hover:bg-surface hover:text-ink"
               >
                 <span>Inspect Dossier Specimen</span>
                 <span className="arrow-nudge">↓</span>
@@ -148,7 +148,7 @@ export function Landing() {
           </div>
 
           <div className="lg:col-span-6">
-            <div className="card-interactive overflow-hidden rounded-[6px] border border-line bg-white p-2">
+            <div className="card-interactive overflow-hidden rounded-[6px] border border-line bg-surface p-2">
               <div className="flex h-8 items-center justify-between rounded-t-[4px] border border-line bg-paper px-3">
                 <div className="flex items-center gap-1.5">
                   <span className="h-2 w-2 rounded-full bg-line" />
@@ -170,7 +170,7 @@ export function Landing() {
                   className="block h-auto w-full object-cover"
                 />
 
-                <div className="hidden border border-line bg-white p-2.5 sm:absolute sm:top-3 sm:left-3 sm:flex sm:items-center sm:gap-2.5 sm:rounded-[4px]">
+                <div className="hidden border border-line bg-surface p-2.5 sm:absolute sm:top-3 sm:left-3 sm:flex sm:items-center sm:gap-2.5 sm:rounded-[4px]">
                   <div className="flex h-7 w-7 items-center justify-center rounded-[3px] border border-accent/25 bg-accent-soft text-accent-ink">
                     <span className="material-symbols-outlined text-[16px]">account_tree</span>
                   </div>
@@ -180,7 +180,7 @@ export function Landing() {
                   </div>
                 </div>
 
-                <div className="hidden border border-line bg-white p-2.5 sm:absolute sm:right-3 sm:bottom-3 sm:flex sm:items-center sm:gap-3 sm:rounded-[4px]">
+                <div className="hidden border border-line bg-surface p-2.5 sm:absolute sm:right-3 sm:bottom-3 sm:flex sm:items-center sm:gap-3 sm:rounded-[4px]">
                   <LiveDot tone="good" />
                   <div>
                     <div className="font-mono-code text-[10px] text-muted uppercase">VOICE VERIFICATION</div>
@@ -195,7 +195,7 @@ export function Landing() {
 
         <div className="mt-10 flex flex-col items-start justify-between gap-4 border-t border-line pt-5 sm:flex-row sm:items-center">
           <div className="flex items-center gap-2.5 text-[12px] text-muted">
-            <span className="font-mono-code rounded-[3px] border border-line bg-white px-2 py-0.5 text-[10px] font-semibold text-ink uppercase">
+            <span className="font-mono-code rounded-[3px] border border-line bg-surface px-2 py-0.5 text-[10px] font-semibold text-ink uppercase">
               PROTOCOL SCOPE
             </span>
             <span>Built for high-density hackathons, engineering cohorts, and verifiable technical portfolios:</span>
@@ -213,7 +213,7 @@ export function Landing() {
       </section>
 
       {/* 2. Interactive Core Demo & 3 Pillars Section */}
-      <section id="specimen" className="space-y-8 rounded-[6px] border border-line bg-white p-6 lg:p-8">
+      <section id="specimen" className="space-y-8 rounded-[6px] border border-line bg-surface p-6 lg:p-8">
         <SectionHeader
           eyebrow="01 // EXAMPLE: CODE & VOICE EVIDENCE"
           eyebrowTone="accent"
@@ -229,8 +229,8 @@ export function Landing() {
                 onClick={() => setIsPlaying((prev) => !prev)}
                 className={`btn-tactile font-mono-code inline-flex cursor-pointer items-center gap-1.5 rounded-[4px] border px-3.5 py-1.5 text-[11px] font-semibold ${
                   isPlaying
-                    ? 'border-good bg-good text-white'
-                    : 'border-accent bg-accent text-white hover:border-accent-hover hover:bg-accent-hover'
+                    ? 'border-good bg-good text-on-good'
+                    : 'border-accent bg-accent text-on-accent hover:border-accent-hover hover:bg-accent-hover'
                 }`}
               >
                 <span className="material-symbols-outlined text-[15px]">{isPlaying ? 'pause' : 'play_arrow'}</span>
@@ -269,7 +269,7 @@ export function Landing() {
               ]}
             />
 
-            <div className="flex flex-col justify-between space-y-3 rounded-[6px] border border-line bg-white p-4">
+            <div className="flex flex-col justify-between space-y-3 rounded-[6px] border border-line bg-surface p-4">
               <div className="flex items-center justify-between">
                 <span className="font-mono-code flex items-center gap-1.5 text-[11px] font-semibold tracking-wider text-good uppercase">
                   <LiveDot tone="good" pulse={isPlaying} />
@@ -303,12 +303,12 @@ export function Landing() {
                 <span className="font-mono-code text-[11px] font-semibold tracking-wider text-muted uppercase">
                   Audit Cockpit Visualizer
                 </span>
-                <span className="font-mono-code rounded-[3px] border border-line bg-white px-2 py-0.5 text-[10px] font-bold text-accent">
+                <span className="font-mono-code rounded-[3px] border border-line bg-surface px-2 py-0.5 text-[10px] font-bold text-accent">
                   COMMIT-LOCKED
                 </span>
               </div>
 
-              <div className="overflow-hidden rounded-[4px] border border-line bg-white">
+              <div className="overflow-hidden rounded-[4px] border border-line bg-surface">
                 <img
                   src={COCKPIT_IMAGE}
                   alt="Technical editorial illustration of code analysis and voice spectrogram verification"
@@ -330,7 +330,7 @@ export function Landing() {
                   { label: 'CITATIONS', value: '4 / 4', num: 100, tone: 'text-accent', bar: 'accent' },
                 ] as const
               ).map((m) => (
-                <div key={m.label} className="rounded-[6px] border border-line bg-white p-3">
+                <div key={m.label} className="rounded-[6px] border border-line bg-surface p-3">
                   <div className="font-mono-code text-[10px] text-muted uppercase">{m.label}</div>
                   <div className={`font-serif-heading mt-0.5 text-[22px] leading-tight font-semibold ${m.tone}`}>
                     {m.value}
@@ -410,7 +410,7 @@ export function Landing() {
         />
 
         <div className="grid grid-cols-1 items-stretch gap-6 md:grid-cols-2">
-          <div className="card-interactive flex flex-col justify-between space-y-6 rounded-[6px] border border-line bg-white p-6 lg:p-8">
+          <div className="card-interactive flex flex-col justify-between space-y-6 rounded-[6px] border border-line bg-surface p-6 lg:p-8">
             <div className="space-y-5">
               <div className="flex items-center justify-between border-b border-line pb-4">
                 <Badge tone="accent">ORGANIZER SUITE</Badge>
@@ -471,7 +471,7 @@ export function Landing() {
             </div>
           </div>
 
-          <div className="card-interactive flex flex-col justify-between space-y-6 rounded-[6px] border border-line bg-white p-6 lg:p-8">
+          <div className="card-interactive flex flex-col justify-between space-y-6 rounded-[6px] border border-line bg-surface p-6 lg:p-8">
             <div className="space-y-5">
               <div className="flex items-center justify-between border-b border-line pb-4">
                 <Badge tone="good">CANDIDATE CREDENTIALING</Badge>
@@ -554,7 +554,7 @@ export function Landing() {
             return (
               <div
                 key={d.hash}
-                className="card-interactive flex flex-col justify-between space-y-4 rounded-[6px] border border-line bg-white p-5"
+                className="card-interactive flex flex-col justify-between space-y-4 rounded-[6px] border border-line bg-surface p-5"
               >
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">

@@ -130,14 +130,14 @@ export function AiActivity({ entries, live = false, maxHeight = '28rem' }: { ent
                   )}
                   <span
                     aria-hidden
-                    className={`absolute -left-[1.4rem] top-1.5 h-2.5 w-2.5 rounded-full ring-4 ring-white ${DOT[e.kind]} ${active ? 'animate-pulse' : ''}`}
+                    className={`absolute -left-[1.4rem] top-1.5 h-2.5 w-2.5 rounded-full ring-4 ring-surface ${DOT[e.kind]} ${active ? 'animate-pulse' : ''}`}
                   />
                   {e.kind === 'thought' ? (
                     <details className="group">
                       <summary className="cursor-pointer text-muted hover:text-ink">
                         How the AI reasoned{e.model && <> · {modelName(e.model)}</>}
                       </summary>
-                      <p className="mt-1 whitespace-pre-line rounded-lg bg-white p-3 text-xs leading-relaxed text-muted">{e.text.replace(/\*\*/g, '')}</p>
+                      <p className="mt-1 whitespace-pre-line rounded-lg bg-surface p-3 text-xs leading-relaxed text-muted">{e.text.replace(/\*\*/g, '')}</p>
                     </details>
                   ) : (
                     <div className="flex flex-wrap items-baseline gap-x-2">
@@ -152,7 +152,7 @@ export function AiActivity({ entries, live = false, maxHeight = '28rem' }: { ent
                       {e.detail && (
                         <details className="w-full">
                           <summary className="cursor-pointer text-xs text-muted hover:text-ink">Details</summary>
-                          <pre className="mt-1 whitespace-pre-wrap rounded-lg bg-white p-2 font-mono text-[11px] leading-relaxed text-muted">{e.detail}</pre>
+                          <pre className="mt-1 whitespace-pre-wrap rounded-lg bg-surface p-2 font-mono text-[11px] leading-relaxed text-muted">{e.detail}</pre>
                         </details>
                       )}
                     </div>
@@ -165,7 +165,7 @@ export function AiActivity({ entries, live = false, maxHeight = '28rem' }: { ent
         {!follow && (
           <button
             onClick={() => setFollow(true)}
-            className="absolute bottom-3 right-3 rounded-full border border-line bg-white px-3 py-1 text-xs font-medium text-ink shadow hover:bg-paper"
+            className="absolute bottom-3 right-3 rounded-full border border-line bg-surface px-3 py-1 text-xs font-medium text-ink shadow hover:bg-paper"
           >
             {live ? 'Follow the latest step ↓' : 'Go to the end ↓'}
           </button>

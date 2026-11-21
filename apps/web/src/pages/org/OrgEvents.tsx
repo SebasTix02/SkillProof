@@ -212,7 +212,7 @@ export function OrgEvents() {
 
       {/* 3. SECTION 01: Registered Hackathons & Capstone Evaluations */}
       {data && (
-        <section className="space-y-5 rounded-[6px] border border-line bg-white p-6">
+        <section className="space-y-5 rounded-[6px] border border-line bg-surface p-6">
           <SectionHeader
             eyebrow={`ALL EVENTS • ${org?.name?.toUpperCase() ?? 'ORGANIZATION'}`}
             eyebrowTone="accent"
@@ -306,7 +306,7 @@ export function OrgEvents() {
                 return (
                   <div
                     key={e.id}
-                    className="card-interactive flex flex-col justify-between gap-4 rounded-[6px] border border-line bg-paper/45 p-4 transition-colors hover:border-accent hover:bg-white xl:flex-row xl:items-center"
+                    className="card-interactive flex flex-col justify-between gap-4 rounded-[6px] border border-line bg-paper/45 p-4 transition-colors hover:border-accent hover:bg-surface xl:flex-row xl:items-center"
                   >
                     <div className="flex flex-1 flex-col gap-4 md:flex-row md:items-center">
                       {/* Event Title & Identifier */}

@@ -17,7 +17,7 @@ export function MyReviewQueue() {
   if (loading) return <PageState loading error={null} kind="list" />;
   if (error) return null;
   return (
-    <section className="space-y-3 rounded-[6px] border border-line bg-white p-5">
+    <section className="space-y-3 rounded-[6px] border border-line bg-surface p-5">
       <SectionHeader eyebrow="JUDGE WORKSPACE" title="Your review queue" subtitle="Submissions an organizer assigned to you." />
       {list.length === 0 ? (
         <p className="text-[13px] text-muted">Nothing is assigned to you yet.</p>

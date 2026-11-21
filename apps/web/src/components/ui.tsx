@@ -1,3 +1,4 @@
+import { ThemeToggle } from './ThemeControl';
 import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode, SelectHTMLAttributes, TextareaHTMLAttributes } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
@@ -26,9 +27,9 @@ export function Button({
       aria-busy={loading || undefined}
       className={cx(
         'btn-tactile inline-flex cursor-pointer items-center justify-center gap-2 rounded-[4px] px-4 py-2 text-[13px] font-medium disabled:cursor-not-allowed disabled:opacity-50',
-        variant === 'primary' && 'border border-accent bg-accent text-white hover:border-accent-hover hover:bg-accent-hover',
-        variant === 'secondary' && 'border border-line bg-white text-ink hover:border-muted hover:bg-paper',
-        variant === 'danger' && 'border border-bad bg-bad text-white hover:border-bad-hover hover:bg-bad-hover',
+        variant === 'primary' && 'border border-accent bg-accent text-on-accent hover:border-accent-hover hover:bg-accent-hover',
+        variant === 'secondary' && 'border border-line bg-surface text-ink hover:border-muted hover:bg-paper',
+        variant === 'danger' && 'border border-bad bg-bad text-on-bad hover:border-bad-hover hover:bg-bad-hover',
         variant === 'ghost' && 'border border-transparent bg-transparent text-muted hover:bg-paper hover:text-ink',
         className,
       )}
@@ -42,12 +43,12 @@ export function Button({
 }
 
 export const linkButton =
-  'btn-tactile inline-flex items-center justify-center gap-1.5 rounded-[4px] border border-accent bg-accent px-4 py-2 text-[13px] font-medium text-white hover:border-accent-hover hover:bg-accent-hover';
+  'btn-tactile inline-flex items-center justify-center gap-1.5 rounded-[4px] border border-accent bg-accent px-4 py-2 text-[13px] font-medium text-on-accent hover:border-accent-hover hover:bg-accent-hover';
 export const linkButtonSecondary =
-  'btn-tactile inline-flex items-center justify-center gap-1.5 rounded-[4px] border border-line bg-white px-4 py-2 text-[13px] font-medium text-ink hover:border-muted hover:bg-paper';
+  'btn-tactile inline-flex items-center justify-center gap-1.5 rounded-[4px] border border-line bg-surface px-4 py-2 text-[13px] font-medium text-ink hover:border-muted hover:bg-paper';
 
 const field =
-  'w-full rounded-[4px] border border-line-strong bg-white px-3 py-2 text-[13px] text-ink placeholder:text-faint transition-colors focus:border-accent focus:outline-none';
+  'w-full rounded-[4px] border border-line-strong bg-surface px-3 py-2 text-[13px] text-ink placeholder:text-faint transition-colors focus:border-accent focus:outline-none';
 
 export function Field({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
   return (
@@ -64,7 +65,7 @@ export const Textarea = (props: TextareaHTMLAttributes<HTMLTextAreaElement>) => 
 export const Select = (props: SelectHTMLAttributes<HTMLSelectElement>) => <select {...props} className={cx(field, props.className)} />;
 
 export function Card({ children, className }: { children: ReactNode; className?: string }) {
-  return <section className={cx('rounded-[6px] border border-line bg-white p-5', className)}>{children}</section>;
+  return <section className={cx('rounded-[6px] border border-line bg-surface p-5', className)}>{children}</section>;
 }
 
 export function Notice({ tone = 'info', children }: { tone?: 'info' | 'error' | 'good' | 'warn'; children: ReactNode }) {
@@ -72,7 +73,7 @@ export function Notice({ tone = 'info', children }: { tone?: 'info' | 'error' | 
     <div
       role={tone === 'error' ? 'alert' : 'status'}
       className={cx(
-        'rounded-[4px] border border-line border-l-[3px] bg-white px-3.5 py-2.5 text-[13px] leading-[20px]',
+        'rounded-[4px] border border-line border-l-[3px] bg-surface px-3.5 py-2.5 text-[13px] leading-[20px]',
         tone === 'info' && 'border-l-accent bg-accent-soft/40 text-ink',
         tone === 'error' && 'border-bad/40 border-l-bad bg-bad-surface text-bad',
         tone === 'good' && 'border-good/30 border-l-good bg-good-soft/60 text-good-ink',
@@ -152,7 +153,7 @@ export function Layout({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen bg-paper text-ink">
       <TopProgress />
-      <header className="no-print sticky top-0 z-50 h-14 border-b border-line bg-white">
+      <header className="no-print sticky top-0 z-50 h-14 border-b border-line bg-surface">
         <div className="mx-auto flex h-full max-w-[1240px] items-center justify-between gap-4 px-4 sm:px-6">
           <div className="flex items-center gap-3 sm:gap-4">
             <Logo />
@@ -180,6 +181,7 @@ export function Layout({ children }: { children: ReactNode }) {
               </nav>
             )}
 
+            <ThemeToggle compact />
             {session ? (
               <>
                 <Link to="/events" className={cx(linkButton, 'px-3.5 py-1.5 text-[12px]')}>
@@ -189,7 +191,7 @@ export function Layout({ children }: { children: ReactNode }) {
                 <button
                   type="button"
                   onClick={() => void signOut()}
-                  className="btn-tactile font-mono-code cursor-pointer rounded-[4px] border border-line bg-white px-2.5 py-1 text-[11px] font-medium text-muted hover:border-muted hover:bg-paper hover:text-ink"
+                  className="btn-tactile font-mono-code cursor-pointer rounded-[4px] border border-line bg-surface px-2.5 py-1 text-[11px] font-medium text-muted hover:border-muted hover:bg-paper hover:text-ink"
                 >
                   SIGN OUT
                 </button>
@@ -198,7 +200,7 @@ export function Layout({ children }: { children: ReactNode }) {
               <>
                 <Link
                   to="/login"
-                  className="btn-tactile font-mono-code rounded-[4px] border border-line bg-white px-3 py-1.5 text-[12px] font-medium text-ink hover:border-muted hover:bg-paper"
+                  className="btn-tactile font-mono-code rounded-[4px] border border-line bg-surface px-3 py-1.5 text-[12px] font-medium text-ink hover:border-muted hover:bg-paper"
                 >
                   Log in
                 </Link>

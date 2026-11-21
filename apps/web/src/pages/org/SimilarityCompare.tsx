@@ -108,7 +108,7 @@ function SubmissionComparisonPane({
   const sha = summary.locked_commit_sha;
 
   return (
-    <div className="flex flex-col overflow-hidden rounded-[6px] border border-line bg-white">
+    <div className="flex flex-col overflow-hidden rounded-[6px] border border-line bg-surface">
       {/* Colored Header */}
       <div
         className={`space-y-2 border-b p-4 ${
@@ -118,7 +118,7 @@ function SubmissionComparisonPane({
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <span
-              className={`font-mono-code rounded-[3px] px-2 py-0.5 text-[10px] font-bold tracking-wider text-white uppercase ${
+              className={`font-mono-code rounded-[3px] px-2 py-0.5 text-[10px] font-bold tracking-wider text-on-good uppercase ${
                 isA ? 'bg-good' : 'bg-bad'
               }`}
             >
@@ -242,12 +242,12 @@ function SubmissionComparisonPane({
                               href={`${repo.url}/blob/${sha}/${path}`}
                               target="_blank"
                               rel="noreferrer"
-                              className="rounded border border-line bg-white px-1.5 py-0.5 text-accent hover:underline"
+                              className="rounded border border-line bg-surface px-1.5 py-0.5 text-accent hover:underline"
                             >
                               {path}
                             </a>
                           ) : (
-                            <code key={path} className="rounded border border-line bg-white px-1.5 py-0.5 text-ink">
+                            <code key={path} className="rounded border border-line bg-surface px-1.5 py-0.5 text-ink">
                               {path}
                             </code>
                           ),
@@ -520,7 +520,7 @@ export function SimilarityCompare() {
 
       {/* 2. Flagged Pair Cluster Pills */}
       {flags.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2 rounded-[6px] border border-line bg-white p-3.5">
+        <div className="flex flex-wrap items-center gap-2 rounded-[6px] border border-line bg-surface p-3.5">
           <span className="font-mono-code mr-1 text-[11px] font-semibold text-muted uppercase">
             Detected Similarity Signals:
           </span>
@@ -628,7 +628,7 @@ export function SimilarityCompare() {
       {/* 7. Visual Forensic Summary Cards */}
       {subA && subB && (
         <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-          <div className="flex flex-col justify-between rounded-[6px] border border-line bg-white p-5">
+          <div className="flex flex-col justify-between rounded-[6px] border border-line bg-surface p-5">
             <div className="space-y-1">
               <span className="font-mono-code text-[10px] font-semibold tracking-wider text-muted uppercase">
                 Repository Lineage
@@ -660,7 +660,7 @@ export function SimilarityCompare() {
             </div>
           </div>
 
-          <div className="flex flex-col justify-between rounded-[6px] border border-line bg-white p-5">
+          <div className="flex flex-col justify-between rounded-[6px] border border-line bg-surface p-5">
             <div className="space-y-1">
               <span className="font-mono-code text-[10px] font-semibold tracking-wider text-muted uppercase">
                 Candidate Artifacts Provenance
@@ -688,7 +688,7 @@ export function SimilarityCompare() {
             </div>
           </div>
 
-          <div className="flex flex-col justify-between rounded-[6px] border border-line bg-white p-5">
+          <div className="flex flex-col justify-between rounded-[6px] border border-line bg-surface p-5">
             <div className="space-y-1">
               <span className="font-mono-code text-[10px] font-semibold tracking-wider text-muted uppercase">
                 Score &amp; Ownership Parity

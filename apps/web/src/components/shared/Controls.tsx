@@ -60,10 +60,10 @@ export function CopyLinkButton({
   const base = 'btn-tactile font-mono-code inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-[4px] border px-3.5 py-1.5 text-[11px] font-semibold';
   const variantClass =
     variant === 'primary'
-      ? 'border-accent bg-accent text-white hover:bg-accent-hover'
+      ? 'border-accent bg-accent text-on-accent hover:bg-accent-hover'
       : variant === 'dark'
           ? 'border-white/15 bg-white/10 text-white hover:bg-white/20'
-          : 'border-line bg-white text-ink hover:border-accent hover:text-accent';
+          : 'border-line bg-surface text-ink hover:border-accent hover:text-accent';
 
   return (
     <button type="button" onClick={() => void handleCopy()} className={`${base} ${variantClass} ${className}`}>
@@ -160,7 +160,7 @@ export function LedgerAnchorBanner({
   actions?: ReactNode;
 }) {
   return (
-    <section className="flex flex-col justify-between gap-5 rounded-[6px] border border-line bg-white p-6 md:flex-row md:items-center">
+    <section className="flex flex-col justify-between gap-5 rounded-[6px] border border-line bg-surface p-6 md:flex-row md:items-center">
       <div className="space-y-1.5">
         <div className="font-mono-code flex flex-wrap items-center gap-2 text-[11px]">
           <span className="rounded-[3px] border border-good/30 bg-good-soft px-2 py-0.5 font-bold text-good-ink uppercase">

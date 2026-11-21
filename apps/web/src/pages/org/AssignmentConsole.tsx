@@ -193,7 +193,7 @@ export function AssignmentConsole() {
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         {tiles.map((t) => (
-          <div key={t.label} className="rounded-[6px] border border-line bg-white p-4">
+          <div key={t.label} className="rounded-[6px] border border-line bg-surface p-4">
             <p className="font-mono-code text-[11px] font-semibold tracking-wider text-muted uppercase">{t.label}</p>
             <p className="font-serif-heading mt-1 text-[28px] leading-none text-ink">{t.value}</p>
             <p className="mt-1 text-[12px] text-muted">{t.hint}</p>
@@ -218,7 +218,7 @@ export function AssignmentConsole() {
       {tab === 'groups' && isGroup && <GroupsPanel assignment={a} groups={groups} ungrouped={ungrouped} canManage={canManage} reload={data.reload} />}
       {tab === 'missing' && <MissingList people={missing} isGroup={isGroup} />}
       {tab === 'similarity' && (
-        <section className="rounded-[6px] border border-line bg-white p-5">
+        <section className="rounded-[6px] border border-line bg-surface p-5">
           {flags.length === 0 ? (
             <p className="text-[13px] text-muted">No similarity between submissions was found.</p>
           ) : (
@@ -260,12 +260,12 @@ function SubmissionsTable({
 }) {
   if (rows.length === 0)
     return (
-      <section className="rounded-[6px] border border-line bg-white p-8 text-center text-[13px] text-muted">
+      <section className="rounded-[6px] border border-line bg-surface p-8 text-center text-[13px] text-muted">
         {a.status === 'draft' ? 'Open the assignment so students can submit.' : 'No submissions yet.'}
       </section>
     );
   return (
-    <section className="overflow-x-auto rounded-[6px] border border-line bg-white">
+    <section className="overflow-x-auto rounded-[6px] border border-line bg-surface">
       <table className="w-full text-left text-[13px]">
         <thead className="font-mono-code bg-paper text-[11px] text-muted uppercase">
           <tr>
@@ -353,7 +353,7 @@ function SubmissionsTable({
 function MissingList({ people, isGroup }: { people: Person[]; isGroup: boolean }) {
   if (people.length === 0) return <Notice tone="good">Every student on the roster has {isGroup ? 'a submission through their group' : 'submitted'}.</Notice>;
   return (
-    <section className="rounded-[6px] border border-line bg-white">
+    <section className="rounded-[6px] border border-line bg-surface">
       <p className="border-b border-line px-5 py-3 text-[13px] text-muted">
         Students on the roster {isGroup ? 'whose group has not submitted (or who have no group)' : 'without a submission'}.
       </p>
@@ -422,14 +422,14 @@ function GroupsPanel({ assignment: a, groups, ungrouped, canManage, reload }: { 
       )}
 
       {groups.length === 0 ? (
-        <section className="rounded-[6px] border border-line bg-white p-8 text-center text-[13px] text-muted">No groups yet.</section>
+        <section className="rounded-[6px] border border-line bg-surface p-8 text-center text-[13px] text-muted">No groups yet.</section>
       ) : (
         <ul className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {groups.map((g) => {
             const accepted = g.members.filter((m) => m.status === 'accepted');
             const ready = accepted.length >= (a.group_min ?? 1);
             return (
-              <li key={g.id} className="rounded-[6px] border border-line bg-white p-4">
+              <li key={g.id} className="rounded-[6px] border border-line bg-surface p-4">
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     <p className="text-[15px] font-semibold text-ink">{g.name}</p>
@@ -499,7 +499,7 @@ function GroupsPanel({ assignment: a, groups, ungrouped, canManage, reload }: { 
                 aria-label="Members"
                 value={newMembers}
                 onChange={(e) => setNewMembers([...e.target.selectedOptions].map((o) => o.value).slice(0, a.group_max ?? 20))}
-                className="h-24 w-full rounded-[4px] border border-line-strong bg-white p-1.5 text-[13px]"
+                className="h-24 w-full rounded-[4px] border border-line-strong bg-surface p-1.5 text-[13px]"
               >
                 {everyone.map((p) => (
                   <option key={p.user_id} value={p.user_id}>
@@ -793,7 +793,7 @@ export function AssignmentSubmissionPage() {
             </NumberedSectionCard>
           )}
 
-          <section className="rounded-[6px] border border-line bg-white p-5">
+          <section className="rounded-[6px] border border-line bg-surface p-5">
             <div className="mb-3 flex items-center justify-between">
               <p className="text-[14px] font-semibold text-ink">Grading activity</p>
               <ModelsUsed models={sub.models_used} primary={data.data.primary_models} />
@@ -803,7 +803,7 @@ export function AssignmentSubmissionPage() {
         </div>
 
         <div className="space-y-6">
-          <section className="rounded-[6px] border border-line bg-white p-5">
+          <section className="rounded-[6px] border border-line bg-surface p-5">
             <p className="text-[14px] font-semibold text-ink">{group ? 'Members' : 'Student'}</p>
             <ul className="mt-3 space-y-3 text-[13px]">
               {(group ? group.members.filter((m) => m.status === 'accepted') : student ? [{ user_id: sub.student_id!, display_name: student.display_name, github_login: student.github_login }] : []).map((m) => {
@@ -860,7 +860,7 @@ export function AssignmentSubmissionPage() {
             </ul>
           </section>
 
-          <section className="rounded-[6px] border border-line bg-white p-5">
+          <section className="rounded-[6px] border border-line bg-surface p-5">
             <p className="text-[14px] font-semibold text-ink">Versions</p>
             <ul className="mt-2 space-y-2 text-[12px]">
               {sub.assignment_submission_versions
@@ -877,7 +877,7 @@ export function AssignmentSubmissionPage() {
             </ul>
           </section>
 
-          <section className="rounded-[6px] border border-line bg-white p-5">
+          <section className="rounded-[6px] border border-line bg-surface p-5">
             <p className="text-[14px] font-semibold text-ink">Integrity</p>
             {canDecide && (
               <div className="mt-3 space-y-2">

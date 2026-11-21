@@ -47,7 +47,7 @@ export function ConfirmDialogView({
         aria-modal="true"
         aria-labelledby="confirm-title"
         aria-describedby="confirm-body"
-        className="relative w-full max-w-md rounded-[6px] border border-line bg-white p-6"
+        className="relative w-full max-w-md rounded-[6px] border border-line bg-surface p-6"
       >
         <div className="flex items-start gap-3">
           <span
@@ -74,7 +74,7 @@ export function ConfirmDialogView({
             type="button"
             data-autofocus
             onClick={() => onAnswer(false)}
-            className="btn-tactile cursor-pointer rounded-[4px] border border-line bg-white px-4 py-2 text-[13px] font-medium text-ink hover:border-muted hover:bg-paper"
+            className="btn-tactile cursor-pointer rounded-[4px] border border-line bg-surface px-4 py-2 text-[13px] font-medium text-ink hover:border-muted hover:bg-paper"
           >
             {options.cancelLabel ?? 'Cancel'}
           </button>

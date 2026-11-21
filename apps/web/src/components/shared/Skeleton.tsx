@@ -34,7 +34,7 @@ export function SkeletonAvatar({ size = 32 }: { size?: number }) {
 /** A card: eyebrow, title, a few lines. */
 export function SkeletonCard({ className, children }: { className?: string; children?: ReactNode }) {
   return (
-    <div aria-hidden="true" className={cx('rounded-[6px] border border-line bg-white p-5', className)}>
+    <div aria-hidden="true" className={cx('rounded-[6px] border border-line bg-surface p-5', className)}>
       {children ?? (
         <>
           <Skeleton className="mb-3 h-2.5 w-24" />
@@ -49,7 +49,7 @@ export function SkeletonCard({ className, children }: { className?: string; chil
 /** A table: header and rows of cells. */
 export function SkeletonTable({ rows = 6, cols = 5 }: { rows?: number; cols?: number }) {
   return (
-    <div aria-hidden="true" className="overflow-hidden rounded-[6px] border border-line bg-white">
+    <div aria-hidden="true" className="overflow-hidden rounded-[6px] border border-line bg-surface">
       <div className="flex gap-4 border-b border-line bg-paper px-5 py-3">
         {Array.from({ length: cols }, (_, c) => (
           <Skeleton key={c} className="h-2.5 flex-1" />
@@ -75,7 +75,7 @@ export function SkeletonRow({ cols = 5 }: { cols?: number }) {
 /** A page heading: eyebrow, title, subtitle, actions. */
 function SkeletonHeader({ dark = false }: { dark?: boolean }) {
   return (
-    <div className={cx('flex flex-wrap items-end justify-between gap-4 rounded-[6px] p-6', dark ? 'bg-dark-surface' : 'border border-line bg-white')}>
+    <div className={cx('flex flex-wrap items-end justify-between gap-4 rounded-[6px] p-6', dark ? 'bg-dark-surface' : 'border border-line bg-surface')}>
       <div className="w-full max-w-xl space-y-3">
         <Skeleton className="h-2.5 w-40" />
         <Skeleton className="h-8 w-3/4" />
@@ -124,7 +124,7 @@ export function PageSkeleton({ kind = 'page', label = 'Loading' }: { kind?: Page
       break;
     case 'list':
       body = (
-        <div className="divide-y divide-line rounded-[6px] border border-line bg-white">
+        <div className="divide-y divide-line rounded-[6px] border border-line bg-surface">
           {Array.from({ length: 5 }, (_, i) => (
             <div key={i} className="flex items-center gap-4 px-5 py-4">
               <SkeletonAvatar size={36} />

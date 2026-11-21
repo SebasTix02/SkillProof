@@ -1,3 +1,4 @@
+import { ThemeChoice } from '../components/ThemeControl';
 import { useEffect, useState, type FormEvent, type ReactNode, useCallback } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import {
@@ -44,7 +45,7 @@ function AuthPortalShell({
     <div className="mx-auto max-w-[1160px] py-2">
       <div className="grid grid-cols-1 items-stretch gap-6 lg:grid-cols-12 lg:gap-8">
         {/* Left: Technical Editorial Showcase Hero Card (6 cols) */}
-        <section className=" flex flex-col justify-between rounded-[6px] border border-line bg-white p-6 sm:p-8 lg:col-span-6">
+        <section className=" flex flex-col justify-between rounded-[6px] border border-line bg-surface p-6 sm:p-8 lg:col-span-6">
           <div className="space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="font-mono-code inline-flex items-center gap-2 rounded-[3px] border border-accent/25 bg-accent-soft px-2.5 py-1 text-[11px] font-semibold text-accent-ink">
@@ -63,7 +64,7 @@ function AuthPortalShell({
                 alt="SkillProof sign-in"
                 className="block h-[240px] w-full object-cover sm:h-[280px]"
               />
-              <div className="flex items-center justify-between border-t border-dark-hairline bg-ink px-4 py-2.5 text-white">
+              <div className="flex items-center justify-between border-t border-dark-hairline bg-ink px-4 py-2.5 text-paper">
                 <div className="flex items-center gap-2">
                   <span className="material-symbols-outlined text-[16px] text-good-on-dark">verified_user</span>
                   <span className="font-mono-code text-[11px] tracking-wide">
@@ -106,7 +107,7 @@ function AuthPortalShell({
         </section>
 
         {/* Right: Authentication Dossier Portal (6 cols) */}
-        <section className="flex flex-col justify-between rounded-[6px] border border-line bg-white p-6 sm:p-8 lg:col-span-6">
+        <section className="flex flex-col justify-between rounded-[6px] border border-line bg-surface p-6 sm:p-8 lg:col-span-6">
           <div className="space-y-5">
             {/* Header & Identity Icon */}
             <div className="flex items-start justify-between gap-4 border-b border-line pb-4">
@@ -281,7 +282,7 @@ export function SignUp() {
                   key={role.key}
                   className={`btn-tactile cursor-pointer rounded-[3px] border px-3 py-2 text-center ${
                     active
-                      ? 'border-accent bg-white text-ink font-semibold'
+                      ? 'border-accent bg-surface text-ink font-semibold'
                       : 'border-transparent bg-transparent text-muted hover:text-ink'
                   }`}
                 >
@@ -628,7 +629,7 @@ export function AuthCallback() {
           <Notice tone="good">Your email address is confirmed.</Notice>
           <Link
             to="/login"
-            className="btn-tactile inline-flex w-full items-center justify-center gap-2 rounded-[4px] border border-accent bg-accent px-4 py-2.5 text-[13px] font-medium text-white hover:bg-accent-hover"
+            className="btn-tactile inline-flex w-full items-center justify-center gap-2 rounded-[4px] border border-accent bg-accent px-4 py-2.5 text-[13px] font-medium text-on-accent hover:bg-accent-hover"
           >
             <span>Continue to Sign In</span>
             <span className="arrow-nudge font-mono-code text-[12px]">→</span>
@@ -800,7 +801,7 @@ export function MyAccount() {
               <div className="shrink-0 self-start lg:self-auto">
                 <Link
                   to={`/p/${slug}`}
-                  className="btn-tactile font-mono-code inline-flex items-center gap-2 rounded-[4px] border border-accent bg-accent px-4 py-2.5 text-[12px] font-semibold text-white hover:bg-accent-hover"
+                  className="btn-tactile font-mono-code inline-flex items-center gap-2 rounded-[4px] border border-accent bg-accent px-4 py-2.5 text-[12px] font-semibold text-on-accent hover:bg-accent-hover"
                 >
                   <span>PREVIEW PUBLIC DOSSIER</span>
                   <span className="material-symbols-outlined text-[16px]">north_east</span>
@@ -828,7 +829,7 @@ export function MyAccount() {
             </div>
             <p className="leading-[19px] text-muted">
               Profile updates sync directly to your public recruiter dossier at{' '}
-              <code className="font-mono-code rounded-[2px] border border-line bg-white px-1 py-0.5 text-[11px] text-ink">
+              <code className="font-mono-code rounded-[2px] border border-line bg-surface px-1 py-0.5 text-[11px] text-ink">
                 /p/{slug}
               </code>
               .
@@ -862,11 +863,11 @@ export function MyAccount() {
               <div className="flex flex-wrap items-center justify-between gap-4 rounded-[4px] border border-line bg-paper p-4">
                 <div className="flex items-center gap-3.5">
                   <div className="relative">
-                    <div className="font-mono-code flex h-12 w-12 items-center justify-center rounded-full border border-accent/30 bg-accent text-[15px] font-bold text-white">
+                    <div className="font-mono-code flex h-12 w-12 items-center justify-center rounded-full border border-accent/30 bg-accent text-[15px] font-bold text-on-accent">
                       {initials}
                     </div>
                     <span
-                      className="absolute -right-0.5 -bottom-0.5 flex h-4 w-4 items-center justify-center rounded-full border-2 border-white bg-good text-white"
+                      className="absolute -right-0.5 -bottom-0.5 flex h-4 w-4 items-center justify-center rounded-full border-2 border-surface bg-good text-on-good"
                       title="Verified Account"
                     >
                       <span className="material-symbols-outlined text-[10px]">check</span>
@@ -888,7 +889,7 @@ export function MyAccount() {
                 {url && (
                   <Link
                     to={`/p/${slug}`}
-                    className="btn-tactile font-mono-code inline-flex items-center gap-1.5 rounded-[4px] border border-line bg-white px-3 py-1.5 text-[11px] font-semibold text-ink hover:border-accent hover:text-accent"
+                    className="btn-tactile font-mono-code inline-flex items-center gap-1.5 rounded-[4px] border border-line bg-surface px-3 py-1.5 text-[11px] font-semibold text-ink hover:border-accent hover:text-accent"
                   >
                     <span>Open Recruiter View</span>
                     <span>↗</span>
@@ -946,7 +947,7 @@ export function MyAccount() {
           >
             <div className="space-y-5">
               {/* Toggle Switch Card */}
-              <div className="flex items-start justify-between gap-4 rounded-[4px] border border-accent-200 bg-accent-soft/45 p-4">
+              <div className="flex items-start justify-between gap-4 rounded-[4px] border border-accent/30 bg-accent-soft/45 p-4">
                 <div className="space-y-1 pr-3">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="text-[14px] font-semibold text-ink">Enable Public Recruiter Dossier</span>
@@ -954,7 +955,7 @@ export function MyAccount() {
                       className={`font-mono-code inline-flex items-center gap-1.5 rounded-[3px] border px-2 py-0.5 text-[10px] font-bold ${
                         isPublic
                           ? 'border-good/30 bg-good-soft text-good-ink'
-                          : 'border-line bg-white text-muted'
+                          : 'border-line bg-surface text-muted'
                       }`}
                     >
                       <LiveDot tone={isPublic ? 'good' : 'muted'} pulse={false} />
@@ -984,7 +985,7 @@ export function MyAccount() {
                     >
                       Your Canonical Public Dossier URL
                     </label>
-                    <span className="font-mono-code rounded-[3px] border border-accent-200 bg-accent-soft px-2 py-0.5 text-[10px] text-accent-ink">
+                    <span className="font-mono-code rounded-[3px] border border-accent/30 bg-accent-soft px-2 py-0.5 text-[10px] text-accent-ink">
                       SLUG: {slug}
                     </span>
                   </div>
@@ -1024,9 +1025,9 @@ export function MyAccount() {
           >
             <div className="space-y-4">
               {/* GitHub Repository Analyzer Card */}
-              <div className="flex flex-col justify-between gap-4 rounded-[4px] border border-line bg-white p-4 md:flex-row md:items-center">
+              <div className="flex flex-col justify-between gap-4 rounded-[4px] border border-line bg-surface p-4 md:flex-row md:items-center">
                 <div className="flex items-start gap-3.5">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[4px] bg-ink text-white">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[4px] bg-ink text-paper">
                     <span className="material-symbols-outlined text-[20px]">code</span>
                   </div>
                   <div className="space-y-1">
@@ -1043,14 +1044,14 @@ export function MyAccount() {
                 </div>
                 <Link
                   to="/interview/new"
-                  className="btn-tactile font-mono-code inline-flex h-9 shrink-0 items-center justify-center rounded-[4px] border border-line bg-white px-3.5 text-[11px] font-semibold text-ink hover:border-accent hover:text-accent"
+                  className="btn-tactile font-mono-code inline-flex h-9 shrink-0 items-center justify-center rounded-[4px] border border-line bg-surface px-3.5 text-[11px] font-semibold text-ink hover:border-accent hover:text-accent"
                 >
                   Start Repo Interview →
                 </Link>
               </div>
 
               {/* Organizations & Roles Card */}
-              <div className="flex flex-col justify-between gap-4 rounded-[4px] border border-line bg-white p-4 md:flex-row md:items-center">
+              <div className="flex flex-col justify-between gap-4 rounded-[4px] border border-line bg-surface p-4 md:flex-row md:items-center">
                 <div className="flex items-start gap-3.5">
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[4px] border border-accent/25 bg-accent-soft text-accent-ink">
                     <span className="material-symbols-outlined text-[20px]">corporate_fare</span>
@@ -1071,14 +1072,14 @@ export function MyAccount() {
                 </div>
                 <Link
                   to={me.organizations.length > 0 ? '/org/events' : '/events'}
-                  className="btn-tactile font-mono-code inline-flex h-9 shrink-0 items-center justify-center rounded-[4px] border border-line bg-white px-3.5 text-[11px] font-semibold text-ink hover:border-accent hover:text-accent"
+                  className="btn-tactile font-mono-code inline-flex h-9 shrink-0 items-center justify-center rounded-[4px] border border-line bg-surface px-3.5 text-[11px] font-semibold text-ink hover:border-accent hover:text-accent"
                 >
                   {me.organizations.length > 0 ? 'Organizer Console →' : 'Browse Events →'}
                 </Link>
               </div>
 
               {/* Audio Verification Hardware Card */}
-              <div className="flex flex-col justify-between gap-4 rounded-[4px] border border-line bg-white p-4 md:flex-row md:items-center">
+              <div className="flex flex-col justify-between gap-4 rounded-[4px] border border-line bg-surface p-4 md:flex-row md:items-center">
                 <div className="flex items-start gap-3.5">
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[4px] border border-good/30 bg-good-soft text-good-ink">
                     <span className="material-symbols-outlined text-[20px]">mic</span>
@@ -1110,7 +1111,7 @@ export function MyAccount() {
                 <button
                   type="button"
                   onClick={() => void testMicrophone()}
-                  className="btn-tactile font-mono-code inline-flex h-9 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-[4px] border border-line bg-white px-3.5 text-[11px] font-semibold text-ink hover:border-good hover:text-good"
+                  className="btn-tactile font-mono-code inline-flex h-9 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-[4px] border border-line bg-surface px-3.5 text-[11px] font-semibold text-ink hover:border-good hover:text-good"
                 >
                   <span className="material-symbols-outlined text-[15px] text-good">graphic_eq</span>
                   <span>{micStatus === 'testing' ? 'Checking…' : 'Test Mic Access'}</span>
@@ -1119,14 +1120,26 @@ export function MyAccount() {
             </div>
           </NumberedSectionCard>
 
-          {/* 04. Privacy Controls & Notification Telemetry (Amber Accent) */}
+          {/* 04. Appearance: light or dark page, for this browser */}
+          <NumberedSectionCard
+            id="section-appearance"
+            number="04"
+            theme="neutral"
+            title="Appearance"
+            subtitle="Light or dark page. Saved in this browser; System follows your device."
+            sectionTag="SECTION 04 // APPEARANCE"
+          >
+            <ThemeChoice />
+          </NumberedSectionCard>
+
+          {/* 05. Privacy Controls & Notification Telemetry */}
           <NumberedSectionCard
             id="section-privacy"
-            number="04"
+            number="05"
             theme="neutral"
             title="Privacy Controls & Verification Telemetry"
             subtitle="Visibility boundaries for interview attempts and event notifications."
-            sectionTag="SECTION 04 // PRIVACY"
+            sectionTag="SECTION 05 // PRIVACY"
           >
             <div className="space-y-4">
               <label className="flex cursor-pointer items-start gap-3 rounded-[4px] border border-line bg-paper/50 p-3.5">
@@ -1192,7 +1205,7 @@ export function MyAccount() {
             sectionTag="SECURITY CONTROLS"
           >
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div className="flex flex-col justify-between space-y-4 rounded-[4px] border border-bad/30 bg-white p-4">
+              <div className="flex flex-col justify-between space-y-4 rounded-[4px] border border-bad/30 bg-surface p-4">
                 <div className="space-y-1">
                   <div className="flex items-center gap-1.5 text-[14px] font-bold text-ink">
                     <span className="material-symbols-outlined text-[18px] text-bad">link_off</span>
@@ -1212,13 +1225,13 @@ export function MyAccount() {
                   type="button"
                   disabled={busy}
                   onClick={() => void revokePublicAccess()}
-                  className="btn-tactile font-mono-code h-9 w-full cursor-pointer rounded-[4px] border border-bad/40 bg-bad-soft text-[11px] font-bold tracking-wider text-bad uppercase hover:bg-bad hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                  className="btn-tactile font-mono-code h-9 w-full cursor-pointer rounded-[4px] border border-bad/40 bg-bad-soft text-[11px] font-bold tracking-wider text-bad uppercase hover:bg-bad hover:text-on-bad disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {busy ? 'CREATING NEW LINK…' : 'REVOKE AND CREATE A NEW LINK'}
                 </button>
               </div>
 
-              <div className="flex flex-col justify-between space-y-4 rounded-[4px] border border-bad/30 bg-white p-4">
+              <div className="flex flex-col justify-between space-y-4 rounded-[4px] border border-bad/30 bg-surface p-4">
                 <div className="space-y-1">
                   <div className="flex items-center gap-1.5 text-[14px] font-bold text-ink">
                     <span className="material-symbols-outlined text-[18px] text-bad">lock_reset</span>
@@ -1238,7 +1251,7 @@ export function MyAccount() {
                   <button
                     type="button"
                     onClick={() => void signOut()}
-                    className="btn-tactile font-mono-code h-9 cursor-pointer rounded-[4px] border border-bad bg-bad text-[11px] font-bold text-white uppercase hover:bg-bad-hover"
+                    className="btn-tactile font-mono-code h-9 cursor-pointer rounded-[4px] border border-bad bg-bad text-[11px] font-bold text-on-bad uppercase hover:bg-bad-hover"
                   >
                     Sign Out
                   </button>
@@ -1253,7 +1266,7 @@ export function MyAccount() {
       </div>
 
       {/* 3. Persistent Sticky Bottom Action Bar */}
-      <div className="sticky bottom-4 z-40 flex flex-col items-center justify-between gap-3 rounded-[6px] border border-line bg-white p-4 sm:flex-row sm:px-6">
+      <div className="sticky bottom-4 z-40 flex flex-col items-center justify-between gap-3 rounded-[6px] border border-line bg-surface p-4 sm:flex-row sm:px-6">
         <div className="font-mono-code flex items-center gap-2 text-[12px] text-muted">
           <span className={`h-2.5 w-2.5 rounded-full ${dirty ? 'bg-warn' : saved ? 'bg-good' : 'bg-line-strong'}`} />
           <span role="status" className={dirty ? 'font-semibold text-warn-ink' : undefined}>

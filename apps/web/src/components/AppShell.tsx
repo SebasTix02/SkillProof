@@ -1,3 +1,4 @@
+import { ThemeToggle } from './ThemeControl';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
@@ -49,7 +50,7 @@ function Mark({ dark = false }: { dark?: boolean }) {
     <div
       className={cx(
         'flex h-7 w-7 shrink-0 items-center justify-center rounded-[4px] border transition-colors',
-        dark ? 'border-dark-hairline bg-dark-surface group-hover:border-accent-on-dark' : 'border-line bg-white group-hover:border-accent',
+        dark ? 'border-dark-hairline bg-dark-surface group-hover:border-accent-on-dark' : 'border-line bg-surface group-hover:border-accent',
       )}
     >
       <svg className={cx('h-4 w-4', dark ? 'text-accent-on-dark' : 'text-accent')} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
@@ -352,6 +353,7 @@ function SidebarBody({
             <Symbol name="logout" className="text-[18px]" />
             {!collapsed && <span>Sign out</span>}
           </button>
+          <ThemeToggle onDark compact />
           {onToggleCollapsed && (
             <button
               type="button"
@@ -518,7 +520,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <TopProgress />
       <a
         href="#main"
-        className="sr-only z-[60] rounded-[4px] bg-accent px-3 py-2 text-[13px] font-medium text-white focus:not-sr-only focus:fixed focus:top-2 focus:left-2"
+        className="sr-only z-[60] rounded-[4px] bg-accent px-3 py-2 text-[13px] font-medium text-on-accent focus:not-sr-only focus:fixed focus:top-2 focus:left-2"
       >
         Skip to content
       </a>

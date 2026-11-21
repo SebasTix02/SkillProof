@@ -373,7 +373,7 @@ export function IntegrityReview() {
   return (
     <div className="space-y-6">
       {/* 1. Faculty Portal Department Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-[6px] border border-line bg-white px-5 py-2.5">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-[6px] border border-line bg-surface px-5 py-2.5">
         <div className="font-mono-code flex flex-wrap items-center gap-2 text-[11px]">
           <span className="inline-flex items-center gap-1.5 rounded-[3px] bg-accent-soft px-2 py-0.5 font-bold text-accent-ink">
             <span className="material-symbols-outlined text-[14px]">policy</span>
@@ -403,7 +403,7 @@ export function IntegrityReview() {
                   setSource(k);
                   setSelectedSubId(null);
                 }}
-                className={`cursor-pointer px-3 py-1.5 ${source === k ? 'bg-accent-soft font-bold text-accent-ink' : 'bg-white text-muted hover:text-ink'}`}
+                className={`cursor-pointer px-3 py-1.5 ${source === k ? 'bg-accent-soft font-bold text-accent-ink' : 'bg-surface text-muted hover:text-ink'}`}
               >
                 {k === 'events' ? 'Events' : 'Courses'}
               </button>
@@ -447,7 +447,7 @@ export function IntegrityReview() {
       </div>
 
       {/* 2. Course Context Header */}
-      <section className="space-y-5 rounded-[6px] border border-line bg-white p-6">
+      <section className="space-y-5 rounded-[6px] border border-line bg-surface p-6">
         <DossierPageHeader
           eyebrow={
             <div className="flex flex-wrap items-center gap-2 text-muted">
@@ -611,7 +611,7 @@ export function IntegrityReview() {
 
           {/* Tab 04: Course Rubric View */}
           {activeTab === 'rubric' && selectedRubric.length > 0 && (
-            <section className="space-y-4 rounded-[6px] border border-line bg-white p-6">
+            <section className="space-y-4 rounded-[6px] border border-line bg-surface p-6">
               <h2 className="font-serif-heading text-[22px] font-medium text-ink">
                 Course Rubric &amp; Auto-Grader Criteria
               </h2>
@@ -634,7 +634,7 @@ export function IntegrityReview() {
 
           {/* Tab 02: Similarity Flags Quick Matrix */}
           {activeTab === 'plagiarism' && (
-            <section className="space-y-4 rounded-[6px] border border-line bg-white p-6">
+            <section className="space-y-4 rounded-[6px] border border-line bg-surface p-6">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
                   <h2 className="font-serif-heading text-[22px] font-medium text-ink">
@@ -688,7 +688,7 @@ export function IntegrityReview() {
 
           {/* 4. Filter & Operational Toolbar + High-Density Roster Matrix */}
           <section className="space-y-3">
-            <div className="flex flex-col justify-between gap-3 rounded-[6px] border border-line bg-white p-3.5 md:flex-row md:items-center">
+            <div className="flex flex-col justify-between gap-3 rounded-[6px] border border-line bg-surface p-3.5 md:flex-row md:items-center">
               <div className="flex flex-1 flex-wrap items-center gap-3">
                 <div className="relative max-w-md flex-1">
                   <span className="material-symbols-outlined pointer-events-none absolute top-2 left-2.5 text-[17px] text-muted">
@@ -721,7 +721,7 @@ export function IntegrityReview() {
                       className={`cursor-pointer px-2.5 py-1.5 transition-colors ${
                         filter === f.key
                           ? 'bg-accent-soft font-bold text-accent-ink'
-                          : 'bg-white text-muted hover:bg-paper hover:text-ink'
+                          : 'bg-surface text-muted hover:bg-paper hover:text-ink'
                       }`}
                     >
                       {f.label}
@@ -746,7 +746,7 @@ export function IntegrityReview() {
               </div>
             </div>
 
-            <div className="overflow-x-auto rounded-[6px] border border-line bg-white">
+            <div className="overflow-x-auto rounded-[6px] border border-line bg-surface">
               <table className="w-full border-collapse text-left text-[13px]">
                 <thead className="font-mono-code border-b border-line bg-paper text-[11px] tracking-wider text-muted uppercase">
                   <tr>
@@ -850,7 +850,7 @@ export function IntegrityReview() {
                               <Link
                                 to={event.submissionLink(s.id)}
                                 onClick={(e) => e.stopPropagation()}
-                                className="btn-tactile font-mono-code inline-flex items-center gap-1 rounded-[3px] border border-line bg-white px-2.5 py-1 text-[11px] font-semibold text-accent hover:border-accent"
+                                className="btn-tactile font-mono-code inline-flex items-center gap-1 rounded-[3px] border border-line bg-surface px-2.5 py-1 text-[11px] font-semibold text-accent hover:border-accent"
                               >
                                 <span>Inspect</span>
                                 <span>→</span>
@@ -868,7 +868,7 @@ export function IntegrityReview() {
 
           {/* 5. TA & Professor Forensic Review Workbench (Split Forensic Drawer) */}
           {selectedSummary && (
-            <section className="overflow-hidden rounded-[6px] border border-line bg-white">
+            <section className="overflow-hidden rounded-[6px] border border-line bg-surface">
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line bg-paper px-5 py-3.5">
                 <div className="flex items-center gap-2.5">
                   <span
@@ -957,7 +957,7 @@ export function IntegrityReview() {
                 </div>
 
                 {/* Right 5 Cols: Faculty Grading & Determination */}
-                <div className="flex flex-col justify-between space-y-5 bg-white p-6 lg:col-span-5">
+                <div className="flex flex-col justify-between space-y-5 bg-surface p-6 lg:col-span-5">
                   <div className="space-y-4">
                     <div className="font-mono-code flex items-center justify-between border-b border-line pb-2 text-[11px] text-muted uppercase">
                       <span>Score override &amp; verdict</span>
@@ -986,7 +986,7 @@ export function IntegrityReview() {
                             onChange={(e) => {
                               if (e.target.value) void overrideScore(selectedScores[0]!.id, Number(e.target.value));
                             }}
-                            className="font-mono-code h-8 bg-white text-[12px]"
+                            className="font-mono-code h-8 bg-surface text-[12px]"
                           >
                             <option value="">Keep AI ({selectedScores[0].ai_score ?? '–'})</option>
                             {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (

@@ -382,7 +382,7 @@ export function OrgSettings() {
                   Send this link to <strong>{newLink.email}</strong>. It is shown only once and expires {formatDate(newLink.expires_at)}.
                 </p>
                 <div className="flex flex-wrap items-center gap-2">
-                  <code className="font-mono-code min-w-0 flex-1 truncate rounded-[3px] border border-line bg-white px-2 py-1.5 text-[12px]">{newLink.url}</code>
+                  <code className="font-mono-code min-w-0 flex-1 truncate rounded-[3px] border border-line bg-surface px-2 py-1.5 text-[12px]">{newLink.url}</code>
                   <CopyLinkButton value={newLink.url} label="Copy Invitation Link" variant="primary" />
                 </div>
               </div>
@@ -414,7 +414,7 @@ export function OrgSettings() {
             <div className="flex flex-wrap items-center justify-between gap-3 rounded-[4px] border border-line bg-paper p-3">
               <div className="relative max-w-md flex-1">
                 <span className="material-symbols-outlined pointer-events-none absolute top-2 left-3 text-[16px] text-muted">search</span>
-                <Input value={memberSearch} onChange={(e) => setMemberSearch(e.target.value)} placeholder="Search by name, email or role…" className="h-9 bg-white pl-9 text-[12px]" />
+                <Input value={memberSearch} onChange={(e) => setMemberSearch(e.target.value)} placeholder="Search by name, email or role…" className="h-9 bg-surface pl-9 text-[12px]" />
               </div>
               <div className="flex flex-wrap items-center gap-1.5">
                 <span className="font-mono-code mr-1 text-[11px] text-muted">Role:</span>
@@ -432,7 +432,7 @@ export function OrgSettings() {
                     type="button"
                     onClick={() => setRoleFilter(tab.key)}
                     className={`font-mono-code cursor-pointer rounded-[3px] border px-2.5 py-1 text-[11px] font-medium transition-colors ${
-                      roleFilter === tab.key ? 'border-accent bg-white font-semibold text-accent' : 'border-transparent text-muted hover:bg-white/70 hover:text-ink'
+                      roleFilter === tab.key ? 'border-accent bg-surface font-semibold text-accent' : 'border-transparent text-muted hover:bg-white/70 hover:text-ink'
                     }`}
                   >
                     {tab.label}
@@ -507,7 +507,7 @@ export function OrgSettings() {
                                   type="button"
                                   disabled={busy === `remove-${m.user_id}`}
                                   onClick={() => void removeMember(m)}
-                                  className="btn-tactile font-mono-code cursor-pointer rounded-[3px] border border-bad/30 bg-bad-soft px-2.5 py-1 text-[11px] font-medium text-bad hover:bg-bad hover:text-white disabled:opacity-50"
+                                  className="btn-tactile font-mono-code cursor-pointer rounded-[3px] border border-bad/30 bg-bad-soft px-2.5 py-1 text-[11px] font-medium text-bad hover:bg-bad hover:text-on-bad disabled:opacity-50"
                                 >
                                   Remove
                                 </button>
@@ -573,7 +573,7 @@ export function OrgSettings() {
                           type="button"
                           disabled={busy === `revoke-${inv.id}`}
                           onClick={() => void revokeInvite(inv)}
-                          className="btn-tactile cursor-pointer rounded-[3px] border border-bad/30 bg-bad-soft px-2.5 py-1 text-[11px] font-medium text-bad hover:bg-bad hover:text-white disabled:opacity-50"
+                          className="btn-tactile cursor-pointer rounded-[3px] border border-bad/30 bg-bad-soft px-2.5 py-1 text-[11px] font-medium text-bad hover:bg-bad hover:text-on-bad disabled:opacity-50"
                         >
                           Revoke
                         </button>
@@ -679,7 +679,7 @@ export function OrgSettings() {
                 max={3650}
                 value={policies.retention_days ?? 365}
                 onChange={(e) => setPolicyDraft({ ...policies, retention_days: Number(e.target.value) })}
-                className="h-9 bg-white text-[12px] text-ink"
+                className="h-9 bg-surface text-[12px] text-ink"
               />
             </label>
           </div>

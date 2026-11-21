@@ -15,6 +15,15 @@
       href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
       rel="stylesheet"
     />
+    <script>
+      // Theme before the first paint (src/lib/theme.ts): stored choice, or the system's.
+      (function () {
+        var p = 'system';
+        try { p = localStorage.getItem('skillproof.theme') || 'system'; } catch (e) {}
+        var dark = p === 'dark' || (p !== 'light' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

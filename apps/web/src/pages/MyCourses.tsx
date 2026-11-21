@@ -122,7 +122,7 @@ export function MyCourses() {
           <p className="text-[14px] font-semibold text-accent-ink">Group invitations</p>
           <ul className="mt-2 space-y-2">
             {invites.map((i) => (
-              <li key={i.group_id} className="flex flex-wrap items-center justify-between gap-3 rounded-[4px] bg-white p-3 text-[13px]">
+              <li key={i.group_id} className="flex flex-wrap items-center justify-between gap-3 rounded-[4px] bg-surface p-3 text-[13px]">
                 <span>
                   <strong className="text-ink">{i.invited_by ?? 'A classmate'}</strong> invited you to <strong className="text-ink">{i.group_name}</strong> for{' '}
                   <Link to={`/courses/${i.course_id}/a/${i.assignment_id}`} className="text-accent-ink hover:underline">
@@ -145,12 +145,12 @@ export function MyCourses() {
       )}
 
       {courses.length === 0 ? (
-        <section className="rounded-[6px] border border-line bg-white p-8 text-center text-[13px] text-muted">
+        <section className="rounded-[6px] border border-line bg-surface p-8 text-center text-[13px] text-muted">
           You are not on any course roster yet. Your instructor adds you with the email of your SkillProof account.
         </section>
       ) : (
         courses.map((c) => (
-          <section key={c.id} className="rounded-[6px] border border-line bg-white">
+          <section key={c.id} className="rounded-[6px] border border-line bg-surface">
             <header className="flex flex-wrap items-end justify-between gap-2 border-b border-line px-5 py-4">
               <div>
                 <p className="font-mono-code text-[11px] font-semibold tracking-wider text-muted uppercase">{courseMeta(c)}</p>
@@ -201,7 +201,7 @@ export function MyCourse() {
         subtitle={course.description || `${assignments.length} ${assignments.length === 1 ? 'assignment' : 'assignments'} · ${todo.length} to do`}
         rightSlot={role !== 'student' ? <Badge tone="accent">{role === 'ta' ? 'TA' : 'Instructor'}</Badge> : null}
       />
-      <section className="rounded-[6px] border border-line bg-white">
+      <section className="rounded-[6px] border border-line bg-surface">
         {assignments.length === 0 ? (
           <p className="px-5 py-6 text-[13px] text-muted">No assignments yet.</p>
         ) : (
@@ -477,7 +477,7 @@ function MyGroupCard({ data: d, reload }: { data: MyAssignmentResponse; reload: 
   }
 
   return (
-    <section className="rounded-[6px] border border-line bg-white p-5">
+    <section className="rounded-[6px] border border-line bg-surface p-5">
       <div className="flex items-center justify-between gap-2">
         <p className="text-[14px] font-semibold text-ink">My group</p>
         <span className="text-[12px] text-muted">{groupSizeLabel(a)}</span>
@@ -600,7 +600,7 @@ function MyGroupCard({ data: d, reload }: { data: MyAssignmentResponse; reload: 
 
 function RubricCard({ assignment: a }: { assignment: AssignmentView }) {
   return (
-    <section className="rounded-[6px] border border-line bg-white p-5">
+    <section className="rounded-[6px] border border-line bg-surface p-5">
       <p className="text-[14px] font-semibold text-ink">How it is graded</p>
       <ul className="mt-2 space-y-2 text-[13px]">
         {a.rubric_json.map((c) => (

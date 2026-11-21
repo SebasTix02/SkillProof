@@ -91,7 +91,7 @@ export function Report({ report }: { report: ReportView }) {
       )}
 
       {/* Executive Forensic Summary */}
-      <div className="space-y-2 rounded-[4px] border border-line border-l-[4px] border-l-warn bg-warn-50 p-5">
+      <div className="space-y-2 rounded-[4px] border border-line border-l-[4px] border-l-warn bg-warn-soft p-5">
         <div className="flex items-center gap-2">
           <span className="h-2 w-2 rounded-full bg-warn" />
           <h3 className="font-mono-code text-[11px] font-bold tracking-wider text-warn uppercase">
@@ -117,7 +117,7 @@ export function Report({ report }: { report: ReportView }) {
             {report.skills_json.map((s, idx) => (
               <li
                 key={s.skill}
-                className="card-interactive space-y-3 rounded-[4px] border border-line bg-white p-4 sm:p-5"
+                className="card-interactive space-y-3 rounded-[4px] border border-line bg-surface p-4 sm:p-5"
               >
                 <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-center">
                   <h4 className="font-serif-heading text-[17px] font-medium text-ink">

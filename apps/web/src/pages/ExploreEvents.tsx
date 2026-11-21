@@ -112,13 +112,13 @@ export function ExploreEvents() {
               <>
                 <Link
                   to="/org/events"
-                  className="btn-tactile font-mono-code inline-flex h-10 items-center gap-1.5 rounded-[4px] border border-line bg-white px-3.5 text-[12px] font-semibold text-ink hover:border-muted hover:bg-paper"
+                  className="btn-tactile font-mono-code inline-flex h-10 items-center gap-1.5 rounded-[4px] border border-line bg-surface px-3.5 text-[12px] font-semibold text-ink hover:border-muted hover:bg-paper"
                 >
                   <span>Organizer Console</span>
                 </Link>
                 <Link
                   to="/org/events/new"
-                  className="btn-tactile inline-flex h-10 items-center gap-2 rounded-[4px] border border-ink bg-ink px-4 text-[13px] font-medium text-white hover:border-accent hover:bg-accent"
+                  className="btn-tactile inline-flex h-10 items-center gap-2 rounded-[4px] border border-ink bg-ink px-4 text-[13px] font-medium text-on-accent hover:border-accent hover:bg-accent"
                 >
                   <span className="material-symbols-outlined text-[16px]">add_circle</span>
                   <span>Create Event (Organizer)</span>
@@ -127,7 +127,7 @@ export function ExploreEvents() {
             ) : (
               <Link
                 to="/interview/new"
-                className="btn-tactile inline-flex h-10 items-center gap-2 rounded-[4px] border border-ink bg-ink px-4 text-[13px] font-medium text-white hover:border-accent hover:bg-accent"
+                className="btn-tactile inline-flex h-10 items-center gap-2 rounded-[4px] border border-ink bg-ink px-4 text-[13px] font-medium text-on-accent hover:border-accent hover:bg-accent"
               >
                 <span className="material-symbols-outlined text-[16px]">mic</span>
                 <span>Take Independent Interview</span>
@@ -148,7 +148,7 @@ export function ExploreEvents() {
             </div>
 
             <div className="relative z-10 flex flex-wrap items-center justify-between gap-2 p-5">
-              <span className="font-mono-code inline-flex items-center gap-2 rounded-[3px] border border-white/20 bg-ink/90 px-2.5 py-1 text-[11px] font-medium tracking-wide text-white">
+              <span className="font-mono-code inline-flex items-center gap-2 rounded-[3px] border border-white/20 bg-ink/90 px-2.5 py-1 text-[11px] font-medium tracking-wide text-paper">
                 <LiveDot tone="good" />
                 COMMIT-LOCKED EVALUATION // GEMINI RUBRIC ENGINE
               </span>
@@ -171,7 +171,7 @@ export function ExploreEvents() {
             </div>
           </div>
 
-          <div className="flex flex-col justify-between space-y-5 rounded-[6px] border border-line bg-white p-6 lg:col-span-5">
+          <div className="flex flex-col justify-between space-y-5 rounded-[6px] border border-line bg-surface p-6 lg:col-span-5">
             {featured ? (
               <>
                 <div className="space-y-4">
@@ -259,7 +259,7 @@ export function ExploreEvents() {
       </header>
 
       {/* 2. Search, Filter, Sort & Private Event Lookup Bar */}
-      <section className="rounded-[6px] border border-line bg-white p-5">
+      <section className="rounded-[6px] border border-line bg-surface p-5">
         <div className="flex flex-col justify-between gap-5 xl:flex-row xl:items-center">
           <div className="flex flex-1 flex-col items-stretch gap-3 sm:flex-row sm:items-center">
             <div className="relative min-w-[220px] flex-1">
@@ -271,7 +271,7 @@ export function ExploreEvents() {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search hackathons, organizations, slugs..."
-                className="h-10 w-full rounded-[4px] border border-line-strong bg-paper pr-3 pl-9 text-[13px] text-ink placeholder:text-muted transition-colors focus:border-accent focus:bg-white focus:outline-none"
+                className="h-10 w-full rounded-[4px] border border-line-strong bg-paper pr-3 pl-9 text-[13px] text-ink placeholder:text-muted transition-colors focus:border-accent focus:bg-surface focus:outline-none"
               />
             </div>
 
@@ -280,7 +280,7 @@ export function ExploreEvents() {
                 value={filterKind}
                 onChange={(e) => setFilterKind(e.target.value as typeof filterKind)}
                 aria-label="Filter events"
-                className="h-10 cursor-pointer rounded-[4px] border border-line bg-white px-3 text-[13px] text-ink focus:border-accent focus:outline-none"
+                className="h-10 cursor-pointer rounded-[4px] border border-line bg-surface px-3 text-[13px] text-ink focus:border-accent focus:outline-none"
               >
                 <option value="all">All Event Types</option>
                 <option value="interviews">3-Min Voice Defense Enabled</option>
@@ -293,7 +293,7 @@ export function ExploreEvents() {
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
                 aria-label="Sort events"
-                className="h-10 cursor-pointer rounded-[4px] border border-line bg-white px-3 text-[13px] text-ink focus:border-accent focus:outline-none"
+                className="h-10 cursor-pointer rounded-[4px] border border-line bg-surface px-3 text-[13px] text-ink focus:border-accent focus:outline-none"
               >
                 <option value="deadline">Sort: Ending Soon</option>
                 <option value="recent">Sort: Recently Started</option>
@@ -313,11 +313,11 @@ export function ExploreEvents() {
                 value={privateInput}
                 onChange={(e) => setPrivateInput(e.target.value)}
                 placeholder="event-slug or URL"
-                className="font-mono-code h-9 w-full rounded-[4px] border border-line-strong bg-paper px-3 text-[12px] text-ink placeholder:text-faint focus:border-accent focus:bg-white focus:outline-none sm:w-40"
+                className="font-mono-code h-9 w-full rounded-[4px] border border-line-strong bg-paper px-3 text-[12px] text-ink placeholder:text-faint focus:border-accent focus:bg-surface focus:outline-none sm:w-40"
               />
               <button
                 type="submit"
-                className="btn-tactile h-9 cursor-pointer rounded-[4px] border border-ink bg-ink px-3.5 text-[12px] font-medium whitespace-nowrap text-white hover:border-accent hover:bg-accent"
+                className="btn-tactile h-9 cursor-pointer rounded-[4px] border border-ink bg-ink px-3.5 text-[12px] font-medium whitespace-nowrap text-on-accent hover:border-accent hover:bg-accent"
               >
                 Open →
               </button>
@@ -338,7 +338,7 @@ export function ExploreEvents() {
         <PageState loading={mine.loading} error={mine.error} kind="list" />
 
         {!mine.loading && !mine.error && filteredMine.length === 0 && (
-          <div className="rounded-[6px] border border-line bg-white p-6 text-[13px] text-muted">
+          <div className="rounded-[6px] border border-line bg-surface p-6 text-[13px] text-muted">
             {myEvents.length === 0
               ? 'You have not joined an event yet. Select an open arena below or open a private event link above.'
               : 'No joined events match your current search filter.'}
@@ -353,7 +353,7 @@ export function ExploreEvents() {
               return (
                 <article
                   key={e.id}
-                  className="card-interactive group rounded-[6px] border border-line bg-white p-5"
+                  className="card-interactive group rounded-[6px] border border-line bg-surface p-5"
                 >
                   <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
                     <div className="min-w-0 space-y-2">
@@ -399,10 +399,10 @@ export function ExploreEvents() {
                         to={`/e/${e.slug}`}
                         className={`btn-tactile inline-flex h-9 items-center gap-1.5 rounded-[4px] border px-4 text-[13px] font-medium whitespace-nowrap ${
                           e.status === 'published'
-                            ? 'border-accent bg-white text-accent-ink hover:bg-accent-soft'
+                            ? 'border-accent bg-surface text-accent-ink hover:bg-accent-soft'
                             : e.status === 'open'
-                              ? 'border-ink bg-ink text-white hover:border-accent hover:bg-accent'
-                              : 'border-line bg-white text-ink hover:border-ink hover:bg-paper'
+                              ? 'border-ink bg-ink text-on-accent hover:border-accent hover:bg-accent'
+                              : 'border-line bg-surface text-ink hover:border-ink hover:bg-paper'
                         }`}
                       >
                         <span>
@@ -433,7 +433,7 @@ export function ExploreEvents() {
         <PageState loading={open.loading} error={open.error} kind="cards" />
 
         {!open.loading && !open.error && filteredOpen.length === 0 && (
-          <div className="rounded-[6px] border border-line bg-white p-6 text-[13px] text-muted">
+          <div className="rounded-[6px] border border-line bg-surface p-6 text-[13px] text-muted">
             No other public events are open right now. Have a private event link? Paste its slug in the Private Event
             bar above, or{' '}
             <Link to="/interview/new" className="font-semibold text-accent hover:underline">
@@ -451,7 +451,7 @@ export function ExploreEvents() {
               return (
                 <div
                   key={e.id}
-                  className="card-interactive group flex flex-col justify-between overflow-hidden rounded-[6px] border border-line bg-white"
+                  className="card-interactive group flex flex-col justify-between overflow-hidden rounded-[6px] border border-line bg-surface"
                 >
                   {isFirst && (
                     <div className="relative h-40 w-full overflow-hidden border-b border-line bg-ink">
@@ -516,7 +516,7 @@ export function ExploreEvents() {
 
                       <Link
                         to={`/e/${e.slug}`}
-                        className="btn-tactile mt-2 inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-[4px] border border-ink bg-ink text-[13px] font-medium text-white hover:border-accent hover:bg-accent"
+                        className="btn-tactile mt-2 inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-[4px] border border-ink bg-ink text-[13px] font-medium text-on-accent hover:border-accent hover:bg-accent"
                       >
                         <span>Enter Event Workspace</span>
                         <span className="arrow-nudge font-mono-code text-[12px]">→</span>

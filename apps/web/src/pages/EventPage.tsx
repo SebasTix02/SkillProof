@@ -103,7 +103,7 @@ export function EventPage() {
   return (
     <div className="space-y-8">
       {/* 1. Top Event Dossier Header */}
-      <section className="rounded-[6px] border border-line bg-white p-6">
+      <section className="rounded-[6px] border border-line bg-surface p-6">
         <div className="flex flex-col justify-between gap-6 lg:flex-row lg:items-center">
           <div className="max-w-3xl space-y-2.5">
             <div className="font-mono-code flex flex-wrap items-center gap-2 text-[11px]">
@@ -176,7 +176,7 @@ export function EventPage() {
       </section>
 
       {/* 2. Lifecycle State Progress Stepper */}
-      <section className="space-y-2.5 rounded-[6px] border border-line bg-white p-3.5">
+      <section className="space-y-2.5 rounded-[6px] border border-line bg-surface p-3.5">
         <div className="flex items-center justify-between px-1.5">
           <div className="flex items-center gap-2">
             <span className="material-symbols-outlined text-[17px] text-accent">tune</span>
@@ -225,7 +225,7 @@ export function EventPage() {
                 key={item.step}
                 className={`flex flex-col justify-between rounded-[4px] border p-3 transition-colors ${
                   isCurrent
-                    ? 'border-accent bg-accent text-white'
+                    ? 'border-accent bg-accent text-on-accent'
                     : isCompleted
                       ? 'border-good/30 bg-good-soft/35 text-ink'
                       : 'border-line bg-paper/60 text-ink'
@@ -258,7 +258,7 @@ export function EventPage() {
       </section>
 
       {/* 3. Primary Navigation Bar */}
-      <nav className="flex flex-wrap items-center gap-6 rounded-[6px] border border-line bg-white px-6 pt-3">
+      <nav className="flex flex-wrap items-center gap-6 rounded-[6px] border border-line bg-surface px-6 pt-3">
         <button
           type="button"
           onClick={() => jumpToSection('workspace', 'workspaceSection')}
@@ -311,7 +311,7 @@ export function EventPage() {
 
       {/* 5. Rubric Specification Card */}
       {event.rubric_json.length > 0 && (
-        <section id="rubricSection" className="space-y-5 rounded-[6px] border border-line bg-white p-6">
+        <section id="rubricSection" className="space-y-5 rounded-[6px] border border-line bg-surface p-6">
           <SectionHeader
             title="Evaluation Rubric & Weight Attribution"
             subtitle="Every repository is frozen at its latest commit at the deadline and scored against these weighted criteria."
@@ -329,7 +329,7 @@ export function EventPage() {
                   <span className="font-mono-code text-[11px] font-bold text-accent uppercase">
                     CRITERION {String(idx + 1).padStart(2, '0')}
                   </span>
-                  <span className="font-mono-code rounded-[3px] border border-line bg-white px-2 py-0.5 text-[11px] font-bold text-ink">
+                  <span className="font-mono-code rounded-[3px] border border-line bg-surface px-2 py-0.5 text-[11px] font-bold text-ink">
                     WEIGHT: {c.weight}%
                   </span>
                 </div>
@@ -382,7 +382,7 @@ function Join({ event, onJoined }: { event: EventView; onJoined: () => Promise<v
       )}
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-12">
-        <div className="flex flex-col justify-between space-y-6 rounded-[6px] border border-line bg-white p-6 sm:p-8 md:col-span-7">
+        <div className="flex flex-col justify-between space-y-6 rounded-[6px] border border-line bg-surface p-6 sm:p-8 md:col-span-7">
           <div className="space-y-4">
             <span className="font-mono-code inline-block rounded-[3px] border border-accent/25 bg-accent-soft px-2.5 py-1 text-[11px] font-semibold text-accent-ink uppercase">
               STAGE 01 // CANDIDATE REGISTRATION
@@ -423,7 +423,7 @@ function Join({ event, onJoined }: { event: EventView; onJoined: () => Promise<v
           )}
         </div>
 
-        <div className="flex flex-col justify-between space-y-6 rounded-[6px] border border-line bg-white p-6 sm:p-8 md:col-span-5">
+        <div className="flex flex-col justify-between space-y-6 rounded-[6px] border border-line bg-surface p-6 sm:p-8 md:col-span-5">
           {event.visibility === 'code' ? (
             <form onSubmit={join} className="flex h-full flex-col justify-between space-y-4">
               <div className="space-y-2">
@@ -448,7 +448,7 @@ function Join({ event, onJoined }: { event: EventView; onJoined: () => Promise<v
                 <button
                   type="submit"
                   disabled={busy}
-                  className="btn-tactile w-full cursor-pointer rounded-[4px] border border-ink bg-ink py-2.5 text-[13px] font-medium text-white hover:border-accent hover:bg-accent disabled:opacity-50"
+                  className="btn-tactile w-full cursor-pointer rounded-[4px] border border-ink bg-ink py-2.5 text-[13px] font-medium text-on-accent hover:border-accent hover:bg-accent disabled:opacity-50"
                 >
                   {busy ? 'Verifying Code…' : 'Submit Code & Claim Workspace'}
                 </button>
@@ -503,7 +503,7 @@ function Participant({ event }: { event: EventView }) {
     <div className="space-y-8">
       {/* State 3: Judging / In Review Pipeline Banner */}
       {closed && results.data && !results.data.published && (
-        <section className="space-y-5 rounded-[6px] border border-line bg-white p-6">
+        <section className="space-y-5 rounded-[6px] border border-line bg-surface p-6">
           <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
             <div className="flex items-center gap-3">
               <span className="material-symbols-outlined text-[26px] text-accent">hourglass_top</span>
@@ -553,7 +553,7 @@ function Participant({ event }: { event: EventView }) {
                 </span>
               </div>
               <div className="text-[13px] font-semibold text-ink">Rubric Vector Evaluation</div>
-              <span className="font-mono-code inline-block rounded-[2px] bg-accent px-2 py-0.5 text-[10px] font-bold text-white">
+              <span className="font-mono-code inline-block rounded-[2px] bg-accent px-2 py-0.5 text-[10px] font-bold text-on-accent">
                 {results.data.status === 'judging' ? 'ACTIVE' : 'SCORED'}
               </span>
             </div>
@@ -566,7 +566,7 @@ function Participant({ event }: { event: EventView }) {
                 </span>
               </div>
               <div className="text-[13px] font-semibold text-ink">3-Min Voice Defense</div>
-              <span className="font-mono-code inline-block rounded-[2px] border border-line bg-white px-2 py-0.5 text-[10px] text-muted">
+              <span className="font-mono-code inline-block rounded-[2px] border border-line bg-surface px-2 py-0.5 text-[10px] text-muted">
                 {event.interviews_enabled ? 'OPENS AFTER JUDGING' : 'NOT REQUIRED'}
               </span>
             </div>
@@ -651,7 +651,7 @@ function SubmissionCard({
   return (
     <div className="space-y-5">
       {/* Workspace Status Bar */}
-      <div className="flex flex-col justify-between gap-3 rounded-[6px] border border-line bg-white p-4 sm:flex-row sm:items-center">
+      <div className="flex flex-col justify-between gap-3 rounded-[6px] border border-line bg-surface p-4 sm:flex-row sm:items-center">
         <div className="flex items-center gap-2.5">
           {mine.accepting ? <LiveDot tone="good" /> : <span className="h-2 w-2 rounded-full bg-muted" />}
           <span className="font-mono-code text-[12px] font-semibold text-ink">
@@ -667,7 +667,7 @@ function SubmissionCard({
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
         {/* Left 8 Cols: Submission Dossier Formulation */}
-        <section className="space-y-5 rounded-[6px] border border-line bg-white p-6 lg:col-span-8">
+        <section className="space-y-5 rounded-[6px] border border-line bg-surface p-6 lg:col-span-8">
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line pb-3">
             <h2 className="font-serif-heading text-[22px] font-medium text-ink">Submission Dossier Formulation</h2>
             <span className="font-mono-code rounded-[3px] border border-line bg-paper px-2.5 py-0.5 text-[11px] font-semibold text-muted">
@@ -792,7 +792,7 @@ function SubmissionCard({
 
         {/* Right 4 Cols: Ingestion Quota & Version Timeline */}
         <div className="space-y-6 lg:col-span-4">
-          <section className="space-y-3 rounded-[6px] border border-line bg-white p-5">
+          <section className="space-y-3 rounded-[6px] border border-line bg-surface p-5">
             <div className="flex items-center justify-between">
               <span className="font-mono-code text-[11px] font-semibold tracking-wider text-muted uppercase">
                 Ingestion Quota
@@ -816,7 +816,7 @@ function SubmissionCard({
             </p>
           </section>
 
-          <section className="space-y-4 rounded-[6px] border border-line bg-white p-5">
+          <section className="space-y-4 rounded-[6px] border border-line bg-surface p-5">
             <div className="flex items-center justify-between border-b border-line pb-2.5">
               <h3 className="font-serif-heading text-[18px] font-medium text-ink">Submission Timeline</h3>
               <span className="font-mono-code text-[11px] text-muted">
@@ -895,7 +895,7 @@ function ResultsView({
       {mine && (
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
           {/* Left 7 Cols: Certified Audit Dossier */}
-          <div className="flex flex-col justify-between space-y-5 rounded-[6px] border border-line bg-white p-6 lg:col-span-7">
+          <div className="flex flex-col justify-between space-y-5 rounded-[6px] border border-line bg-surface p-6 lg:col-span-7">
             <div className="space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line pb-3.5">
                 <div className="flex items-center gap-2">
@@ -993,7 +993,7 @@ function ResultsView({
           </div>
 
           {/* Right 5 Cols: Dark Audio Dossier Audit & Ownership Interview Panel */}
-          <div className="flex flex-col justify-between space-y-5 rounded-[6px] border border-dark-hairline bg-ink p-6 text-white lg:col-span-5">
+          <div className="flex flex-col justify-between space-y-5 rounded-[6px] border border-dark-hairline bg-ink p-6 text-paper lg:col-span-5">
             <div className="space-y-4">
               <div className="flex items-center justify-between border-b border-white/10 pb-3">
                 <span className="font-mono-code inline-flex items-center gap-1.5 rounded-[3px] border border-accent/40 bg-accent/20 px-2.5 py-1 text-[11px] font-semibold tracking-wider text-accent-on-dark uppercase">
@@ -1082,7 +1082,7 @@ function ResultsView({
 
       {/* 2. Comprehensive Rubric Breakdown & Feedback */}
       {mine && (
-        <section className="space-y-6 rounded-[6px] border border-line bg-white p-6">
+        <section className="space-y-6 rounded-[6px] border border-line bg-surface p-6">
           <SectionHeader
             title="Comprehensive Rubric Vector Breakdown"
             subtitle="Criterion-by-criterion evaluation with cited repository files and judge overrides."
@@ -1103,7 +1103,7 @@ function ResultsView({
               return (
                 <div key={c.key} className="space-y-3 rounded-[4px] border border-line bg-paper/70 p-5">
                   <div className="flex items-center justify-between">
-                    <span className="font-mono-code rounded-[3px] border border-line bg-white px-2 py-0.5 text-[11px] font-bold text-ink">
+                    <span className="font-mono-code rounded-[3px] border border-line bg-surface px-2 py-0.5 text-[11px] font-bold text-ink">
                       {c.weight}% WEIGHT
                     </span>
                     <div className="flex items-center gap-2">
@@ -1130,7 +1130,7 @@ function ResultsView({
                         {s.evidence_json.map((ev, idx) => (
                           <span
                             key={idx}
-                            className="rounded-[3px] border border-line bg-white px-2 py-0.5 text-accent"
+                            className="rounded-[3px] border border-line bg-surface px-2 py-0.5 text-accent"
                           >
                             {ev}
                           </span>
@@ -1194,7 +1194,7 @@ function ResultsView({
       )}
 
       {/* 3. Official Leaderboard Table */}
-      <section id="leaderboardSection" className="space-y-4 rounded-[6px] border border-line bg-white p-6">
+      <section id="leaderboardSection" className="space-y-4 rounded-[6px] border border-line bg-surface p-6">
         <SectionHeader
           title="Official Event Leaderboard"
           subtitle={`Final standings across ${totalTeams} participating ${totalTeams === 1 ? 'team' : 'teams'}.`}
@@ -1238,7 +1238,7 @@ function ResultsView({
                         {row.team_name}
                       </span>
                       {row.mine && (
-                        <span className="rounded-[2px] bg-accent px-1.5 py-0.5 text-[9px] font-bold tracking-wider text-white uppercase">
+                        <span className="rounded-[2px] bg-accent px-1.5 py-0.5 text-[9px] font-bold tracking-wider text-on-accent uppercase">
                           YOUR SUBMISSION
                         </span>
                       )}

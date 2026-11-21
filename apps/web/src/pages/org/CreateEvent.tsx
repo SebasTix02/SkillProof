@@ -278,7 +278,7 @@ export function CreateEvent() {
 
       {error && <Notice tone="error">{error}</Notice>}
 
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-[6px] border border-line bg-white p-5">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-[6px] border border-line bg-surface p-5">
         <div className="font-mono-code text-[11px] text-muted">
           ORGANIZER: <strong className="text-ink">{org?.name}</strong> • STATUS ON PUBLISH:{' '}
           <strong className="text-good">OPEN FOR SUBMISSIONS</strong>

@@ -96,7 +96,7 @@ export function JudgeReviewCard({ submissionId, rubric, locked }: { submissionId
   if (error) return <Notice tone="error">{error}</Notice>;
 
   return (
-    <div className="space-y-3 rounded-[6px] border border-line bg-white p-5">
+    <div className="space-y-3 rounded-[6px] border border-line bg-surface p-5">
       <div className="flex items-center justify-between border-b border-line pb-2.5">
         <h3 className="font-serif-heading text-[18px] font-medium text-ink">Your review</h3>
         <Badge tone={status === 'submitted' ? 'good' : 'neutral'}>{status === 'submitted' ? 'SUBMITTED' : 'DRAFT'}</Badge>
@@ -109,7 +109,7 @@ export function JudgeReviewCard({ submissionId, rubric, locked }: { submissionId
               <span className="text-[13px] font-medium text-ink">{c.name}</span>
               <Select
                 aria-label={`Your score for ${c.name}`}
-                className="h-8 w-20 bg-white text-[12px]"
+                className="h-8 w-20 bg-surface text-[12px]"
                 disabled={locked}
                 value={scores[c.key] ?? ''}
                 onChange={(e) => {
@@ -132,7 +132,7 @@ export function JudgeReviewCard({ submissionId, rubric, locked }: { submissionId
                 setNotes((n) => ({ ...n, [c.key]: e.target.value }));
               }}
               placeholder="Why this score (optional)"
-              className="w-full rounded-[4px] border border-line bg-white px-2 py-1 text-[12px]"
+              className="w-full rounded-[4px] border border-line bg-surface px-2 py-1 text-[12px]"
             />
           </li>
         ))}
@@ -169,7 +169,7 @@ export function JudgeReviewsList({ submissionId, rubric }: { submissionId: strin
   if (error) return <Notice tone="error">{error}</Notice>;
   const reviews = data?.reviews ?? [];
   return (
-    <div className="space-y-3 rounded-[6px] border border-line bg-white p-5">
+    <div className="space-y-3 rounded-[6px] border border-line bg-surface p-5">
       <h3 className="font-serif-heading border-b border-line pb-2.5 text-[18px] font-medium text-ink">Judge reviews</h3>
       {reviews.length === 0 ? (
         <p className="text-[13px] text-muted">No judge has reviewed this submission yet. Assign judges from the event console.</p>

@@ -175,7 +175,7 @@ export function InterviewHome() {
         rightSlot={
           <div className="font-mono-code flex items-center gap-2 text-[11px] text-muted">
             <span>VERIFIED CREDENTIALS:</span>
-            <span className="rounded-[3px] border border-line bg-white px-2 py-0.5 font-semibold text-ink">
+            <span className="rounded-[3px] border border-line bg-surface px-2 py-0.5 font-semibold text-ink">
               {stats.completedCount} COMPLETED
             </span>
             {publicProfileUrl && (
@@ -191,7 +191,7 @@ export function InterviewHome() {
       />
 
       {/* 2. Hero Visual Cockpit Launch Section (Split 7 / 5 Grid) */}
-      <section className="overflow-hidden rounded-[6px] border border-line bg-white">
+      <section className="overflow-hidden rounded-[6px] border border-line bg-surface">
         <div className="grid grid-cols-1 lg:grid-cols-12">
           <div className="flex flex-col justify-between space-y-5 border-b border-line p-6 sm:p-7 lg:col-span-7 lg:border-r lg:border-b-0">
             <div className="space-y-4">
@@ -226,7 +226,7 @@ export function InterviewHome() {
                       placeholder="https://github.com/you/your-project"
                       value={repoUrl}
                       onChange={(e) => setRepoUrl(e.target.value)}
-                      className="font-mono-code w-full rounded-[4px] border border-line-strong bg-paper py-2.5 pr-3 pl-9 text-[13px] text-ink placeholder:text-faint transition-colors focus:border-accent focus:bg-white focus:outline-none"
+                      className="font-mono-code w-full rounded-[4px] border border-line-strong bg-paper py-2.5 pr-3 pl-9 text-[13px] text-ink placeholder:text-faint transition-colors focus:border-accent focus:bg-surface focus:outline-none"
                     />
                   </div>
                 </div>
@@ -242,7 +242,7 @@ export function InterviewHome() {
                     <button
                       type="submit"
                       disabled={busy}
-                      className="btn-tactile inline-flex h-[42px] w-full cursor-pointer items-center justify-center gap-1.5 rounded-[4px] border border-accent bg-accent px-4 text-[13px] font-medium whitespace-nowrap text-white hover:border-accent-hover hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
+                      className="btn-tactile inline-flex h-[42px] w-full cursor-pointer items-center justify-center gap-1.5 rounded-[4px] border border-accent bg-accent px-4 text-[13px] font-medium whitespace-nowrap text-on-accent hover:border-accent-hover hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       <span className="material-symbols-outlined text-[17px]">mic</span>
                       <span>{busy ? 'Preparing Repository…' : 'Prepare 3-Min Interview'}</span>
@@ -285,7 +285,7 @@ export function InterviewHome() {
             </div>
           </div>
 
-          <div className="flex flex-col justify-between space-y-4 bg-ink p-5 text-white lg:col-span-5">
+          <div className="flex flex-col justify-between space-y-4 bg-ink p-5 text-paper lg:col-span-5">
             <div className="flex items-center justify-between border-b border-dark-hairline pb-2.5">
               <div className="flex items-center gap-2">
                 <LiveDot tone="mint" />
@@ -326,7 +326,7 @@ export function InterviewHome() {
 
       {/* With no interviews yet, one "Get started" card replaces the empty metrics, filters and table. */}
       {!list.loading && !list.error && allInterviews.length === 0 ? (
-        <section className="rounded-[6px] border border-line bg-white p-6 sm:p-8" aria-labelledby="get-started-title">
+        <section className="rounded-[6px] border border-line bg-surface p-6 sm:p-8" aria-labelledby="get-started-title">
           <p className="font-mono-code text-[11px] font-semibold tracking-wider text-accent-ink uppercase">Get started</p>
           <h2 id="get-started-title" className="font-serif-heading mt-1 text-[24px] leading-[30px] text-ink">
             Your first interview takes about five minutes
@@ -451,7 +451,7 @@ export function InterviewHome() {
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder="Filter by repository or status..."
-                  className="w-full rounded-[4px] border border-line bg-white py-1.5 pr-2.5 pl-8 text-[12px] text-ink focus:border-accent focus:outline-none"
+                  className="w-full rounded-[4px] border border-line bg-surface py-1.5 pr-2.5 pl-8 text-[12px] text-ink focus:border-accent focus:outline-none"
                 />
               </div>
   
@@ -460,7 +460,7 @@ export function InterviewHome() {
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value as 'recent' | 'score' | 'repo')}
                   aria-label="Sort interviews"
-                  className="font-mono-code cursor-pointer appearance-none rounded-[4px] border border-line bg-white py-1.5 pr-7 pl-2.5 text-[11px] text-ink focus:border-accent focus:outline-none"
+                  className="font-mono-code cursor-pointer appearance-none rounded-[4px] border border-line bg-surface py-1.5 pr-7 pl-2.5 text-[11px] text-ink focus:border-accent focus:outline-none"
                 >
                   <option value="recent">SORT: MOST RECENT</option>
                   <option value="score">SORT: HIGHEST SCORE</option>
@@ -475,7 +475,7 @@ export function InterviewHome() {
         />
   
         {/* 5. Structured Interviews Data Table */}
-        <section className="overflow-hidden rounded-[6px] border border-line bg-white">
+        <section className="overflow-hidden rounded-[6px] border border-line bg-surface">
           <PageState loading={list.loading} error={list.error} kind="table" />
   
           {!list.loading && !list.error && filteredInterviews.length === 0 && (
@@ -597,12 +597,12 @@ export function InterviewHome() {
                             to={`/interview/${i.id}`}
                             className={`btn-tactile font-mono-code inline-flex items-center justify-center rounded-[4px] border px-3 py-1.5 text-[11px] font-semibold ${
                               i.status === 'completed'
-                                ? 'border-accent bg-accent-soft text-accent-ink hover:bg-accent hover:text-white'
+                                ? 'border-accent bg-accent-soft text-accent-ink hover:bg-accent hover:text-on-accent'
                                 : i.status === 'ready' || i.status === 'in_progress'
-                                  ? 'border-ink bg-ink text-white hover:border-accent hover:bg-accent'
+                                  ? 'border-ink bg-ink text-on-accent hover:border-accent hover:bg-accent'
                                   : i.status === 'error'
-                                    ? 'border-bad bg-bad-soft text-bad hover:bg-bad hover:text-white'
-                                    : 'border-line bg-white text-ink hover:border-accent hover:bg-paper'
+                                    ? 'border-bad bg-bad-soft text-bad hover:bg-bad hover:text-on-bad'
+                                    : 'border-line bg-surface text-ink hover:border-accent hover:bg-paper'
                             }`}
                           >
                             {i.status === 'completed'
