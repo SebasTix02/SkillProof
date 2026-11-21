@@ -18,6 +18,7 @@ import { InterviewHome } from './pages/InterviewHome';
 import { InterviewPage } from './pages/InterviewPage';
 import { Landing } from './pages/Landing';
 import { IntegrityReview } from './pages/org/CourseMode';
+import { AssignmentCompare } from './pages/org/AssignmentCompare';
 import { AssignmentConsole, AssignmentSubmissionPage } from './pages/org/AssignmentConsole';
 import { CoursePage, CoursesHome, NewAssignment } from './pages/org/Courses';
 import { MyAssignmentPage, MyCourse, MyCourses } from './pages/MyCourses';
@@ -88,6 +89,7 @@ function App() {
         <Route path="/org/courses/:courseId/assignments/new" element={<Private organizer><NewAssignment /></Private>} />
         <Route path="/org/courses/:courseId/assignments/:id" element={<Private organizer><AssignmentConsole /></Private>} />
         <Route path="/org/courses/:courseId/assignments/:id/s/:sid" element={<Private organizer><AssignmentSubmissionPage /></Private>} />
+        <Route path="/org/courses/:courseId/assignments/:id/compare" element={<Private organizer><AssignmentCompare /></Private>} />
         <Route path="/org/courses/:courseId/:tab" element={<Private organizer><CoursePage /></Private>} />
         <Route path="/org/integrity" element={<Private organizer><IntegrityReview /></Private>} />
         <Route path="/org/integrity/:id" element={<Private organizer><IntegrityReview /></Private>} />

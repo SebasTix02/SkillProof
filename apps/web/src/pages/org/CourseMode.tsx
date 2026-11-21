@@ -55,7 +55,7 @@ interface Flag {
   id: string;
   submission_a: string;
   submission_b: string;
-  signal: 'same_repo' | 'same_fork_parent' | 'identical_files' | 'embedding';
+  signal: 'same_repo' | 'same_fork_parent' | 'identical_files' | 'embedding' | 'shared_code';
   explanation: string;
 }
 
@@ -289,7 +289,7 @@ export function IntegrityReview() {
           rubric: asg.rubric_json,
           consoleLink: `/org/courses/${asg.course_id}/assignments/${asg.id}`,
           submissionLink: (sid) => `/org/courses/${asg.course_id}/assignments/${asg.id}/s/${sid}`,
-          compareLink: null,
+          compareLink: (_x, _y, flag) => `/org/courses/${asg.course_id}/assignments/${asg.id}/compare?flag=${flag}`,
         }
       : null;
   const canOverride =

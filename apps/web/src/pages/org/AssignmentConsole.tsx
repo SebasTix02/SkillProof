@@ -1,5 +1,5 @@
-import { t, tr } from '../../i18n';
-import { ContestLanguageField } from '../../components/LanguageControl';
+import { lazy, t, tr } from '../../i18n';
+import { ContestLanguageField, StarterRepoField } from '../../components/LanguageControl';
 /**
  * The console of one course assignment (its own screen, not the event console):
  *   /org/courses/:courseId/assignments/:id          status, actions, submissions, groups, missing, similarity
@@ -21,6 +21,7 @@ import {
   Notice,
   NumberedSectionCard,
   PageState,
+  SIMILARITY_SIGNAL_LABEL,
   SUBMISSION_STATUS_LABEL,
   Select,
   TabStrip,
@@ -227,11 +228,15 @@ export function AssignmentConsole() {
             <ul className="space-y-2">
               {flags.map((f) => (
                 <li key={f.id} className="flex flex-wrap items-center gap-2 rounded-[4px] border border-line bg-paper p-3 text-[13px]">
-                  <Badge tone="warn">{f.signal.replace(/_/g, ' ')}</Badge>
+                  <Badge tone="warn">{SIMILARITY_SIGNAL_LABEL[f.signal]}</Badge>
+                  {f.signal === 'shared_code' && <span className="font-mono-code font-bold text-ink">{Math.round(Number(f.score) * 100)}%</span>}
                   <strong className="text-ink">{submissions.find((s) => s.id === f.submission_a)?.label ?? tr('Submission')}</strong>
                   <span className="text-muted">↔</span>
                   <strong className="text-ink">{submissions.find((s) => s.id === f.submission_b)?.label ?? tr('Submission')}</strong>
                   {f.explanation && <span className="text-muted">· {f.explanation}</span>}
+                  <Link to={`/org/courses/${courseId}/assignments/${a.id}/compare?flag=${f.id}`} className="ml-auto font-semibold text-accent-ink hover:underline">
+                    {tr('Compare side by side →')}
+                  </Link>
                 </li>
               ))}
             </ul>
@@ -534,6 +539,7 @@ function EditAssignment({ assignment: a, onDone }: { assignment: AssignmentView;
     max_submissions: a.max_submissions ?? 3,
     interviews_enabled: a.interviews_enabled,
     language: a.language,
+    starter_repo_url: a.starter_repo_url ?? '',
   });
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -551,6 +557,7 @@ function EditAssignment({ assignment: a, onDone }: { assignment: AssignmentView;
       max_submissions: form.unlimited ? null : form.max_submissions,
       interviews_enabled: form.interviews_enabled,
       language: form.language,
+      starter_repo_url: form.starter_repo_url.trim() || null,
     });
     if (!parsed.success) {
       setError(parsed.error.issues[0]?.message ?? tr('Check the form.'));
@@ -604,6 +611,7 @@ function EditAssignment({ assignment: a, onDone }: { assignment: AssignmentView;
           </label>
         </div>
         <ContestLanguageField value={form.language} onChange={(l) => setForm({ ...form, language: l })} />
+        <StarterRepoField value={form.starter_repo_url} onChange={(v) => setForm({ ...form, starter_repo_url: v })} />
         {error && <Notice tone="error">{error}</Notice>}
         <div className="flex gap-2">
           <Button type="submit" loading={busy}>{tr('Save changes')}</Button>
@@ -643,7 +651,7 @@ interface SubmissionDetailResponse {
   adjustments: { user_id: string; adjusted_total: number; note: string; adjusted_at: string }[];
 }
 
-export const VERDICT_LABEL: Record<string, string> = {
+export const VERDICT_LABEL: Record<string, string> = lazy(() => ({
   clear: tr('Cleared'),
   live_defense: tr('Live defense required'),
   code_of_conduct: tr('Referred to committee'),
@@ -651,7 +659,7 @@ export const VERDICT_LABEL: Record<string, string> = {
   direct_plagiarism: tr('Direct plagiarism'),
   independent_invention: tr('Independent work'),
   starter_template: tr('Shared starter code'),
-};
+}));
 
 export function AssignmentSubmissionPage() {
   const { courseId = '', id = '', sid = '' } = useParams();

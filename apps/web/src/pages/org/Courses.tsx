@@ -1,5 +1,5 @@
-import { getLocale, t, tr, trn, translateMessage, type Locale } from '../../i18n';
-import { ContestLanguageField } from '../../components/LanguageControl';
+import { getLocale, lazy, t, tr, trn, translateMessage, type Locale } from '../../i18n';
+import { ContestLanguageField, StarterRepoField } from '../../components/LanguageControl';
 /**
  * Courses, apart from events. A course has a roster (instructors, TAs, students by section) and assignments that only
  * its students can see and submit to. Screens:
@@ -65,7 +65,7 @@ interface CourseDetail {
   access: 'staff' | 'student' | 'ta';
 }
 
-const ROLE_LABEL: Record<Member['role'], string> = { instructor: tr('Instructor'), ta: 'TA', student: tr('Student') };
+const ROLE_LABEL: Record<Member['role'], string> = lazy(() => ({ instructor: tr('Instructor'), ta: tr('TA'), student: tr('Student') }));
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 
@@ -187,7 +187,7 @@ export function CoursesHome() {
 // ---------------------------------------------------------------------------------------------------------------------
 
 type CourseTab = 'overview' | 'roster' | 'assignments' | 'gradebook';
-const TABS: { key: CourseTab; label: string; icon: string }[] = [
+const tabs = (): { key: CourseTab; label: string; icon: string }[] => [
   { key: 'overview', label: tr('Overview'), icon: 'dashboard' },
   { key: 'roster', label: tr('Roster'), icon: 'group' },
   { key: 'assignments', label: tr('Assignments'), icon: 'assignment' },
@@ -196,7 +196,7 @@ const TABS: { key: CourseTab; label: string; icon: string }[] = [
 
 export function CoursePage() {
   const { courseId = '', tab = 'overview' } = useParams();
-  const active = (TABS.some((t) => t.key === tab) ? tab : 'overview') as CourseTab;
+  const active = (tabs().some((t) => t.key === tab) ? tab : 'overview') as CourseTab;
   const detail = useLoad<CourseDetail>(`/api/courses/${courseId}`);
   const { org } = useAuth();
   const canManage = !!org?.permissions.includes('course.manage');
@@ -230,7 +230,7 @@ export function CoursePage() {
 
       {/* The course's own screens. The side menu has tr('Courses'); these are the sections of one course. */}
       <nav aria-label={tr('Course sections')} className="flex flex-wrap gap-1 border-b border-line">
-        {TABS.map((t) => (
+        {tabs().map((t) => (
           <Link
             key={t.key}
             to={t.key === 'overview' ? `/org/courses/${course.id}` : `/org/courses/${course.id}/${t.key}`}
@@ -740,6 +740,7 @@ export function NewAssignment() {
   const [maxSubmissions, setMaxSubmissions] = useState(3);
   const [interviews, setInterviews] = useState(false);
   const [language, setLanguage] = useState<Locale>(() => getLocale());
+  const [starter, setStarter] = useState('');
   const [rubric, setRubric] = useState<Rubric>(() => DEFAULT_RUBRIC.map((c) => ({ ...c, anchors: { ...c.anchors } })));
   const [busy, setBusy] = useState<'draft' | 'open' | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -764,6 +765,7 @@ export function NewAssignment() {
       max_submissions: unlimited ? null : maxSubmissions,
       interviews_enabled: interviews,
       language,
+      starter_repo_url: starter.trim() || null,
       rubric: rubric.map((c) => ({ ...c, key: c.key || keyFromName(c.name) })),
       publish,
     });
@@ -889,6 +891,7 @@ export function NewAssignment() {
             <ToggleSwitch checked={interviews} onChange={setInterviews} />
           </div>
           <ContestLanguageField value={language} onChange={setLanguage} />
+          <StarterRepoField value={starter} onChange={setStarter} />
         </div>
       </NumberedSectionCard>
 

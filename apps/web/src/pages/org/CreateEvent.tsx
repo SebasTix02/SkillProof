@@ -1,5 +1,5 @@
 import { getLocale, tr, translateMessage, type Locale } from '../../i18n';
-import { ContestLanguageField } from '../../components/LanguageControl';
+import { ContestLanguageField, StarterRepoField } from '../../components/LanguageControl';
 import { CreateEventSchema, DEFAULT_RUBRIC, type Rubric } from '@skillproof/shared';
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -41,6 +41,7 @@ export function CreateEvent() {
   const [maxSubmissions, setMaxSubmissions] = useState(3);
   const [interviews, setInterviews] = useState(true);
   const [language, setLanguage] = useState<Locale>(() => getLocale());
+  const [starter, setStarter] = useState('');
   const [rubric, setRubric] = useState<Rubric>(() => DEFAULT_RUBRIC.map((c) => ({ ...c, anchors: { ...c.anchors } })));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -61,6 +62,7 @@ export function CreateEvent() {
       max_submissions: unlimited ? null : maxSubmissions,
       interviews_enabled: interviews,
       language,
+      starter_repo_url: starter.trim() || null,
       rubric: rubric.map((c) => ({ ...c, key: c.key || keyFromName(c.name) })),
       publish,
     });
@@ -264,6 +266,7 @@ export function CreateEvent() {
               />
             </div>
             <ContestLanguageField value={language} onChange={setLanguage} />
+            <StarterRepoField value={starter} onChange={setStarter} />
           </div>
         </NumberedSectionCard>
       </div>

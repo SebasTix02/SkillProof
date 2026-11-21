@@ -216,13 +216,14 @@ export function normalizeOrgRole(raw: string | undefined): OrgRoleKey {
   return 'organizer';
 }
 
-export type SimilaritySignal = 'same_repo' | 'same_fork_parent' | 'identical_files' | 'embedding';
+export type SimilaritySignal = 'same_repo' | 'same_fork_parent' | 'identical_files' | 'embedding' | 'shared_code';
 
 export const SIMILARITY_SIGNAL_LABEL: Record<SimilaritySignal, string> = lazy(() => ({
   same_repo: tr('Same repository'),
   same_fork_parent: tr('Forks of the same project'),
   identical_files: tr('Identical files'),
   embedding: tr('Very similar code'),
+  shared_code: tr('Shared code'),
 }));
 
 export type SubmissionPipelineStatus = 'submitted' | 'queued' | 'analyzing' | 'scored' | 'error' | 'paused' | 'canceled';

@@ -79,3 +79,23 @@ export function InterviewLanguageField({ value, onChange, hint }: { value: Local
     </label>
   );
 }
+
+/** Code every participant starts from: the similarity check never counts it as a copy. */
+export function StarterRepoField({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  return (
+    <div className="space-y-1.5 rounded-[4px] border border-line bg-paper p-3.5">
+      <label htmlFor="starter-repo" className="text-[13px] font-semibold text-ink">
+        {tr('Starter code repository (optional)')}
+      </label>
+      <input
+        id="starter-repo"
+        type="url"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="https://github.com/owner/template"
+        className="font-mono-code w-full rounded-[4px] border border-line-strong bg-surface px-3 py-2 text-[13px] text-ink placeholder:text-faint"
+      />
+      <p className="text-[12px] text-muted">{tr('The code you give everyone to start from. The similarity check ignores it, so it never counts as a copy.')}</p>
+    </div>
+  );
+}

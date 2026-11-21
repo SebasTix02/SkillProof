@@ -1,4 +1,5 @@
 import { tr } from '../../i18n';
+import { MatchingCode } from '../../components/MatchingCode';
 import type { CommitProfile, RepoMap, Rubric } from '@skillproof/shared';
 import { useMemo, useState, type FormEvent } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
@@ -853,16 +854,7 @@ export function SimilarityCompare() {
             {tr('File comparison is not available yet. This flag comes from the')}{' '}{activeFlag ? SIMILARITY_SIGNAL_LABEL[activeFlag.signal].toLowerCase() : 'similarity'}{' '}{tr('signal, not from comparing file contents.')}
           </p>
         ) : (
-          <ul className="font-mono-code divide-y divide-line rounded-[4px] border border-line text-[12px]">
-            {flagMatches.map((m) => (
-              <li key={m.id} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2">
-                <span>{m.path_a}:{m.start_a}-{m.end_a}</span>
-                <span className="text-muted">↔</span>
-                <span>{m.path_b}:{m.start_b}-{m.end_b}</span>
-                <span className="font-bold text-ink">{Math.round(Number(m.score) * 100)}%</span>
-              </li>
-            ))}
-          </ul>
+          <MatchingCode matches={flagMatches} scope="event" labelA={tr('Submission A')} labelB={tr('Submission B')} />
         )}
       </NumberedSectionCard>
     </div>

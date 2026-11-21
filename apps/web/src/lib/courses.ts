@@ -26,6 +26,7 @@ export interface AssignmentView {
   interviews_enabled: boolean;
   /** Language of the grader's feedback and of the interviews. */
   language: 'en' | 'es';
+  starter_repo_url: string | null;
   rubric_json: Rubric;
   judging_paused_at: string | null;
   submission_count: number;
@@ -90,7 +91,7 @@ export interface SimilarityFlag {
   id: string;
   submission_a: string;
   submission_b: string;
-  signal: 'same_repo' | 'same_fork_parent' | 'identical_files' | 'embedding';
+  signal: 'same_repo' | 'same_fork_parent' | 'identical_files' | 'embedding' | 'shared_code';
   score: number;
   explanation: string;
 }
