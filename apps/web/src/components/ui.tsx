@@ -1,3 +1,5 @@
+import { formatDateTime } from '../i18n';
+import { LanguageSelect } from './LanguageControl';
 import { ThemeToggle } from './ThemeControl';
 import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode, SelectHTMLAttributes, TextareaHTMLAttributes } from 'react';
 import { Link, useLocation } from 'react-router-dom';
@@ -181,6 +183,7 @@ export function Layout({ children }: { children: ReactNode }) {
               </nav>
             )}
 
+            <LanguageSelect />
             <ThemeToggle compact />
             {session ? (
               <>
@@ -219,7 +222,7 @@ export function Layout({ children }: { children: ReactNode }) {
 }
 
 export function formatDate(iso: string): string {
-  return new Date(iso).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+  return formatDateTime(iso);
 }
 
 export function scoreTone(score: number | null | undefined, max = 10): 'good' | 'warn' | 'bad' | 'neutral' {

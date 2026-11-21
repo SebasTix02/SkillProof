@@ -1,10 +1,12 @@
-import { StrictMode, type ReactNode } from 'react';
+import { StrictMode, useCallback, type ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Navigate, Route, Routes, useLocation, useParams } from 'react-router-dom';
 import { ConfirmProvider } from './components/shared/ConfirmDialog';
 import { ToastProvider } from './components/toast';
 import { Layout, Notice, PageState } from './components/ui';
 import './index.css';
+import { I18nProvider, t, type Locale } from './i18n';
+import { api } from './lib/api';
 import { AuthProvider, useAuth } from './lib/auth';
 import { configured } from './lib/supabase';
 import { installPrintTheme } from './lib/theme';
@@ -40,6 +42,22 @@ function Private({ children, organizer = false }: { children: ReactNode; organiz
 function GradebookRedirect() {
   const { id } = useParams();
   return <Navigate to={`/org/integrity/${id}`} replace />;
+}
+
+/** The language: the account's once signed in (a change is saved to it), otherwise this browser's. */
+function Localized({ children }: { children: ReactNode }) {
+  const { session, me } = useAuth();
+  const save = useCallback(
+    (l: Locale) => {
+      if (session) void api('/api/me/profile', { method: 'PATCH', body: { locale: l } }).catch(() => {});
+    },
+    [session],
+  );
+  return (
+    <I18nProvider accountLocale={me?.profile.locale ?? null} onChange={save}>
+      {children}
+    </I18nProvider>
+  );
 }
 
 function App() {
@@ -79,7 +97,7 @@ function App() {
         <Route path="/org/events/:id/compare" element={<Private organizer><SimilarityCompare /></Private>} />
         <Route path="/org/events/:id/gradebook" element={<Private organizer><GradebookRedirect /></Private>} />
         <Route path="/org/events/:id/s/:sid" element={<Private organizer><SubmissionDetail /></Private>} />
-        <Route path="*" element={<Notice tone="error">Page not found.</Notice>} />
+        <Route path="*" element={<Notice tone="error">{t('common.pageNotFound')}</Notice>} />
       </Routes>
     </Layout>
   );
@@ -105,11 +123,13 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
       <AuthProvider>
-        <ToastProvider>
-          <ConfirmProvider>
-            <App />
-          </ConfirmProvider>
-        </ToastProvider>
+        <Localized>
+          <ToastProvider>
+            <ConfirmProvider>
+              <App />
+            </ConfirmProvider>
+          </ToastProvider>
+        </Localized>
       </AuthProvider>
     </BrowserRouter>
   </StrictMode>,

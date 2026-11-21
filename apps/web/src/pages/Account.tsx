@@ -1,3 +1,5 @@
+import { getLocale, t } from '../i18n';
+import { LanguageSelect } from '../components/LanguageControl';
 import { ThemeChoice } from '../components/ThemeControl';
 import { useEffect, useState, type FormEvent, type ReactNode, useCallback } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
@@ -222,6 +224,7 @@ export function SignUp() {
           display_name: name,
           account_type: type,
           organization_name: type === 'organizer' ? orgName : undefined,
+          locale: getLocale(),
         },
       },
     });
@@ -1125,11 +1128,21 @@ export function MyAccount() {
             id="section-appearance"
             number="04"
             theme="neutral"
-            title="Appearance"
-            subtitle="Light or dark page. Saved in this browser; System follows your device."
+            title={t('theme.appearance')}
+            subtitle={t('theme.appearanceHint')}
             sectionTag="SECTION 04 // APPEARANCE"
           >
-            <ThemeChoice />
+            <div className="flex flex-wrap items-end gap-6">
+              <div className="space-y-1.5">
+                <p className="text-[12px] font-semibold text-ink">{t('theme.label')}</p>
+                <ThemeChoice />
+              </div>
+              <div className="space-y-1.5">
+                <label htmlFor="account-language" className="block text-[12px] font-semibold text-ink">{t('language.label')}</label>
+                <LanguageSelect id="account-language" />
+                <p className="text-[12px] text-muted">{t('language.hint')}</p>
+              </div>
+            </div>
           </NumberedSectionCard>
 
           {/* 05. Privacy Controls & Notification Telemetry */}

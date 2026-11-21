@@ -1,3 +1,4 @@
+import { LanguageSelect } from './LanguageControl';
 import { ThemeToggle } from './ThemeControl';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
@@ -354,6 +355,9 @@ function SidebarBody({
             {!collapsed && <span>Sign out</span>}
           </button>
           <ThemeToggle onDark compact />
+        </div>
+        <div className={cx('mt-1 flex', collapsed && 'justify-center')}>
+          {!collapsed && <LanguageSelect onDark />}
           {onToggleCollapsed && (
             <button
               type="button"

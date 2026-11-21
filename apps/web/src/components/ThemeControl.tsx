@@ -1,13 +1,14 @@
+import { t } from '../i18n';
 import { THEME_PREFS, useTheme, type ThemePref } from '../lib/theme';
 
 const ICON: Record<ThemePref, string> = { light: 'light_mode', dark: 'dark_mode', system: 'contrast' };
-const LABEL: Record<ThemePref, string> = { light: 'Light', dark: 'Dark', system: 'System' };
+const LABEL = (p: ThemePref) => t(`theme.${p}`);
 
 /** One button that cycles Light → Dark → System. `onDark`: placed on the dark side menu. */
 export function ThemeToggle({ onDark = false, compact = false }: { onDark?: boolean; compact?: boolean }) {
   const { pref, setPref } = useTheme();
   const next = THEME_PREFS[(THEME_PREFS.indexOf(pref) + 1) % THEME_PREFS.length]!;
-  const label = `Theme: ${LABEL[pref]}. Switch to ${LABEL[next]}`;
+  const label = t('theme.switchTo', { current: LABEL(pref), next: LABEL(next) });
   return (
     <button
       type="button"
@@ -23,7 +24,7 @@ export function ThemeToggle({ onDark = false, compact = false }: { onDark?: bool
       <span className="material-symbols-outlined text-[17px]" aria-hidden="true">
         {ICON[pref]}
       </span>
-      {!compact && <span>{LABEL[pref]}</span>}
+      {!compact && <span>{LABEL(pref)}</span>}
     </button>
   );
 }
@@ -32,7 +33,7 @@ export function ThemeToggle({ onDark = false, compact = false }: { onDark?: bool
 export function ThemeChoice() {
   const { pref, setPref } = useTheme();
   return (
-    <div role="radiogroup" aria-label="Theme" className="inline-flex overflow-hidden rounded-[4px] border border-line-strong">
+    <div role="radiogroup" aria-label={t('theme.label')} className="inline-flex overflow-hidden rounded-[4px] border border-line-strong">
       {THEME_PREFS.map((p) => (
         <button
           key={p}
@@ -47,7 +48,7 @@ export function ThemeChoice() {
           <span className="material-symbols-outlined text-[17px]" aria-hidden="true">
             {ICON[p]}
           </span>
-          {LABEL[p]}
+          {LABEL(p)}
         </button>
       ))}
     </div>

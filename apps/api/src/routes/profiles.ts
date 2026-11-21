@@ -1,5 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import type { FastifyInstance } from 'fastify';
+import { LOCALES } from '@skillproof/shared';
 import { z } from 'zod';
 import { requireUser } from '../lib/auth.js';
 import { notFound } from '../lib/errors.js';
@@ -14,6 +15,8 @@ const UpdateProfileSchema = z.object({
   show_quotes: z.boolean().optional(),
   /** Email when results of a joined event are published. Stored only: sending is not built yet. */
   notify_results: z.boolean().optional(),
+  /** Language of the interface and of the person's own interviews. */
+  locale: z.enum(LOCALES).optional(),
 });
 
 function withoutQuotes(report: unknown): unknown {
@@ -27,7 +30,7 @@ function withoutQuotes(report: unknown): unknown {
 export async function profileRoutes(app: FastifyInstance): Promise<void> {
   app.get('/api/me', async (req) => {
     const user = await requireUser(req);
-    const profile = must(await db().from('profiles').select('id, display_name, github_login, avatar_url, notify_results').eq('id', user.id).single());
+    const profile = must(await db().from('profiles').select('id, display_name, github_login, avatar_url, notify_results, locale').eq('id', user.id).single());
     const publicProfile = must(await db().from('public_profiles').select('slug, is_public, headline, show_quotes').eq('user_id', user.id).maybeSingle());
     const orgIds = [...new Set(user.grants.flatMap((g) => (g.organization_id ? [g.organization_id] : [])))];
     // Courses the user takes as a student: the web shows "My courses" when there is at least one.
@@ -53,6 +56,7 @@ export async function profileRoutes(app: FastifyInstance): Promise<void> {
     const own: Record<string, unknown> = {};
     if (input.display_name !== undefined) own.display_name = input.display_name;
     if (input.notify_results !== undefined) own.notify_results = input.notify_results;
+    if (input.locale !== undefined) own.locale = input.locale;
     if (Object.keys(own).length) must(await db().from('profiles').update(own).eq('id', user.id));
     const pub: Record<string, unknown> = {};
     if (input.headline !== undefined) pub.headline = input.headline;
