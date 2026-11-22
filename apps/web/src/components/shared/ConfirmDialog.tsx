@@ -1,3 +1,4 @@
+import { tr } from '../../i18n';
 /**
  * Confirmations in the app's own style, instead of the browser's window.confirm.
  *
@@ -40,14 +41,14 @@ export function ConfirmDialogView({
   const danger = (options.tone ?? 'danger') === 'danger';
   return (
     <div className="fixed inset-0 z-[80] flex items-center justify-center p-4">
-      <button type="button" tabIndex={-1} aria-label="Cancel" onClick={() => onAnswer(false)} className="absolute inset-0 h-full w-full cursor-default bg-ink/50" />
+      <button type="button" tabIndex={-1} aria-label={tr('Cancel')} onClick={() => onAnswer(false)} className="absolute inset-0 h-full w-full cursor-default bg-ink/50" />
       <div
         ref={dialogRef}
         role="alertdialog"
         aria-modal="true"
         aria-labelledby="confirm-title"
         aria-describedby="confirm-body"
-        className="relative w-full max-w-md rounded-[6px] border border-line bg-white p-6"
+        className="relative w-full max-w-md rounded-[6px] border border-line bg-surface p-6"
       >
         <div className="flex items-start gap-3">
           <span
@@ -64,8 +65,8 @@ export function ConfirmDialogView({
             </h2>
             <div id="confirm-body" className="space-y-1.5 text-[13px] leading-[20px] text-muted">
               {options.body && <div>{options.body}</div>}
-              {options.undoable === false && <p className="font-medium text-bad-ink">This cannot be undone.</p>}
-              {options.undoable === true && <p>You can change this later.</p>}
+              {options.undoable === false && <p className="font-medium text-bad-ink">{tr('This cannot be undone.')}</p>}
+              {options.undoable === true && <p>{tr('You can change this later.')}</p>}
             </div>
           </div>
         </div>
@@ -74,9 +75,9 @@ export function ConfirmDialogView({
             type="button"
             data-autofocus
             onClick={() => onAnswer(false)}
-            className="btn-tactile cursor-pointer rounded-[4px] border border-line bg-white px-4 py-2 text-[13px] font-medium text-ink hover:border-muted hover:bg-paper"
+            className="btn-tactile cursor-pointer rounded-[4px] border border-line bg-surface px-4 py-2 text-[13px] font-medium text-ink hover:border-muted hover:bg-paper"
           >
-            {options.cancelLabel ?? 'Cancel'}
+            {options.cancelLabel ?? tr('Cancel')}
           </button>
           <button
             type="button"
@@ -87,7 +88,7 @@ export function ConfirmDialogView({
                 : 'border-accent bg-accent text-on-accent hover:border-accent-hover hover:bg-accent-hover'
             }`}
           >
-            {options.confirmLabel ?? 'Confirm'}
+            {options.confirmLabel ?? tr('Confirm')}
           </button>
         </div>
       </div>

@@ -1,3 +1,4 @@
+import { lazy, tr } from '../i18n';
 import type { Rubric } from '@skillproof/shared';
 
 export interface EventView {
@@ -54,16 +55,16 @@ export interface Feedback {
   improvements_json: { what: string; where: string; next_step: string }[];
 }
 
-export const STATUS_LABEL: Record<EventView['status'], string> = {
-  draft: 'Draft',
-  open: 'Open',
-  judging: 'Judging',
-  review: 'In review',
-  published: 'Results published',
-};
+export const STATUS_LABEL: Record<EventView['status'], string> = lazy(() => ({
+  draft: tr('Draft'),
+  open: tr('Open'),
+  judging: tr('Judging'),
+  review: tr('In review'),
+  published: tr('Results published'),
+}));
 
-export const VISIBILITY_LABEL: Record<EventView['visibility'], string> = {
-  public: 'Public',
-  code: 'Access code',
-  invite: 'Invite only',
-};
+export const VISIBILITY_LABEL: Record<EventView['visibility'], string> = lazy(() => ({
+  public: tr('Public'),
+  code: tr('Access code'),
+  invite: tr('Invite only'),
+}));

@@ -1,3 +1,4 @@
+import { tr } from '../i18n';
 import { GoogleGenAI, Modality, type LiveServerMessage, type Session } from '@google/genai';
 import { MAX_INTERVIEW_PAUSES, MAX_INTERVIEW_PAUSE_MS, type ActivityEntry, type FocusEvent as ExamFocusEvent, type PublicQuestion, type TranscriptEntry } from '@skillproof/shared';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -92,15 +93,15 @@ function StageController({
               : 1;
 
   const stages = [
-    { num: 1, label: '01. AST Parse' },
-    { num: 2, label: '02. Mic & Consent' },
-    { num: 3, label: '03. Live Oral Interview' },
-    { num: 4, label: '04. Synthesis Engine' },
-    { num: 5, label: '05. Verified Credential Dossier' },
+    { num: 1, label: tr('01. AST Parse') },
+    { num: 2, label: tr('02. Mic & Consent') },
+    { num: 3, label: tr('03. Live Oral Interview') },
+    { num: 4, label: tr('04. Synthesis Engine') },
+    { num: 5, label: tr('05. Verified Credential Dossier') },
   ];
 
   return (
-    <section className="rounded-[6px] border border-line bg-white p-4 sm:px-6">
+    <section className="rounded-[6px] border border-line bg-surface p-4 sm:px-6">
       <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
         <div className="font-mono-code flex flex-wrap items-center gap-2 text-[11px]">
           {stages.map((st, idx) => {
@@ -139,11 +140,11 @@ function StageController({
         <div className="font-mono-code flex items-center gap-2 rounded-[4px] border border-line bg-paper p-1 text-[11px]">
           <span
             className={`inline-flex items-center gap-1.5 rounded-[3px] px-3 py-1 font-semibold ${
-              status !== 'completed' ? 'border border-line bg-white text-accent' : 'text-muted'
+              status !== 'completed' ? 'border border-line bg-surface text-accent' : 'text-muted'
             }`}
           >
             {status !== 'completed' && <span className="h-1.5 w-1.5 rounded-full bg-bad" />}
-            <span>Live Examination Cockpit</span>
+            <span>{tr('Live Examination Cockpit')}</span>
           </span>
           <span
             className={`inline-flex items-center gap-1.5 rounded-[3px] px-3 py-1 font-semibold ${
@@ -151,7 +152,7 @@ function StageController({
             }`}
           >
             <span className="material-symbols-outlined text-[14px] text-good">verified</span>
-            <span>Verified Dossier</span>
+            <span>{tr('Verified Dossier')}</span>
           </span>
         </div>
       </div>
@@ -372,9 +373,9 @@ function Room({
 
   async function confirmEnd() {
     const ok = await confirm({
-      title: 'End the interview now?',
-      body: 'Your report is written from what you said so far, and you cannot take another interview on this commit.',
-      confirmLabel: 'End interview',
+      title: tr('End the interview now?'),
+      body: tr('Your report is written from what you said so far, and you cannot take another interview on this commit.'),
+      confirmLabel: tr('End interview'),
       undoable: false,
     });
     if (!ok) return;
@@ -483,7 +484,7 @@ function Room({
             if (Date.now() - startedAt.current > 30_000) void finish();
             else {
               dispose();
-              setError('The connection to the interviewer was lost. Reconnect to continue.');
+              setError(tr('The connection to the interviewer was lost. Reconnect to continue.'));
               setPhase('idle');
             }
           },
@@ -538,7 +539,7 @@ function Room({
       const denied = err instanceof DOMException && (err.name === 'NotAllowedError' || err.name === 'NotFoundError');
       setError(
         denied
-          ? 'SkillProof needs your microphone for the interview. Allow it in your browser and try again.'
+          ? tr('SkillProof needs your microphone for the interview. Allow it in your browser and try again.')
           : errorMessage(err),
       );
       setPhase('idle');
@@ -547,8 +548,8 @@ function Room({
 
   if (phase === 'sending') {
     return (
-      <section className="rounded-[6px] border border-line bg-white p-12 text-center">
-        <Spinner label="Saving your interview transcript and dispatching evaluation…" />
+      <section className="rounded-[6px] border border-line bg-surface p-12 text-center">
+        <Spinner label={tr('Saving your interview transcript and dispatching evaluation…')} />
       </section>
     );
   }
@@ -561,30 +562,30 @@ function Room({
   return (
     <section
       id="live-examination-cockpit"
-      className="relative overflow-hidden rounded-[6px] border border-line bg-white"
+      className="relative overflow-hidden rounded-[6px] border border-line bg-surface"
       onCopy={(e) => phase === 'live' && e.preventDefault()}
       onCut={(e) => phase === 'live' && e.preventDefault()}
       onContextMenu={(e) => phase === 'live' && e.preventDefault()}
     >
       {/* Cobalt & Cyan Live Cockpit Header */}
-      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-line bg-accent-50 px-5 py-3">
+      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-line bg-accent-soft px-5 py-3">
         <div className="flex min-w-0 flex-wrap items-center gap-2.5">
-          <span className="font-mono-code inline-flex items-center gap-1.5 rounded-[3px] border border-line bg-white px-2.5 py-1 text-[11px] font-semibold tracking-wider text-accent uppercase">
+          <span className="font-mono-code inline-flex items-center gap-1.5 rounded-[3px] border border-line bg-surface px-2.5 py-1 text-[11px] font-semibold tracking-wider text-accent uppercase">
             <LiveDot tone="accent" />
-            <span>AI INTERVIEWER</span>
+            <span>{tr('AI INTERVIEWER')}</span>
           </span>
           <span className="font-mono-code truncate text-[12px] font-semibold text-ink">
             @{interview.repo.owner}/{interview.repo.name}
           </span>
           {interview.commit_sha && (
             <span className="font-mono-code rounded-[3px] border border-accent/25 bg-accent-soft px-2 py-0.5 text-[11px] font-medium text-accent-ink">
-              COMMIT: {interview.commit_sha.slice(0, 7)}
+              {tr('COMMIT:')}{' '}{interview.commit_sha.slice(0, 7)}
             </span>
           )}
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-2 rounded-[3px] border border-line bg-white px-3 py-1">
+          <div className="flex items-center gap-2 rounded-[3px] border border-line bg-surface px-3 py-1">
             <span
               className={`h-2 w-2 rounded-full ${
                 phase === 'live' ? 'bg-bad animate-ping' : phase === 'connecting' ? 'bg-warn animate-pulse' : 'bg-muted'
@@ -595,9 +596,9 @@ function Room({
                 phase === 'live' ? 'text-bad' : 'text-muted'
               }`}
             >
-              {phase === 'live' ? 'LIVE AUDIO' : phase === 'connecting' ? 'CONNECTING' : 'STANDBY'}
+              {phase === 'live' ? tr('LIVE AUDIO') : phase === 'connecting' ? 'CONNECTING' : 'STANDBY'}
             </span>
-            <span className="font-mono-code text-[14px] font-bold tracking-tight text-ink" aria-label="Time left">
+            <span className="font-mono-code text-[14px] font-bold tracking-tight text-ink" aria-label={tr('Time left')}>
               {formatClock(left)}
             </span>
             <span className="font-mono-code text-[11px] text-muted">/ {formatClock(data.seconds)}</span>
@@ -607,9 +608,9 @@ function Room({
             <button
               type="button"
               onClick={() => (phase === 'live' ? confirmEnd() : void finish())}
-              className="btn-tactile font-mono-code cursor-pointer rounded-[4px] border border-bad/40 bg-white px-3 py-1.5 text-[11px] font-semibold text-bad hover:bg-bad hover:text-white"
+              className="btn-tactile font-mono-code cursor-pointer rounded-[4px] border border-bad/40 bg-surface px-3 py-1.5 text-[11px] font-semibold text-bad hover:bg-bad hover:text-on-bad"
             >
-              {phase === 'live' ? 'End Interview & Score' : 'Finish & Score Recorded Audio'}
+              {phase === 'live' ? tr('End Interview & Score') : tr('Finish & Score Recorded Audio')}
             </button>
           )}
         </div>
@@ -618,50 +619,49 @@ function Room({
       {/* Visual Telemetry & Spectral Analysis Hero Strip */}
       <div className="border-b border-line bg-paper/45 p-5">
         <div className="grid grid-cols-1 items-center gap-5 lg:grid-cols-12">
-          <div className="overflow-hidden rounded-[4px] border border-line bg-white lg:col-span-8">
-            <div className="font-mono-code flex h-8 items-center justify-between border-b border-line bg-accent-50 px-4 text-[11px] text-muted">
+          <div className="overflow-hidden rounded-[4px] border border-line bg-surface lg:col-span-8">
+            <div className="font-mono-code flex h-8 items-center justify-between border-b border-line bg-accent-soft px-4 text-[11px] text-muted">
               <div className="flex items-center gap-2">
                 <span className="h-2 w-2 rounded-full bg-accent" />
                 <span className="font-semibold text-ink uppercase">
-                  Real-Time Audio Spectrogram &amp; Code Hook Telemetry
+                  {tr('Real-Time Audio Spectrogram & Code Hook Telemetry')}
                 </span>
               </div>
               <span className="font-semibold text-good">
-                {phase === 'live' ? 'STREAMING LIVE AUDIO' : `${questions.length} CODE HOOKS MAPPED`}
+                {phase === 'live' ? tr('STREAMING LIVE AUDIO') : tr('{n} CODE HOOKS MAPPED', { n: questions.length })}
               </span>
             </div>
-            <div className="bg-white">
+            <div className="bg-surface">
               <img
                 src={SPECTROGRAM_ASSET}
-                alt="Real-time audio spectrogram waveform and synchronized code inspector"
+                alt={tr('Real-time audio spectrogram waveform and synchronized code inspector')}
                 className="block max-h-[210px] w-full object-cover select-none"
               />
             </div>
           </div>
 
           <div className="flex flex-col justify-between space-y-3.5 lg:col-span-4">
-            <div className="space-y-2 rounded-[4px] border border-line bg-white p-4">
+            <div className="space-y-2 rounded-[4px] border border-line bg-surface p-4">
               <div className="font-mono-code flex items-center justify-between text-[11px]">
-                <span className="text-muted uppercase">Repository Hook Sync</span>
-                <span className="font-bold text-good">SYNCHRONIZED (100%)</span>
+                <span className="text-muted uppercase">{tr('Repository Hook Sync')}</span>
+                <span className="font-bold text-good">{tr('SYNCHRONIZED (100%)')}</span>
               </div>
               <ScoreBar value={100} max={100} tone="good" heightClass="h-1.5" trackClass="bg-well" />
               <p className="text-[12px] leading-relaxed text-muted">
-                {questions.length} code snippets extracted from commit{' '}
-                <code className="font-mono-code text-ink">{interview.commit_sha?.slice(0, 7) ?? 'HEAD'}</code> for
-                verbal defense.
+                {questions.length}{' '}{tr('code snippets extracted from commit')}{' '}
+                <code className="font-mono-code text-ink">{interview.commit_sha?.slice(0, 7) ?? 'HEAD'}</code>{' '}{tr('for verbal defense.')}
               </p>
             </div>
 
-            <div className="space-y-2 rounded-[4px] border border-line bg-white p-4">
+            <div className="space-y-2 rounded-[4px] border border-line bg-surface p-4">
               <div className="font-mono-code flex items-center justify-between text-[11px] text-muted">
-                <span className="uppercase">Acoustic Input Stream</span>
-                <span className="font-semibold text-ink">{phase === 'live' ? 'MIC ACTIVE' : 'MIC STANDBY'}</span>
+                <span className="uppercase">{tr('Acoustic Input Stream')}</span>
+                <span className="font-semibold text-ink">{phase === 'live' ? tr('MIC ACTIVE') : tr('MIC STANDBY')}</span>
               </div>
               <WaveformVisualizer bars={bars} active={phase === 'live'} />
               <div className="font-mono-code flex items-center justify-between pt-0.5 text-[10px] text-muted">
-                <span>Echo Cancellation: ON</span>
-                <span>Noise Suppression: ON</span>
+                <span>{tr('Echo Cancellation: ON')}</span>
+                <span>{tr('Noise Suppression: ON')}</span>
               </div>
             </div>
           </div>
@@ -669,64 +669,62 @@ function Room({
       </div>
 
       {/* The interview stage: the only part that goes full screen (code, conversation, clock and controls). */}
-      <div ref={stageRef} id="interview-stage" className="interview-stage relative flex flex-col bg-white">
+      <div ref={stageRef} id="interview-stage" className="interview-stage relative flex flex-col bg-surface">
       {(phase === 'live' || phase === 'connecting') && (
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line bg-accent-50 px-4 py-2">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line bg-accent-soft px-4 py-2">
           <div className="font-mono-code flex items-center gap-3 text-[12px]">
-            <span className="font-bold text-accent uppercase">Question {activeIdx + 1} of {Math.max(1, questions.length)}</span>
-            <span className="font-bold text-ink" aria-label="Time left">{formatClock(left)}</span>
-            {paused && <span className="rounded-[3px] bg-warn px-2 py-0.5 text-[10px] font-bold text-white uppercase">Paused</span>}
+            <span className="font-bold text-accent uppercase">{tr('Question')}{' '}{activeIdx + 1} of {Math.max(1, questions.length)}</span>
+            <span className="font-bold text-ink" aria-label={tr('Time left')}>{formatClock(left)}</span>
+            {paused && <span className="rounded-[3px] bg-warn px-2 py-0.5 text-[10px] font-bold text-on-warn uppercase">{tr('Paused')}</span>}
             {wrapping && (
-              <span className="rounded-[3px] bg-accent px-2 py-0.5 text-[10px] font-bold text-white">
-                {wrapping === 'time' ? 'Time is up. The interviewer is wrapping up…' : 'Ending: the interviewer is finishing what it is saying…'}
+              <span className="rounded-[3px] bg-accent px-2 py-0.5 text-[10px] font-bold text-on-accent">
+                {wrapping === 'time' ? tr('Time is up. The interviewer is wrapping up…') : tr('Ending: the interviewer is finishing what it is saying…')}
               </span>
             )}
           </div>
           {phase === 'live' && !wrapping && (
             <div className="flex flex-wrap gap-2">
               {paused ? (
-                <Button onClick={resume} className="py-1.5 text-[12px]">Resume</Button>
+                <Button onClick={resume} className="py-1.5 text-[12px]">{tr('Resume')}</Button>
               ) : (
                 <Button
                   variant="secondary"
                   onClick={pause}
                   disabled={pauseCount >= MAX_INTERVIEW_PAUSES || pausedMs.current >= MAX_INTERVIEW_PAUSE_MS}
                   className="py-1.5 text-[12px]"
-                  title={`Up to ${MAX_INTERVIEW_PAUSES} pauses, ${MAX_INTERVIEW_PAUSE_MS / 60_000} minutes in total`}
+                  title={tr('Up to {n} pauses, {m} minutes in total', { n: MAX_INTERVIEW_PAUSES, m: MAX_INTERVIEW_PAUSE_MS / 60_000 })}
                 >
-                  Pause ({MAX_INTERVIEW_PAUSES - pauseCount} left)
+                  {tr('Pause (')}{MAX_INTERVIEW_PAUSES - pauseCount}{' '}{tr('left)')}
                 </Button>
               )}
               <Button variant="secondary" onClick={nextQuestion} disabled={skipLocked || paused} className="py-1.5 text-[12px]">
-                {activeIdx >= questions.length - 1 ? 'Finish' : skipLocked ? 'Moving on…' : 'Next question →'}
+                {activeIdx >= questions.length - 1 ? tr('Finish') : skipLocked ? tr('Moving on…') : tr('Next question →')}
               </Button>
-              <Button variant="danger" onClick={confirmEnd} className="py-1.5 text-[12px]">End</Button>
+              <Button variant="danger" onClick={confirmEnd} className="py-1.5 text-[12px]">{tr('End')}</Button>
             </div>
           )}
         </div>
       )}
       {phase === 'live' && (away || paused) && (
-        <div className="absolute inset-0 z-30 flex items-center justify-center bg-[rgba(20,22,26,0.92)] p-6" role="alertdialog" aria-label={paused ? 'Interview paused' : 'You left the interview'}>
-          <div className="max-w-md space-y-3 rounded-[6px] border border-line bg-white p-6 text-center">
+        <div className="absolute inset-0 z-30 flex items-center justify-center bg-[rgba(20,22,26,0.92)] p-6" role="alertdialog" aria-label={paused ? tr('Interview paused') : tr('You left the interview')}>
+          <div className="max-w-md space-y-3 rounded-[6px] border border-line bg-surface p-6 text-center">
             {paused ? (
               <>
-                <h3 className="font-serif-heading text-[20px] font-medium text-ink">Interview paused</h3>
+                <h3 className="font-serif-heading text-[20px] font-medium text-ink">{tr('Interview paused')}</h3>
                 <p className="text-[13px] text-muted">
-                  The microphone, the interviewer and the clock are stopped, and the question is hidden. The pause is
-                  recorded. It ends on its own when your {MAX_INTERVIEW_PAUSE_MS / 60_000} minutes of pause run out.
+                  {tr('The microphone, the interviewer and the clock are stopped, and the question is hidden. The pause is recorded. It ends on its own when your')}{' '}{MAX_INTERVIEW_PAUSE_MS / 60_000}{' '}{tr('minutes of pause run out.')}
                 </p>
-                <Button onClick={resume} className="w-full">Resume the interview</Button>
+                <Button onClick={resume} className="w-full">{tr('Resume the interview')}</Button>
               </>
             ) : (
               <>
-                <h3 className="font-serif-heading text-[20px] font-medium text-ink">You left the interview</h3>
+                <h3 className="font-serif-heading text-[20px] font-medium text-ink">{tr('You left the interview')}</h3>
                 <p className="text-[13px] text-muted">
-                  The question is hidden until you come back. Leaving full screen, switching tabs or windows is recorded with
-                  its time and shown to the reviewers as a signal. The interview keeps running.
+                  {tr('The question is hidden until you come back. Leaving full screen, switching tabs or windows is recorded with its time and shown to the reviewers as a signal. The interview keeps running.')}
                 </p>
                 <Button onClick={() => void returnToFullscreen()} className="w-full">
                   <span className="material-symbols-outlined text-[17px]">fullscreen</span>
-                  <span>Return to full screen</span>
+                  <span>{tr('Return to full screen')}</span>
                 </Button>
               </>
             )}
@@ -737,7 +735,7 @@ function Room({
         {/* Left Pane: Code & AST Inspector (7 cols) */}
         <div className="flex flex-col border-b border-line bg-paper lg:col-span-7 lg:border-r lg:border-b-0">
           {/* File Navigation Subheader */}
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line bg-white px-5 py-2.5 text-muted">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line bg-surface px-5 py-2.5 text-muted">
             <div className="font-mono-code flex items-center gap-2 text-[12px]">
               <span className="material-symbols-outlined text-[16px] text-accent">code</span>
               <span className="font-semibold text-ink">
@@ -747,7 +745,7 @@ function Room({
                 <>
                   <span className="text-line">|</span>
                   <span>
-                    Lines {activeQuestion.start_line}–{activeQuestion.end_line}
+                    {tr('Lines')}{' '}{activeQuestion.start_line}–{activeQuestion.end_line}
                   </span>
                 </>
               )}
@@ -793,54 +791,53 @@ function Room({
               </table>
             ) : (
               <p className="text-muted">
-                The code snippet referenced by the interviewer will appear here as soon as the session begins.
+                {tr('The code snippet referenced by the interviewer will appear here as soon as the session begins.')}
               </p>
             )}
           </div>
 
           {/* Code Inspector Baseline Status */}
-          <footer className="font-mono-code flex items-center justify-between border-t border-line bg-white px-5 py-2.5 text-[11px] text-muted">
+          <footer className="font-mono-code flex items-center justify-between border-t border-line bg-surface px-5 py-2.5 text-[11px] text-muted">
             <div className="flex items-center gap-2">
               <span className="h-2 w-2 rounded-full bg-accent" />
               <span className="font-medium text-ink">
                 {activeQuestion
-                  ? `Target Citation: ${activeQuestion.path} (${activeQuestion.start_line}–${activeQuestion.end_line})`
-                  : 'Code Hook Inspector Ready'}
+                  ? tr('Target Citation: {path} ({start}–{end})', { path: activeQuestion.path, start: activeQuestion.start_line, end: activeQuestion.end_line })
+                  : tr('Code Hook Inspector Ready')}
               </span>
             </div>
-            {interview.commit_sha && <span>SHA: {interview.commit_sha.slice(0, 12)}</span>}
+            {interview.commit_sha && <span>{tr('SHA:')}{' '}{interview.commit_sha.slice(0, 12)}</span>}
           </footer>
         </div>
 
         {/* Right Pane: Pre-Flight Briefing OR Live Examiner Dialogue (5 cols) */}
-        <div className="flex min-h-0 flex-col justify-between space-y-5 bg-white p-6 lg:col-span-5">
+        <div className="flex min-h-0 flex-col justify-between space-y-5 bg-surface p-6 lg:col-span-5">
           {phase === 'idle' ? (
             <div className="space-y-4">
               <div className="flex items-center justify-between border-b border-line pb-2.5">
                 <span className="font-mono-code text-[11px] font-bold tracking-wider text-accent uppercase">
-                  {resuming ? 'SESSION RECOVERY // IN PROGRESS' : 'STAGE 02 // MICROPHONE & CONSENT BRIEFING'}
+                  {resuming ? tr('SESSION RECOVERY // IN PROGRESS') : tr('STAGE 02 // MICROPHONE & CONSENT BRIEFING')}
                 </span>
                 <span className="font-mono-code rounded-[3px] border border-line bg-paper px-2 py-0.5 text-[11px] font-semibold text-ink">
-                  {Math.round(data.seconds / 60)} MIN LIMIT
+                  {Math.round(data.seconds / 60)}{' '}{tr('MIN LIMIT')}
                 </span>
               </div>
 
               <h2 className="font-serif-heading text-[22px] leading-[28px] font-medium text-ink">
-                {resuming ? 'This interview is in progress' : 'Before you start your oral defense'}
+                {resuming ? tr('This interview is in progress') : tr('Before you start your oral defense')}
               </h2>
 
               {resuming ? (
                 <p className="text-[13px] leading-[21px] text-muted">
-                  If you lost the connection you can reconnect while the interview time lasts. Otherwise end the session
-                  now to generate your ownership report from the transcript recorded so far.
+                  {tr('If you lost the connection you can reconnect while the interview time lasts. Otherwise end the session now to generate your ownership report from the transcript recorded so far.')}
                 </p>
               ) : (
                 <ul className="space-y-2.5 text-[13px] leading-[20px] text-muted">
                   <li className="flex items-start gap-2">
                     <span className="font-mono-code mt-0.5 text-[11px] font-bold text-accent">01</span>
                     <span>
-                      Lasts <strong>{Math.round(data.seconds / 60)} minutes</strong> with{' '}
-                      <strong>{questions.length} questions</strong> about your own repository (4 or 5, depending on how much each needs). If the clock runs out, the interviewer finishes its sentence and closes.
+                      {tr('Lasts')}{' '}<strong>{Math.round(data.seconds / 60)} minutes</strong> with{' '}
+                      <strong>{questions.length} questions</strong>{' '}{tr('about your own repository (4 or 5, depending on how much each needs). If the clock runs out, the interviewer finishes its sentence and closes.')}
                     </span>
                   </li>
                   <li className="flex items-start gap-2">
@@ -853,21 +850,20 @@ function Room({
                   <li className="flex items-start gap-2">
                     <span className="font-mono-code mt-0.5 text-[11px] font-bold text-accent">03</span>
                     <span>
-                      Raw audio is not stored. The written transcript is recorded and evaluated against your repository.
+                      {tr('Raw audio is not stored. The written transcript is recorded and evaluated against your repository.')}
                     </span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="font-mono-code mt-0.5 text-[11px] font-bold text-accent">04</span>
                     <span>
-                      The interview room (code and conversation) opens in <strong>full screen</strong>. Leaving it, switching
-                      tabs or windows is not blocked, but each time is recorded and shown to reviewers. You can pause up to{' '}
-                      {MAX_INTERVIEW_PAUSES} times ({MAX_INTERVIEW_PAUSE_MS / 60_000} minutes in total) and use &ldquo;Next question&rdquo; to move on.
+                      {tr('The interview room (code and conversation) opens in')}{' '}<strong>{tr('full screen')}</strong>{tr('. Leaving it, switching tabs or windows is not blocked, but each time is recorded and shown to reviewers. You can pause up to')}{' '}
+                      {MAX_INTERVIEW_PAUSES}{' '}{tr('times (')}{MAX_INTERVIEW_PAUSE_MS / 60_000}{' '}{tr('minutes in total) and use “Next question” to move on.')}
                     </span>
                   </li>
                   {(interview.submission_id || interview.assignment) && (
                     <li className="flex items-start gap-2">
                       <span className="font-mono-code mt-0.5 text-[11px] font-bold text-accent">05</span>
-                      <span>{interview.assignment ? 'Your instructors' : 'The event organizer'} can inspect the transcript and ownership report.</span>
+                      <span>{interview.assignment ? tr('Your instructors') : tr('The event organizer')}{' '}{tr('can inspect the transcript and ownership report.')}</span>
                     </li>
                   )}
                 </ul>
@@ -878,12 +874,12 @@ function Room({
               <div className="flex flex-wrap gap-3 pt-2">
                 <Button onClick={() => void start()} className="w-full py-2.5 sm:w-auto">
                   <span className="material-symbols-outlined text-[17px]">mic</span>
-                  <span>{resuming ? 'Reconnect to Live Room' : 'Allow Microphone & Start Interview'}</span>
+                  <span>{resuming ? tr('Reconnect to Live Room') : tr('Allow Microphone & Start Interview')}</span>
                   <span className="arrow-nudge font-mono-code text-[12px]">→</span>
                 </Button>
                 {resuming && (
                   <Button variant="secondary" onClick={() => void finish()} className="w-full sm:w-auto">
-                    End and get my report
+                    {tr('End and get my report')}
                   </Button>
                 )}
               </div>
@@ -893,41 +889,41 @@ function Room({
               {/* Question Stage Header */}
               <div className="flex items-center justify-between border-b border-line pb-2">
                 <span className="font-mono-code text-[11px] font-bold tracking-wider text-accent uppercase">
-                  QUESTION {activeIdx + 1} OF {Math.max(1, questions.length)} • ORAL DEFENSE
+                  {tr('QUESTION')}{' '}{activeIdx + 1}{' '}{tr('OF')}{' '}{Math.max(1, questions.length)}{' '}{tr('• ORAL DEFENSE')}
                 </span>
-                <span className="font-mono-code rounded-[3px] border border-accent-200 bg-accent-soft px-2 py-0.5 text-[10px] font-semibold text-accent">
-                  {phase === 'connecting' ? 'HANDSHAKE…' : 'LIVE AUDIO'}
+                <span className="font-mono-code rounded-[3px] border border-accent/30 bg-accent-soft px-2 py-0.5 text-[10px] font-semibold text-accent">
+                  {phase === 'connecting' ? 'HANDSHAKE…' : tr('LIVE AUDIO')}
                 </span>
               </div>
 
               {phase === 'connecting' && (
                 <div className="py-3">
-                  <Spinner label="Connecting to the Gemini Live examiner…" />
+                  <Spinner label={tr('Connecting to the Gemini Live examiner…')} />
                 </div>
               )}
 
               {/* Examiner Audio Question Box */}
-              <div className="space-y-2 rounded-[4px] border border-accent-200 bg-accent-50 p-4">
+              <div className="space-y-2 rounded-[4px] border border-accent/30 bg-accent-soft p-4">
                 <div className="flex items-center justify-between">
                   <div className="font-mono-code flex items-center gap-1.5 text-[11px] font-bold text-accent uppercase">
                     <span className="status-dot-live bg-accent text-accent" />
-                    <span>AI Technical Examiner</span>
+                    <span>{tr('AI Technical Examiner')}</span>
                   </div>
-                  <span className="font-mono-code rounded-[2px] border border-line bg-white px-1.5 py-0.5 text-[10px] text-muted">
-                    Gemini Live Audio
+                  <span className="font-mono-code rounded-[2px] border border-line bg-surface px-1.5 py-0.5 text-[10px] text-muted">
+                    {tr('Gemini Live Audio')}
                   </span>
                 </div>
                 <h2 className={`font-serif-heading text-[18px] leading-[25px] font-medium break-words whitespace-pre-wrap text-ink ${away || paused ? 'blur-sm select-none' : ''}`}>
                   {activeQuestion
                     ? `“${activeQuestion.question}”`
-                    : 'The interviewer is about to ask the first question. The code it refers to will appear on the left.'}
+                    : tr('The interviewer is about to ask the first question. The code it refers to will appear on the left.')}
                 </h2>
               </div>
 
               {/* The whole conversation */}
               <div className="flex min-h-0 flex-1 flex-col space-y-2">
                 <div className="font-mono-code flex items-center justify-between text-[11px] text-muted">
-                  <span className="font-semibold text-ink uppercase">Conversation</span>
+                  <span className="font-semibold text-ink uppercase">{tr('Conversation')}</span>
                   <span>{messages.filter((m) => m.role !== 'system').length} messages</span>
                 </div>
                 <LiveChat messages={messages} questions={questions} className="interview-chat h-[40vh]" />
@@ -939,7 +935,7 @@ function Room({
           <div className="flex items-center justify-between border-t border-line pt-3">
             <div className="font-mono-code flex items-center gap-1.5 text-[11px] text-muted">
               <span className="material-symbols-outlined text-[15px]">timer</span>
-              <span>{phase === 'live' ? `Remaining: ${formatClock(left)}` : 'Clock starts on microphone grant'}</span>
+              <span>{phase === 'live' ? tr('Remaining: {time}', { time: formatClock(left) }) : tr('Clock starts on microphone grant')}</span>
             </div>
           </div>
         </div>
@@ -969,22 +965,22 @@ export function InterviewPage() {
 
   /** Cancel a preparation, or pause, resume or cancel the report. */
   async function control(action: 'cancel' | 'pause-report' | 'resume-report', confirmText?: string) {
-    if (confirmText && !(await confirm(questionToOptions(confirmText, { confirmLabel: action === 'cancel' ? 'Cancel it' : 'Confirm', cancelLabel: 'Keep it' })))) return;
+    if (confirmText && !(await confirm(questionToOptions(confirmText, { confirmLabel: action === 'cancel' ? tr('Cancel it') : tr('Confirm'), cancelLabel: tr('Keep it') })))) return;
     setActing(action);
     try {
       await api(`/api/interviews/${interview.id}/${action}`, { method: 'POST' });
       toast.success(
         action === 'cancel'
           ? interview.status === 'preparing'
-            ? 'Preparation canceled. It does not count as your interview on this commit.'
-            : 'Report canceled. Your answers are saved.'
+            ? tr('Preparation canceled. It does not count as your interview on this commit.')
+            : tr('Report canceled. Your answers are saved.')
           : action === 'pause-report'
-            ? 'Report paused.'
-            : 'Writing the report.',
+            ? tr('Report paused.')
+            : tr('Writing the report.'),
       );
       await reload();
     } catch (err) {
-      toast.error(`Could not do that. ${errorMessage(err)}`);
+      toast.error(tr('Could not do that. {error}', { error: errorMessage(err) }));
     } finally {
       setActing(null);
     }
@@ -997,7 +993,7 @@ export function InterviewPage() {
       {/* Top Stage Controller */}
       {interview.status === 'completed' && (
         <PrintMasthead
-          kind="Voice interview report"
+          kind={tr('Voice interview report')}
           name={interview.is_owner && me?.profile.display_name ? me.profile.display_name : `${interview.repo.owner}/${interview.repo.name}`}
           repo={`${interview.repo.owner}/${interview.repo.name}`}
           commit={interview.commit_sha}
@@ -1026,31 +1022,31 @@ export function InterviewPage() {
               </Link>
             ) : (
               <Link to="/interview/new" className="text-accent hover:underline">
-                ← MY INTERVIEWS
+                {tr('← MY INTERVIEWS')}
               </Link>
             )}
             <span>•</span>
-            <span>DOSSIER #{interview.id.slice(0, 8).toUpperCase()}</span>
+            <span>{tr('DOSSIER #')}{interview.id.slice(0, 8).toUpperCase()}</span>
             {interview.commit_sha && (
               <>
                 <span>•</span>
-                <span className="rounded-[3px] border border-line bg-white px-2 py-0.5 text-ink">
-                  COMMIT <code>{interview.commit_sha.slice(0, 7)}</code>
+                <span className="rounded-[3px] border border-line bg-surface px-2 py-0.5 text-ink">
+                  {tr('COMMIT')}{' '}<code>{interview.commit_sha.slice(0, 7)}</code>
                 </span>
               </>
             )}
           </div>
         }
-        title={`Oral Verification: ${interview.repo.owner}/${interview.repo.name}`}
+        title={tr('Oral Verification: {repo}', { repo: `${interview.repo.owner}/${interview.repo.name}` })}
         subtitle={interview.summary}
         rightSlot={
           <a
             href={interview.repo.url}
             target="_blank"
             rel="noreferrer"
-            className="btn-tactile font-mono-code inline-flex shrink-0 items-center gap-1.5 rounded-[4px] border border-line bg-white px-3 py-1.5 text-[11px] font-semibold text-ink hover:border-accent hover:text-accent"
+            className="btn-tactile font-mono-code inline-flex shrink-0 items-center gap-1.5 rounded-[4px] border border-line bg-surface px-3 py-1.5 text-[11px] font-semibold text-ink hover:border-accent hover:text-accent"
           >
-            <span>Inspect GitHub Repo</span>
+            <span>{tr('Inspect GitHub Repo')}</span>
             <span>↗</span>
           </a>
         }
@@ -1058,9 +1054,9 @@ export function InterviewPage() {
 
       {/* Stage 01: Preparing Repository & Questions */}
       {interview.status === 'preparing' && (
-        <section className="space-y-5 rounded-[6px] border border-line bg-white p-6">
+        <section className="space-y-5 rounded-[6px] border border-line bg-surface p-6">
           <div className="flex flex-col items-center justify-center space-y-2 py-4 text-center">
-            <Spinner label="Reading the repository and preparing your code-anchored questions" />
+            <Spinner label={tr('Reading the repository and preparing your code-anchored questions')} />
             <p className="text-[13px] text-muted">
               This takes about a minute. You can leave this page open; it will advance automatically.
             </p>
@@ -1070,9 +1066,9 @@ export function InterviewPage() {
               <Button
                 variant="secondary"
                 disabled={!!acting} loading={acting === 'cancel'}
-                onClick={() => void control('cancel', 'Cancel the preparation? You can start again later; it does not use up your interview on this commit.')}
+                onClick={() => void control('cancel', tr('Cancel the preparation? You can start again later; it does not use up your interview on this commit.'))}
               >
-                {acting === 'cancel' ? 'Canceling…' : 'Cancel preparation'}
+                {acting === 'cancel' ? tr('Canceling…') : tr('Cancel preparation')}
               </Button>
             </div>
           )}
@@ -1083,25 +1079,25 @@ export function InterviewPage() {
       {interview.status === 'canceled' && (
         <div className="space-y-4">
           <Notice>This interview was canceled before it started, so it does not count. You can start a new one.</Notice>
-          <Link to="/interview/new" className={linkButtonSecondary}>Start another interview</Link>
+          <Link to="/interview/new" className={linkButtonSecondary}>{tr('Start another interview')}</Link>
         </div>
       )}
 
       {(interview.status === 'report_paused' || interview.status === 'report_canceled') && (
-        <section className="space-y-4 rounded-[6px] border border-line bg-white p-6">
+        <section className="space-y-4 rounded-[6px] border border-line bg-surface p-6">
           <Notice tone="warn">
             {interview.status === 'report_paused'
-              ? 'The report is paused. Your answers are saved; resume whenever you want.'
-              : 'The report was canceled. Your answers are saved, and you can have it written at any time.'}
+              ? tr('The report is paused. Your answers are saved; resume whenever you want.')
+              : tr('The report was canceled. Your answers are saved, and you can have it written at any time.')}
           </Notice>
           {interview.is_owner && (
             <div className="flex flex-wrap gap-2">
               <Button disabled={!!acting} loading={acting === 'resume-report'} onClick={() => void control('resume-report')}>
-                {interview.status === 'report_paused' ? 'Resume the report' : 'Write the report'}
+                {interview.status === 'report_paused' ? tr('Resume the report') : tr('Write the report')}
               </Button>
               {interview.status === 'report_paused' && (
-                <Button variant="secondary" disabled={!!acting} loading={acting === 'cancel'} onClick={() => void control('cancel', 'Cancel the report? Your answers stay saved and you can write it later.')}>
-                  Cancel the report
+                <Button variant="secondary" disabled={!!acting} loading={acting === 'cancel'} onClick={() => void control('cancel', tr('Cancel the report? Your answers stay saved and you can write it later.'))}>
+                  {tr('Cancel the report')}
                 </Button>
               )}
             </div>
@@ -1113,9 +1109,9 @@ export function InterviewPage() {
       {/* Error State */}
       {interview.status === 'error' && (
         <div className="space-y-4">
-          <Notice tone="error">{interview.error || 'This interview could not be completed.'}</Notice>
+          <Notice tone="error">{interview.error || tr('This interview could not be completed.')}</Notice>
           <Link to="/interview/new" className={linkButtonSecondary}>
-            Start another interview
+            {tr('Start another interview')}
           </Link>
         </div>
       )}
@@ -1125,22 +1121,22 @@ export function InterviewPage() {
         (interview.is_owner ? (
           <Room data={data} onChanged={reload} onLiveChange={setLiveActive} />
         ) : (
-          <Notice>The candidate has not finished this interview yet.</Notice>
+          <Notice>{tr('The candidate has not finished this interview yet.')}</Notice>
         ))}
 
       {/* Stage 04: Evaluating Transcript */}
       {interview.status === 'evaluating' && (
-        <section className="space-y-5 rounded-[6px] border border-line bg-white p-6">
+        <section className="space-y-5 rounded-[6px] border border-line bg-surface p-6">
           <div className="flex flex-col items-center justify-center space-y-2 py-4 text-center">
-            <Spinner label="Synthesizing your ownership score and pinning verbatim transcript evidence" />
-            <p className="text-[13px] text-muted">Usually completes in under a minute.</p>
+            <Spinner label={tr('Synthesizing your ownership score and pinning verbatim transcript evidence')} />
+            <p className="text-[13px] text-muted">{tr('Usually completes in under a minute.')}</p>
           </div>
           {interview.error && <Notice tone="warn">{interview.error}</Notice>}
           {interview.is_owner && (
             <div className="flex justify-center gap-2">
-              <Button variant="secondary" disabled={!!acting} loading={acting === 'pause-report'} onClick={() => void control('pause-report')}>Pause</Button>
-              <Button variant="secondary" disabled={!!acting} loading={acting === 'cancel'} onClick={() => void control('cancel', 'Cancel the report? Your answers stay saved and you can write it later. This still counts as your interview on this commit.')}>
-                Cancel
+              <Button variant="secondary" disabled={!!acting} loading={acting === 'pause-report'} onClick={() => void control('pause-report')}>{tr('Pause')}</Button>
+              <Button variant="secondary" disabled={!!acting} loading={acting === 'cancel'} onClick={() => void control('cancel', tr('Cancel the report? Your answers stay saved and you can write it later. This still counts as your interview on this commit.'))}>
+                {tr('Cancel')}
               </Button>
             </div>
           )}
@@ -1153,22 +1149,22 @@ export function InterviewPage() {
         <>
           <article
             id="verified-dossier-report"
-            className="overflow-hidden rounded-[6px] border border-line bg-white"
+            className="overflow-hidden rounded-[6px] border border-line bg-surface"
           >
             {/* Official Credential Header Block */}
-            <header className="space-y-4 border-b border-line bg-white p-6 sm:p-8">
+            <header className="space-y-4 border-b border-line bg-surface p-6 sm:p-8">
               <div className="font-mono-code flex flex-col justify-between gap-2 text-[11px] text-muted md:flex-row md:items-center">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="status-dot-live bg-good text-good" />
-                  <span className="font-bold tracking-wider text-ink uppercase">SkillProof Verified Credential</span>
+                  <span className="font-bold tracking-wider text-ink uppercase">{tr('SkillProof Verified Credential')}</span>
                   <span>•</span>
                   <span className="rounded-[2px] border border-line bg-paper px-2 py-0.5">
-                    DOSSIER #SP-{interview.id.slice(0, 6).toUpperCase()}
+                    {tr('DOSSIER #SP-')}{interview.id.slice(0, 6).toUpperCase()}
                   </span>
                 </div>
                 <div className="rounded-[3px] border border-good/30 bg-good-soft px-2.5 py-0.5 font-medium text-good-ink">
-                  {interview.created_at ? `ISSUED ${formatDate(interview.created_at).toUpperCase()} • ` : ''}
-                  COMMIT: {interview.commit_sha?.slice(0, 7) ?? 'HEAD'}
+                  {interview.created_at ? `${tr('ISSUED {date}', { date: formatDate(interview.created_at).toUpperCase() })} • ` : ''}
+                  {tr('COMMIT:')}{' '}{interview.commit_sha?.slice(0, 7) ?? 'HEAD'}
                 </div>
               </div>
 
@@ -1180,14 +1176,14 @@ export function InterviewPage() {
                       : `${interview.repo.owner}/${interview.repo.name}`}
                   </h2>
                   <p className="mt-1 text-[14px] text-muted">
-                    Repository Defense: <strong className="text-ink">{interview.repo.owner}/{interview.repo.name}</strong>
+                    {tr('Repository Defense:')}{' '}<strong className="text-ink">{interview.repo.owner}/{interview.repo.name}</strong>
                     {me?.public_profile?.headline ? ` • ${me.public_profile.headline}` : ''}
                   </p>
                 </div>
 
                 <span className="font-mono-code inline-flex items-center gap-1.5 self-start rounded-[3px] border border-good/30 bg-good-soft px-3 py-1.5 text-[11px] font-bold text-good-ink md:self-auto">
                   <span className="material-symbols-outlined text-[15px]">verified</span>
-                  <span>VERIFICATION COMPLETED</span>
+                  <span>{tr('VERIFICATION COMPLETED')}</span>
                 </span>
               </div>
             </header>
@@ -1209,23 +1205,23 @@ export function InterviewPage() {
 
               {interview.models_used && interview.models_used.length > 0 && (
                 <div className="font-mono-code mt-6 flex flex-wrap items-center gap-2 border-t border-line pt-4 text-[11px] text-muted">
-                  <span>EVALUATED WITH:</span>
+                  <span>{tr('EVALUATED WITH:')}</span>
                   <ModelsUsed models={interview.models_used} primary={interview.primary_models} />
                 </div>
               )}
             </div>
 
             {/* Attestation Footer Action Bar */}
-            <footer className="flex flex-col justify-between gap-4 border-t border-line bg-good-50 p-6 md:flex-row md:items-center">
+            <footer className="flex flex-col justify-between gap-4 border-t border-line bg-good-soft p-6 md:flex-row md:items-center">
               <div className="flex flex-wrap items-center gap-3">
                 {interview.is_owner && profile && (
                   <Link
                     to={profile.is_public ? `/p/${profile.slug}` : '/me'}
-                    className="btn-tactile inline-flex items-center gap-2 rounded-[4px] border border-ink bg-ink px-4 py-2 text-[13px] font-medium text-white hover:border-accent hover:bg-accent"
+                    className="btn-tactile inline-flex items-center gap-2 rounded-[4px] border border-ink bg-ink px-4 py-2 text-[13px] font-medium text-on-accent hover:border-accent hover:bg-accent"
                   >
                     <span className="material-symbols-outlined text-[16px]">public</span>
                     <span>
-                      {profile.is_public ? 'Open Public Recruiter Profile' : 'Enable Public Recruiter Profile'}
+                      {profile.is_public ? tr('Open Public Recruiter Profile') : tr('Enable Public Recruiter Profile')}
                     </span>
                   </Link>
                 )}
@@ -1233,18 +1229,18 @@ export function InterviewPage() {
                 <button
                   type="button"
                   onClick={() => window.print()}
-                  className="btn-tactile inline-flex cursor-pointer items-center gap-2 rounded-[4px] border border-line bg-white px-4 py-2 text-[13px] font-medium text-ink hover:border-muted hover:bg-paper"
+                  className="btn-tactile inline-flex cursor-pointer items-center gap-2 rounded-[4px] border border-line bg-surface px-4 py-2 text-[13px] font-medium text-ink hover:border-muted hover:bg-paper"
                 >
                   <span className="material-symbols-outlined text-[16px] text-good">print</span>
-                  <span>Print / Save PDF Dossier</span>
+                  <span>{tr('Print / Save PDF Dossier')}</span>
                 </button>
               </div>
 
               {interview.is_owner && profile?.is_public && publicUrl && (
                 <CopyLinkButton
                   value={publicUrl}
-                  label="Copy Recruiter Access Link"
-                  copiedLabel="COPIED RECRUITER LINK!"
+                  label={tr('Copy Recruiter Access Link')}
+                  copiedLabel={tr('COPIED RECRUITER LINK!')}
                 />
               )}
             </footer>
@@ -1252,31 +1248,31 @@ export function InterviewPage() {
 
           {interview.is_owner && profile && !profile.is_public && (
             <Notice tone="info">
-              Your profile is currently private.{' '}
+              {tr('Your profile is currently private.')}{' '}
               <Link to="/me" className="font-semibold text-accent underline">
-                Make it public in Account Settings
+                {tr('Make it public in Account Settings')}
               </Link>{' '}
-              to share this verified report with recruiters.
+              {tr('to share this verified report with recruiters.')}
             </Notice>
           )}
 
           {data.transcript && data.transcript.length > 0 && (
-            <section className="rounded-[6px] border border-line bg-white p-5">
+            <section className="rounded-[6px] border border-line bg-surface p-5">
               <details>
                 <summary className="font-mono-code cursor-pointer text-[12px] font-semibold tracking-wider text-ink uppercase">
-                  Inspect Full Verbatim Transcript ({data.transcript.length} exchanges)
+                  {tr('Inspect Full Verbatim Transcript (')}{data.transcript.length}{' '}{tr('exchanges)')}
                 </summary>
                 <ol className="mt-4 space-y-2.5 border-t border-line pt-4 text-[13px]">
                   {data.transcript.map((t, i) => (
                     <li
                       key={i}
                       className={`rounded-[4px] border border-line p-3 ${
-                        t.role === 'interviewer' ? 'bg-paper/60' : t.role === 'system' ? 'bg-warn-soft/40' : 'bg-white'
+                        t.role === 'interviewer' ? 'bg-paper/60' : t.role === 'system' ? 'bg-warn-soft/40' : 'bg-surface'
                       }`}
                     >
                       <div className="font-mono-code mb-1 flex items-center justify-between text-[10px] text-muted uppercase">
                         <span className={t.role === 'interviewer' ? 'font-bold text-accent' : t.role === 'system' ? 'font-bold text-warn' : 'font-bold text-good'}>
-                          {t.role === 'interviewer' ? 'AI Technical Examiner' : t.role === 'system' ? 'SkillProof' : 'Candidate'}
+                          {t.role === 'interviewer' ? tr('AI Technical Examiner') : t.role === 'system' ? 'SkillProof' : tr('Candidate')}
                         </span>
                         {typeof t.at_ms === 'number' && <span>+{Math.round(t.at_ms / 1000)}s</span>}
                       </div>

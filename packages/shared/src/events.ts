@@ -1,3 +1,4 @@
+import { LOCALES } from './locale.js';
 import { z } from 'zod';
 import { RubricSchema } from './rubric.js';
 
@@ -24,6 +25,10 @@ export const CreateEventSchema = z
     access_code: z.string().min(4).max(64).optional(),
     max_submissions: z.number().int().min(1).max(100).nullable().default(null),
     interviews_enabled: z.boolean().default(false),
+    /** Language of the judge's feedback and of the interviews about the submissions. */
+    language: z.enum(LOCALES).default('en'),
+    /** Code every participant starts from: it never counts as a copy in the similarity check. */
+    starter_repo_url: z.string().trim().regex(GITHUB_REPO_URL, 'Use a public GitHub repository URL, like https://github.com/owner/repo').nullable().default(null),
     rubric: RubricSchema,
     publish: z.boolean().default(true).describe('Open the event right away instead of leaving it as a draft'),
   })
@@ -58,6 +63,11 @@ export const CreateInterviewSchema = z
     submission_id: z.uuid().optional(),
     /** A course assignment submission: each student (each group member) takes their own interview. */
     assignment_submission_id: z.uuid().optional(),
+    /**
+     * Language of the interview, for a personal interview or an individual course assignment. Event and group
+     * assignment interviews always use the language their organizer set, so sending one there is refused.
+     */
+    locale: z.enum(LOCALES).optional(),
   })
   .refine((v) => [v.repo_url, v.submission_id, v.assignment_submission_id].filter(Boolean).length === 1, 'Give a repo URL, a submission or an assignment submission');
 

@@ -1,3 +1,4 @@
+import { tr } from '../i18n';
 import { type Rubric } from '@skillproof/shared';
 import { Button, Field, Input, ScoreBar, Textarea } from './shared';
 
@@ -24,7 +25,7 @@ export function RubricEditor({ rubric, setRubric }: { rubric: Rubric; setRubric:
                 >
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <span className="font-mono-code text-[11px] font-bold text-accent uppercase">
-                      Criterion {String(i + 1).padStart(2, '0')} // {c.key || keyFromName(c.name) || 'custom_key'}
+                      {tr('Criterion')}{' '}{String(i + 1).padStart(2, '0')} // {c.key || keyFromName(c.name) || 'custom_key'}
                     </span>
                     <Button
                       type="button"
@@ -33,24 +34,24 @@ export function RubricEditor({ rubric, setRubric }: { rubric: Rubric; setRubric:
                       onClick={() => setRubric((r) => r.filter((_, j) => j !== i))}
                       className="px-2.5 py-1 text-[11px]"
                     >
-                      Remove
+                      {tr('Remove')}
                     </Button>
                   </div>
 
                   <div className="grid gap-3 sm:grid-cols-[1fr_8rem]">
-                    <Field label="Criterion Name">
+                    <Field label={tr('Criterion Name')}>
                       <Input
-                        aria-label="Criterion name"
+                        aria-label={tr('Criterion name')}
                         required
                         maxLength={60}
-                        placeholder="Architecture & Code Quality"
+                        placeholder={tr('Architecture & Code Quality')}
                         value={c.name}
                         onChange={(e) => patch(i, { name: e.target.value, key: keyFromName(e.target.value) })}
                       />
                     </Field>
-                    <Field label="Weight">
+                    <Field label={tr('Weight')}>
                       <Input
-                        aria-label="Weight"
+                        aria-label={tr('Weight')}
                         type="number"
                         min={1}
                         max={100}
@@ -62,14 +63,14 @@ export function RubricEditor({ rubric, setRubric }: { rubric: Rubric; setRubric:
                     </Field>
                   </div>
 
-                  <Field label="What This Criterion Measures">
+                  <Field label={tr('What This Criterion Measures')}>
                     <Textarea
-                      aria-label="What this criterion measures"
+                      aria-label={tr('What this criterion measures')}
                       rows={2}
                       maxLength={500}
                       value={c.description}
                       onChange={(e) => patch(i, { description: e.target.value })}
-                      placeholder="What the AI evaluator and human judges should look for in the repository..."
+                      placeholder={tr('What the AI evaluator and human judges should look for in the repository...')}
                     />
                   </Field>
                 </li>
@@ -89,16 +90,16 @@ export function RubricEditor({ rubric, setRubric }: { rubric: Rubric; setRubric:
                       name: '',
                       description: '',
                       weight: 15,
-                      anchors: { low: 'Weak.', mid: 'Acceptable.', high: 'Excellent.' },
+                      anchors: { low: tr('Weak.'), mid: tr('Acceptable.'), high: tr('Excellent.') },
                     },
                   ])
                 }
               >
                 <span className="material-symbols-outlined text-[16px]">add</span>
-                <span>Add Rubric Criterion ({rubric.length}/12)</span>
+                <span>{tr('Add Rubric Criterion ({n}/12)', { n: rubric.length })}</span>
               </Button>
               <span className="font-mono-code text-[11px] text-muted">
-                Up to 12 weighted criteria per assessment
+                {tr('Up to 12 weighted criteria per assessment')}
               </span>
             </div>
           </div>

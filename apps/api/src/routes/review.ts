@@ -1,3 +1,6 @@
+import { ASSIGNMENT_STORE, EVENT_STORE } from '../services/contest.js';
+import { enqueue } from '../services/queue.js';
+import { getFileText } from '../lib/github.js';
 import { AssignJudgeSchema, IntegrityDecisionSchema, JudgeReviewSchema, RubricSchema } from '@skillproof/shared';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
@@ -194,7 +197,64 @@ export async function reviewRoutes(app: FastifyInstance): Promise<void> {
       db().from('assignment_similarity_flags').select('*').eq('assignment_id', id).order('score', { ascending: false }),
       db().from('integrity_decisions').select('*, profiles!integrity_decisions_decided_by_fkey(display_name)').eq('assignment_id', id).order('created_at', { ascending: false }),
     ]);
-    return { flags: must(flags), decisions: must(decisions) };
+    const flagRows = must(flags) as { id: string }[];
+    const matches = flagRows.length
+      ? must(await db().from('assignment_similarity_matches').select('*').in('flag_id', flagRows.map((f) => f.id)).order('score', { ascending: false }))
+      : [];
+    return { flags: flagRows, decisions: must(decisions), matches };
+  });
+
+  // ---- content similarity: recompute, and the code of one matching fragment ----
+
+  for (const scope of ['event', 'assignment'] as const) {
+    const store = scope === 'event' ? EVENT_STORE : ASSIGNMENT_STORE;
+    const path = scope === 'event' ? '/api/events/:id/similarity' : '/api/assignments/:id/similarity';
+    /** Compares the code of every judged submission again (for example after setting the starter code). */
+    app.post(path, async (req) => {
+      const user = await requireUser(req);
+      const { id } = parse(IdParams, req.params);
+      const c = must(await db().from(store.contests).select('organization_id').eq('id', id).maybeSingle()) as { organization_id: string } | null;
+      if (!c) throw notFound(scope === 'event' ? 'Event not found' : 'Assignment not found');
+      if (!canDo(user.grants, 'integrity.decide', c.organization_id) && !canDo(user.grants, scope === 'event' ? 'event.manage' : 'course.manage', c.organization_id))
+        throw forbidden();
+      await enqueue(scope === 'event' ? 'similarity-event' : 'similarity-assignment', id);
+      await audit({ organizationId: c.organization_id, actorId: user.id, action: 'similarity.recomputed', subjectType: scope, subjectId: id });
+      return { queued: true };
+    });
+  }
+
+  /** Both sides of one matching fragment, read from GitHub at the frozen commits. */
+  app.get('/api/similarity-matches/:id/code', async (req) => {
+    const user = await requireUser(req);
+    const { id } = parse(IdParams, req.params);
+    const { scope } = parse(z.object({ scope: z.enum(['event', 'assignment']).default('event') }), req.query);
+    const store = scope === 'event' ? EVENT_STORE : ASSIGNMENT_STORE;
+    const flagsTable = store.flags;
+    const m = must(
+      await db().from(scope === 'event' ? 'similarity_matches' : 'assignment_similarity_matches').select('*').eq('id', id).maybeSingle(),
+    ) as { flag_id: string; organization_id: string; path_a: string; start_a: number; end_a: number; path_b: string; start_b: number; end_b: number } | null;
+    if (!m) throw notFound('Match not found');
+    if (!canDo(user.grants, 'integrity.decide', m.organization_id) && !canDo(user.grants, scope === 'event' ? 'event.manage' : 'course.manage', m.organization_id))
+      throw forbidden();
+    const flag = must(await db().from(flagsTable).select('submission_a, submission_b').eq('id', m.flag_id).single()) as { submission_a: string; submission_b: string };
+    const side = async (submissionId: string, path: string, start: number, end: number) => {
+      const sub = must(await db().from(store.submissions).select(`locked_commit_sha, ${store.currentVersion}`).eq('id', submissionId).single()) as unknown as {
+        locked_commit_sha: string | null;
+        current_version: { repos: { owner: string; name: string; url: string } | null } | null;
+      };
+      const repo = sub.current_version?.repos;
+      if (!repo || !sub.locked_commit_sha) return { path, start, end, lines: [] as { number: number; text: string }[], repo: null, sha: null };
+      const text = await getFileText(repo.owner, repo.name, sub.locked_commit_sha, path).catch(() => '');
+      const from = Math.max(1, start - 2);
+      const to = end + 2;
+      const lines = text
+        .split('\n')
+        .slice(from - 1, Math.min(to, from - 1 + 120))
+        .map((t, i) => ({ number: from + i, text: t }));
+      return { path, start, end, lines, repo: { owner: repo.owner, name: repo.name, url: repo.url }, sha: sub.locked_commit_sha };
+    };
+    const [a, b] = await Promise.all([side(flag.submission_a, m.path_a, m.start_a, m.end_a), side(flag.submission_b, m.path_b, m.start_b, m.end_b)]);
+    return { a, b };
   });
 
   /** A verdict on an event pair or submission, or on a course assignment pair or submission. */

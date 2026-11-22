@@ -1,3 +1,5 @@
+import type { Locale } from '@skillproof/shared';
+import { inLanguage, languageNote } from './language.js';
 import { Modality, Type, type FunctionDeclaration } from '@google/genai';
 import {
   INTERVIEW_SECONDS, InterviewReportSchema, MAX_INTERVIEW_PAUSE_MS, MAX_QUESTIONS, MIN_QUESTIONS, MODELS, QuestionPlanDraftSchema, QuestionPlanSchema, describeFocusEvents, type FocusEvent,
@@ -18,6 +20,8 @@ import { friendlyJobError, technicalDetail } from '../lib/jobErrors.js';
 import { db, must } from '../lib/supabase.js';
 
 export interface InterviewRow {
+  /** Language of the questions, the interviewer and the report (20261121000001). */
+  locale?: Locale;
   id: string;
   user_id: string;
   repo_id: string;
@@ -127,7 +131,7 @@ export async function prepareInterview(interviewId: string): Promise<void> {
         generateJson({
           model: analysisModel(),
           schema: spec.draftSchema,
-          system: planSystem(spec.key),
+          system: inLanguage(planSystem(spec.key), row.locale),
           parts: [{ text: planPrompt({ ...analysis, hooks_json: hooks }, course) }],
           usage: { ...usage, kind: 'interview_plan' },
           temperature: 0.6,
@@ -266,7 +270,7 @@ const LIVE_TOOLS: FunctionDeclaration[] = [
   },
 ];
 
-export function interviewerInstruction(plan: QuestionPlan, repoName: string, spec: InterviewSpecKey = 'hackathon'): string {
+export function interviewerInstruction(plan: QuestionPlan, repoName: string, spec: InterviewSpecKey = 'hackathon', locale: Locale = 'en'): string {
   const seconds = INTERVIEW_SPECS[spec].seconds;
   const questions = plan.questions
     .map(
@@ -274,7 +278,7 @@ export function interviewerInstruction(plan: QuestionPlan, repoName: string, spe
         `${q.id} [${q.kind}] about ${q.path} lines ${q.start_line}-${q.end_line}\n  Ask: ${q.question}\n  A real author would mention: ${q.expected_points.join('; ')}`,
     )
     .join('\n');
-  return `${interviewerOpening(spec, repoName, seconds)}
+  return inLanguage(`${interviewerOpening(spec, repoName, seconds)}
 
 How to run it:
 - Start with one short sentence of welcome, then go straight to the first question.
@@ -294,7 +298,7 @@ How to run it:
   call end_interview. Do not ask anything new.
 
 Planned questions (the "real author" notes are for your ears only):
-${questions}`;
+${questions}`, locale);
 }
 
 /** Mints a single-use token that lets the browser open exactly this interview session, and nothing else. */
@@ -302,6 +306,7 @@ export async function createLiveToken(
   plan: QuestionPlan,
   repoName: string,
   spec: InterviewSpecKey = 'hackathon',
+  locale: Locale = 'en',
 ): Promise<{ token: string; model: string; expiresAt: string }> {
   const now = Date.now();
   // Room time, plus the most the candidate may pause, plus a margin to reconnect.
@@ -315,7 +320,7 @@ export async function createLiveToken(
         model: MODELS.live,
         config: {
           responseModalities: [Modality.AUDIO],
-          systemInstruction: interviewerInstruction(plan, repoName, spec),
+          systemInstruction: interviewerInstruction(plan, repoName, spec, locale),
           inputAudioTranscription: {},
           outputAudioTranscription: {},
           tools: [{ functionDeclarations: LIVE_TOOLS }],
@@ -347,7 +352,7 @@ export async function evaluateInterview(interviewId: string): Promise<void> {
       const { data } = await generateJson({
         model: analysisModel(),
         schema: InterviewReportSchema,
-        system: REPORT_SYSTEM,
+        system: REPORT_SYSTEM + languageNote(row.locale, 'the summary and the notes of every skill'),
         parts: [{ text: `Questions and answer key:\n${key}\n\nInterview length: ${row.duration_s ?? 0} seconds.${focus ? `\nSYSTEM: ${focus}` : ''}\n\n<transcript>\n${transcript || '(the candidate said nothing)'}\n</transcript>` }],
         usage: { kind: 'interview_report', organizationId: row.organization_id, userId: row.user_id },
         temperature: 0.1,

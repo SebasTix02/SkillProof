@@ -7,3 +7,4 @@ export * from './events.js';
 export * from './courses.js';
 export * from './activity.js';
 export * from './org.js';
+export * from './locale.js';

@@ -1,3 +1,4 @@
+import { t, translateMessage } from '../i18n';
 import { startRequest } from './loading';
 import { supabase } from './supabase';
 
@@ -42,7 +43,7 @@ async function request<T>(path: string, options: { method?: string; body?: unkno
       body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
     });
   } catch {
-    throw new ApiError(0, 'network', 'Could not reach the server. Check your connection and try again.');
+    throw new ApiError(0, 'network', t('errors.network'));
   }
   const json = (await res.json().catch(() => null)) as { error?: { code: string; message: string; details?: Record<string, unknown> } } | null;
   if (!res.ok) throw new ApiError(res.status, json?.error?.code ?? 'error', json?.error?.message ?? `Request failed (${res.status})`, json?.error?.details ?? {});
@@ -61,13 +62,13 @@ export function existingInterviewId(err: unknown): string | null {
 
 export function errorMessage(err: unknown): string {
   if (err instanceof ApiError) {
-    if (err.status === 401) return 'Your session has ended. Log in again to continue.';
-    if (err.status === 403 && err.code === 'forbidden') return err.message || 'You do not have permission to do that.';
-    if (err.status === 429) return 'Too many requests at once. Wait a moment and try again.';
-    if (err.status >= 500 && err.code === 'internal') return 'Something went wrong on our side. Try again in a moment.';
-    if (err.status === 502 || err.status === 503 || err.status === 504) return 'The server is busy right now. Try again in a moment.';
-    return err.message;
+    if (err.status === 401) return t('errors.sessionEnded');
+    if (err.status === 403 && err.code === 'forbidden') return err.message ? translateMessage(err.message) : t('errors.forbidden');
+    if (err.status === 429) return t('errors.tooMany');
+    if (err.status >= 500 && err.code === 'internal') return t('errors.internal');
+    if (err.status === 502 || err.status === 503 || err.status === 504) return t('errors.busy');
+    return translateMessage(err.message, err.code);
   }
-  if (err instanceof Error && err.message && !err.message.trim().startsWith('{')) return err.message;
-  return 'Something went wrong. Try again in a moment.';
+  if (err instanceof Error && err.message && !err.message.trim().startsWith('{')) return translateMessage(err.message);
+  return t('errors.generic');
 }

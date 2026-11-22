@@ -1,3 +1,4 @@
+import { tr } from '../i18n';
 import { MODEL_FALLBACKS, type ActivityEntry } from '@skillproof/shared';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Badge } from './ui';
@@ -22,9 +23,9 @@ export function ModelsUsed({ models, primary = DEFAULT_PRIMARY }: { models: stri
   return (
     <span className="inline-flex flex-wrap items-center gap-1.5">
       {models.map((m) => (
-        <Badge key={m} tone={isBackup(m) ? 'warn' : 'accent'}>{modelName(m)}{isBackup(m) && ' (backup)'}</Badge>
+        <Badge key={m} tone={isBackup(m) ? 'warn' : 'accent'}>{modelName(m)}{isBackup(m) && tr(' (backup)')}</Badge>
       ))}
-      {backup && <span className="text-xs text-muted">The main model was busy, so a backup model answered.</span>}
+      {backup && <span className="text-xs text-muted">{tr('The main model was busy, so a backup model answered.')}</span>}
     </span>
   );
 }
@@ -100,10 +101,10 @@ export function AiActivity({ entries, live = false, maxHeight = '28rem' }: { ent
         {hasThoughts && (
           <label className="inline-flex cursor-pointer items-center gap-1.5">
             <input type="checkbox" checked={showThoughts} onChange={(e) => setShowThoughts(e.target.checked)} />
-            Show the AI's reasoning
+            {tr('Show the AI\'s reasoning')}
           </label>
         )}
-        {live && <span className="inline-flex items-center gap-1 text-accent"><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-accent" />Live</span>}
+        {live && <span className="inline-flex items-center gap-1 text-accent"><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-accent" />{tr('Live')}</span>}
       </div>
       <div className="relative">
         <div
@@ -113,7 +114,7 @@ export function AiActivity({ entries, live = false, maxHeight = '28rem' }: { ent
           style={{ maxHeight }}
           role="log"
           aria-live={live ? 'polite' : undefined}
-          aria-label="AI activity history"
+          aria-label={tr('AI activity history')}
         >
           <ol className="relative space-y-3 border-l border-line pl-5">
             {shown.map((e, i) => {
@@ -125,19 +126,19 @@ export function AiActivity({ entries, live = false, maxHeight = '28rem' }: { ent
                 <li key={`${e.at}-${i}`} className="relative text-sm">
                   {header > 1 && (
                     <div className="-ml-5 mb-3 flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted">
-                      <span className="h-px flex-1 bg-line" /> New attempt <span className="h-px flex-1 bg-line" />
+                      <span className="h-px flex-1 bg-line" />{' '}{tr('New attempt')}{' '}<span className="h-px flex-1 bg-line" />
                     </div>
                   )}
                   <span
                     aria-hidden
-                    className={`absolute -left-[1.4rem] top-1.5 h-2.5 w-2.5 rounded-full ring-4 ring-white ${DOT[e.kind]} ${active ? 'animate-pulse' : ''}`}
+                    className={`absolute -left-[1.4rem] top-1.5 h-2.5 w-2.5 rounded-full ring-4 ring-surface ${DOT[e.kind]} ${active ? 'animate-pulse' : ''}`}
                   />
                   {e.kind === 'thought' ? (
                     <details className="group">
                       <summary className="cursor-pointer text-muted hover:text-ink">
-                        How the AI reasoned{e.model && <> · {modelName(e.model)}</>}
+                        {tr('How the AI reasoned')}{e.model && <> · {modelName(e.model)}</>}
                       </summary>
-                      <p className="mt-1 whitespace-pre-line rounded-lg bg-white p-3 text-xs leading-relaxed text-muted">{e.text.replace(/\*\*/g, '')}</p>
+                      <p className="mt-1 whitespace-pre-line rounded-lg bg-surface p-3 text-xs leading-relaxed text-muted">{e.text.replace(/\*\*/g, '')}</p>
                     </details>
                   ) : (
                     <div className="flex flex-wrap items-baseline gap-x-2">
@@ -151,8 +152,8 @@ export function AiActivity({ entries, live = false, maxHeight = '28rem' }: { ent
                       </span>
                       {e.detail && (
                         <details className="w-full">
-                          <summary className="cursor-pointer text-xs text-muted hover:text-ink">Details</summary>
-                          <pre className="mt-1 whitespace-pre-wrap rounded-lg bg-white p-2 font-mono text-[11px] leading-relaxed text-muted">{e.detail}</pre>
+                          <summary className="cursor-pointer text-xs text-muted hover:text-ink">{tr('Details')}</summary>
+                          <pre className="mt-1 whitespace-pre-wrap rounded-lg bg-surface p-2 font-mono text-[11px] leading-relaxed text-muted">{e.detail}</pre>
                         </details>
                       )}
                     </div>
@@ -165,9 +166,9 @@ export function AiActivity({ entries, live = false, maxHeight = '28rem' }: { ent
         {!follow && (
           <button
             onClick={() => setFollow(true)}
-            className="absolute bottom-3 right-3 rounded-full border border-line bg-white px-3 py-1 text-xs font-medium text-ink shadow hover:bg-paper"
+            className="absolute bottom-3 right-3 rounded-full border border-line bg-surface px-3 py-1 text-xs font-medium text-ink shadow hover:bg-paper"
           >
-            {live ? 'Follow the latest step ↓' : 'Go to the end ↓'}
+            {live ? tr('Follow the latest step ↓') : tr('Go to the end ↓')}
           </button>
         )}
       </div>

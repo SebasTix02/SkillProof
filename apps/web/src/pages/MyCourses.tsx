@@ -1,3 +1,6 @@
+import { t, tr, trn, type Locale } from '../i18n';
+import { InterviewLanguageField } from '../components/LanguageControl';
+import { LOCALE_NAME } from '@skillproof/shared';
 /**
  * For students, inside My courses (courses are not events: nothing to join, the roster decides):
  *   /courses               my courses, each assignment with what to do next, and group invitations waiting
@@ -57,7 +60,7 @@ interface Invite {
 }
 
 const courseMeta = (c: { organization?: string | null; code: string; term: string; section?: string }) =>
-  [c.organization, c.code, c.term, c.section && `Section ${c.section}`].filter(Boolean).join(' · ');
+  [c.organization, c.code, c.term, c.section && tr('Section {name}', { name: c.section })].filter(Boolean).join(' · ');
 
 function AssignmentRowItem({ courseId, a }: { courseId: string; a: MyAssignment }) {
   const step = nextStep(a);
@@ -68,13 +71,13 @@ function AssignmentRowItem({ courseId, a }: { courseId: string; a: MyAssignment 
           {a.title}
         </Link>
         <p className="text-[12px] text-muted">
-          Due {formatDate(a.due_at)} · {groupSizeLabel(a)} · {STATUS_LABEL[a.status]}
+          {tr('Due')}{' '}{formatDate(a.due_at)} · {groupSizeLabel(a)} · {STATUS_LABEL[a.status]}
         </p>
       </div>
       <div className="flex items-center gap-3">
         <Badge tone={step.tone}>{step.label}</Badge>
-        <Link to={`/courses/${courseId}/a/${a.id}`} className={step.label === 'To do' ? linkButton : linkButtonSecondary}>
-          {step.label === 'To do' && a.mode !== 'group' ? 'Submit' : 'Open'}
+        <Link to={`/courses/${courseId}/a/${a.id}`} className={step.key === 'todo' ? linkButton : linkButtonSecondary}>
+          {step.key === 'todo' && a.mode !== 'group' ? tr('Submit') : t('common.open')}
         </Link>
       </div>
     </li>
@@ -89,7 +92,7 @@ function useRespond(reload: () => unknown) {
     setBusy(`${groupId}-${accept}`);
     try {
       await api(`/api/me/groups/${groupId}/respond`, { body: { accept } });
-      toast.success(accept ? `You joined ${groupName}.` : `Invitation to ${groupName} declined.`);
+      toast.success(accept ? tr('You joined {name}.', { name: groupName }) : tr('Invitation to {name} declined.', { name: groupName }));
       await reload();
     } catch (err) {
       toast.error(errorMessage(err));
@@ -112,30 +115,30 @@ export function MyCourses() {
   return (
     <div className="space-y-6">
       <DossierPageHeader
-        eyebrow={<span className="font-semibold tracking-wider text-accent-ink uppercase">My courses</span>}
-        title="My courses"
-        subtitle="Assignments from the courses you are on. Only the students of each course see them; there is nothing to join."
+        eyebrow={<span className="font-semibold tracking-wider text-accent-ink uppercase">{tr('My courses')}</span>}
+        title={tr('My courses')}
+        subtitle={tr('Assignments from the courses you are on. Only the students of each course see them; there is nothing to join.')}
       />
 
       {invites.length > 0 && (
         <section className="rounded-[6px] border border-accent-ui bg-accent-soft p-4">
-          <p className="text-[14px] font-semibold text-accent-ink">Group invitations</p>
+          <p className="text-[14px] font-semibold text-accent-ink">{tr('Group invitations')}</p>
           <ul className="mt-2 space-y-2">
             {invites.map((i) => (
-              <li key={i.group_id} className="flex flex-wrap items-center justify-between gap-3 rounded-[4px] bg-white p-3 text-[13px]">
+              <li key={i.group_id} className="flex flex-wrap items-center justify-between gap-3 rounded-[4px] bg-surface p-3 text-[13px]">
                 <span>
-                  <strong className="text-ink">{i.invited_by ?? 'A classmate'}</strong> invited you to <strong className="text-ink">{i.group_name}</strong> for{' '}
+                  <strong className="text-ink">{i.invited_by ?? tr('A classmate')}</strong>{' '}{tr('invited you to')}{' '}<strong className="text-ink">{i.group_name}</strong> for{' '}
                   <Link to={`/courses/${i.course_id}/a/${i.assignment_id}`} className="text-accent-ink hover:underline">
                     {i.assignment_title}
                   </Link>
-                  <span className="text-muted"> · groups close {formatDate(i.closes_at)}</span>
+                  <span className="text-muted">{' '}{tr('· groups close')}{' '}{formatDate(i.closes_at)}</span>
                 </span>
                 <span className="flex gap-2">
                   <Button className="px-3 py-1 text-[12px]" loading={busy === `${i.group_id}-true`} disabled={!!busy} onClick={() => void respond(i.group_id, i.group_name, true)}>
-                    Accept
+                    {tr('Accept')}
                   </Button>
                   <Button variant="secondary" className="px-3 py-1 text-[12px]" loading={busy === `${i.group_id}-false`} disabled={!!busy} onClick={() => void respond(i.group_id, i.group_name, false)}>
-                    Decline
+                    {tr('Decline')}
                   </Button>
                 </span>
               </li>
@@ -145,12 +148,12 @@ export function MyCourses() {
       )}
 
       {courses.length === 0 ? (
-        <section className="rounded-[6px] border border-line bg-white p-8 text-center text-[13px] text-muted">
-          You are not on any course roster yet. Your instructor adds you with the email of your SkillProof account.
+        <section className="rounded-[6px] border border-line bg-surface p-8 text-center text-[13px] text-muted">
+          {tr('You are not on any course roster yet. Your instructor adds you with the email of your SkillProof account.')}
         </section>
       ) : (
         courses.map((c) => (
-          <section key={c.id} className="rounded-[6px] border border-line bg-white">
+          <section key={c.id} className="rounded-[6px] border border-line bg-surface">
             <header className="flex flex-wrap items-end justify-between gap-2 border-b border-line px-5 py-4">
               <div>
                 <p className="font-mono-code text-[11px] font-semibold tracking-wider text-muted uppercase">{courseMeta(c)}</p>
@@ -158,10 +161,10 @@ export function MyCourses() {
                   {c.name}
                 </Link>
               </div>
-              {c.role !== 'student' && <Badge tone="accent">{c.role === 'ta' ? 'TA' : 'Instructor'}</Badge>}
+              {c.role !== 'student' && <Badge tone="accent">{c.role === 'ta' ? 'TA' : tr('Instructor')}</Badge>}
             </header>
             {c.assignments.length === 0 ? (
-              <p className="px-5 py-6 text-[13px] text-muted">No assignments yet.</p>
+              <p className="px-5 py-6 text-[13px] text-muted">{tr('No assignments yet.')}</p>
             ) : (
               <ul className="divide-y divide-line">
                 {c.assignments.map((a) => (
@@ -185,25 +188,25 @@ export function MyCourse() {
   const data = useLoad<{ course: MyCourse; role: MyCourse['role']; assignments: MyAssignment[] }>(`/api/me/courses/${id}`);
   if (!data.data) return <PageState loading={data.loading} error={data.error} kind="list" />;
   const { course, assignments, role } = data.data;
-  const todo = assignments.filter((a) => nextStep(a).label === 'To do');
+  const todo = assignments.filter((a) => nextStep(a).key === 'todo');
   return (
     <div className="space-y-6">
       <DossierPageHeader
         eyebrow={
           <>
             <Link to="/courses" className="text-accent-ink hover:underline">
-              ← MY COURSES
+              {tr('← MY COURSES')}
             </Link>
             <span className="text-muted">{courseMeta(course)}</span>
           </>
         }
         title={course.name}
-        subtitle={course.description || `${assignments.length} ${assignments.length === 1 ? 'assignment' : 'assignments'} · ${todo.length} to do`}
-        rightSlot={role !== 'student' ? <Badge tone="accent">{role === 'ta' ? 'TA' : 'Instructor'}</Badge> : null}
+        subtitle={course.description || `${trn('{count} assignment', '{count} assignments', assignments.length)} · ${tr('{n} to do', { n: todo.length })}`}
+        rightSlot={role !== 'student' ? <Badge tone="accent">{role === 'ta' ? 'TA' : tr('Instructor')}</Badge> : null}
       />
-      <section className="rounded-[6px] border border-line bg-white">
+      <section className="rounded-[6px] border border-line bg-surface">
         {assignments.length === 0 ? (
-          <p className="px-5 py-6 text-[13px] text-muted">No assignments yet.</p>
+          <p className="px-5 py-6 text-[13px] text-muted">{tr('No assignments yet.')}</p>
         ) : (
           <ul className="divide-y divide-line">
             {assignments.map((a) => (
@@ -279,8 +282,8 @@ export function MyAssignmentPage() {
         title={a.title}
         subtitle={
           <>
-            {groupSizeLabel(a)} · opens {formatDate(a.opens_at)} · due {formatDate(a.due_at)}
-            {isGroup && a.groups_close_at && ` · groups close ${formatDate(a.groups_close_at)}`}
+            {groupSizeLabel(a)}{' '}{tr('· opens')}{' '}{formatDate(a.opens_at)}{' '}{tr('· due')}{' '}{formatDate(a.due_at)}
+            {isGroup && a.groups_close_at && ` · ${tr('groups close {date}', { date: formatDate(a.groups_close_at) })}`}
           </>
         }
       />
@@ -288,12 +291,12 @@ export function MyAssignmentPage() {
       <div className="grid gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
         <div className="space-y-6">
           {(a.instructions || a.learning_goals) && (
-            <NumberedSectionCard number="01" icon="assignment" title="What to do" subtitle="From your instructor." theme="accent">
+            <NumberedSectionCard number="01" icon="assignment" title={tr('What to do')} subtitle={tr('From your instructor.')} theme="accent">
               <div className="space-y-3 text-[14px] leading-relaxed text-ink">
                 {a.instructions && <p className="whitespace-pre-line">{a.instructions}</p>}
                 {a.learning_goals && (
                   <div className="rounded-[4px] border border-line bg-paper p-3">
-                    <p className="font-mono-code text-[11px] font-semibold tracking-wider text-muted uppercase">Learning goals</p>
+                    <p className="font-mono-code text-[11px] font-semibold tracking-wider text-muted uppercase">{tr('Learning goals')}</p>
                     <p className="mt-1 text-[13px] whitespace-pre-line">{a.learning_goals}</p>
                   </div>
                 )}
@@ -334,14 +337,14 @@ function SubmitCard({ data: d, groupReady, onSubmitted }: { data: MyAssignmentRe
     setError(null);
     const parsed = AssignmentSubmitSchema.safeParse({ repo_url: repoUrl.trim(), description, video_url: videoUrl.trim() || null });
     if (!parsed.success) {
-      setError(parsed.error.issues[0]?.message ?? 'Check the form.');
+      setError(parsed.error.issues[0]?.message ?? tr('Check the form.'));
       return;
     }
     if (a.mode === 'group' && !d.group?.locked_at) {
       const ok = await confirm({
-        title: 'Submit for your group?',
-        body: 'After the first submission nobody can join or leave the group. Any member can still send new versions until the due date.',
-        confirmLabel: 'Submit',
+        title: tr('Submit for your group?'),
+        body: tr('After the first submission nobody can join or leave the group. Any member can still send new versions until the due date.'),
+        confirmLabel: tr('Submit'),
       });
       if (!ok) return;
     }
@@ -349,7 +352,7 @@ function SubmitCard({ data: d, groupReady, onSubmitted }: { data: MyAssignmentRe
     try {
       const res = await api<{ version_no: number; submissions_left: number | null }>(`/api/me/assignments/${a.id}/submissions`, { body: parsed.data });
       toast.success(
-        `Version ${res.version_no} submitted.${res.submissions_left != null ? ` ${res.submissions_left} ${res.submissions_left === 1 ? 'version' : 'versions'} left.` : ''}`,
+        `${tr('Version {n} submitted.', { n: res.version_no })}${res.submissions_left != null ? ` ${trn('{count} version left.', '{count} versions left.', res.submissions_left)}` : ''}`,
       );
       onSubmitted();
     } catch (err) {
@@ -363,11 +366,11 @@ function SubmitCard({ data: d, groupReady, onSubmitted }: { data: MyAssignmentRe
     <NumberedSectionCard
       number="02"
       icon="upload"
-      title={a.mode === 'group' ? 'Group submission' : 'My submission'}
+      title={a.mode === 'group' ? tr('Group submission') : tr('My submission')}
       subtitle={
         d.accepting
-          ? `A public GitHub repository. It is frozen at its latest commit on ${formatDate(a.due_at)}, then graded.${d.submissions_left != null ? ` ${d.submissions_left} ${d.submissions_left === 1 ? 'version' : 'versions'} left.` : ' You can send new versions until then.'}`
-          : 'Submissions are closed.'
+          ? `${tr('A public GitHub repository. It is frozen at its latest commit on {date}, then graded.', { date: formatDate(a.due_at) })} ${d.submissions_left != null ? trn('{count} version left.', '{count} versions left.', d.submissions_left) : tr('You can send new versions until then.')}`
+          : tr('Submissions are closed.')
       }
       theme={d.submission ? 'good' : 'warn'}
     >
@@ -375,7 +378,7 @@ function SubmitCard({ data: d, groupReady, onSubmitted }: { data: MyAssignmentRe
         {d.submission && current && (
           <div className="rounded-[4px] border border-line bg-paper p-3 text-[13px]">
             <p className="text-ink">
-              Version {d.submission.versions_used}
+              {tr('Version')}{' '}{d.submission.versions_used}
               {current.repos && (
                 <>
                   {' · '}
@@ -387,7 +390,7 @@ function SubmitCard({ data: d, groupReady, onSubmitted }: { data: MyAssignmentRe
               <span className="text-muted"> · {formatDate(current.created_at)}</span>
             </p>
             {d.submission.locked_commit_sha && (
-              <p className="font-mono-code mt-1 text-[12px] text-muted">Frozen at commit {d.submission.locked_commit_sha.slice(0, 7)} · being graded</p>
+              <p className="font-mono-code mt-1 text-[12px] text-muted">{tr('Frozen at commit')}{' '}{d.submission.locked_commit_sha.slice(0, 7)}{' '}{tr('· being graded')}</p>
             )}
             {d.submission.error && <p className="mt-1 text-[12px] text-bad-ink">{d.submission.error}</p>}
           </div>
@@ -396,35 +399,35 @@ function SubmitCard({ data: d, groupReady, onSubmitted }: { data: MyAssignmentRe
         {d.accepting && !groupReady && (
           <Notice tone="warn">
             {d.group
-              ? `Your group needs at least ${a.group_min} members to submit. Invite classmates from "My group".`
-              : 'This is a group assignment: create a group or accept an invitation before submitting.'}
+              ? tr('Your group needs at least {n} members to submit. Invite classmates from "My group".', { n: a.group_min })
+              : tr('This is a group assignment: create a group or accept an invitation before submitting.')}
           </Notice>
         )}
-        {notOpenYet && <Notice tone="info">This assignment opens {formatDate(a.opens_at)}.</Notice>}
-        {!d.accepting && !d.submission && !notOpenYet && <Notice tone="error">Nothing was submitted before the due date.</Notice>}
+        {notOpenYet && <Notice tone="info">{tr('This assignment opens')}{' '}{formatDate(a.opens_at)}.</Notice>}
+        {!d.accepting && !d.submission && !notOpenYet && <Notice tone="error">{tr('Nothing was submitted before the due date.')}</Notice>}
 
         {d.accepting && groupReady && !outOfVersions && (
           <form onSubmit={(e) => void submit(e)} className="space-y-4">
-            <Field label="GitHub repository" hint="Public, like https://github.com/you/lab-3">
-              <Input required value={repoUrl} onChange={(e) => setRepoUrl(e.target.value)} placeholder="https://github.com/you/lab-3" />
+            <Field label={tr('GitHub repository')} hint={tr('Public, like https://github.com/you/lab-3')}>
+              <Input required value={repoUrl} onChange={(e) => setRepoUrl(e.target.value)} placeholder={tr('https://github.com/you/lab-3')} />
             </Field>
-            <Field label="Notes for your instructor" hint="Optional. What you built, what is missing, how to run it.">
+            <Field label={tr('Notes for your instructor')} hint={tr('Optional. What you built, what is missing, how to run it.')}>
               <Textarea rows={3} maxLength={4000} value={description} onChange={(e) => setDescription(e.target.value)} />
             </Field>
-            <Field label="Demo video" hint="Optional public YouTube link.">
-              <Input value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} placeholder="https://youtu.be/…" />
+            <Field label={tr('Demo video')} hint={tr('Optional public YouTube link.')}>
+              <Input value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} placeholder={tr('https://youtu.be/…')} />
             </Field>
             {error && <Notice tone="error">{error}</Notice>}
             <Button type="submit" loading={busy}>
-              {d.submission ? 'Submit a new version' : 'Submit'}
+              {d.submission ? tr('Submit a new version') : tr('Submit')}
             </Button>
           </form>
         )}
-        {d.accepting && outOfVersions && <Notice tone="info">You have used every version this assignment allows. The last one is graded.</Notice>}
+        {d.accepting && outOfVersions && <Notice tone="info">{tr('You have used every version this assignment allows. The last one is graded.')}</Notice>}
 
         {d.versions.length > 1 && (
           <details className="text-[12px]">
-            <summary className="cursor-pointer text-muted">All versions ({d.versions.length})</summary>
+            <summary className="cursor-pointer text-muted">{tr('All versions (')}{d.versions.length})</summary>
             <ul className="mt-2 space-y-1">
               {d.versions.map((v) => (
                 <li key={v.id}>
@@ -472,14 +475,14 @@ function MyGroupCard({ data: d, reload }: { data: MyAssignmentResponse; reload: 
 
   async function leave() {
     if (!d.group) return;
-    const ok = await confirm({ title: `Leave ${d.group.name}?`, body: 'You can create another group or accept another invitation while groups are open.', confirmLabel: 'Leave group' });
-    if (ok) await run('leave', () => api(`/api/me/groups/${d.group!.id}/leave`, { method: 'POST' }), `You left ${d.group.name}.`);
+    const ok = await confirm({ title: tr('Leave {name}?', { name: d.group.name }), body: tr('You can create another group or accept another invitation while groups are open.'), confirmLabel: tr('Leave group') });
+    if (ok) await run('leave', () => api(`/api/me/groups/${d.group!.id}/leave`, { method: 'POST' }), tr('You left {name}.', { name: d.group.name }));
   }
 
   return (
-    <section className="rounded-[6px] border border-line bg-white p-5">
+    <section className="rounded-[6px] border border-line bg-surface p-5">
       <div className="flex items-center justify-between gap-2">
-        <p className="text-[14px] font-semibold text-ink">My group</p>
+        <p className="text-[14px] font-semibold text-ink">{tr('My group')}</p>
         <span className="text-[12px] text-muted">{groupSizeLabel(a)}</span>
       </div>
 
@@ -495,25 +498,25 @@ function MyGroupCard({ data: d, reload }: { data: MyAssignmentResponse; reload: 
             ))}
             {invited.map((m) => (
               <li key={m.user_id} className="text-muted">
-                {m.display_name} <span className="text-[11px]">(invited)</span>
+                {m.display_name} <span className="text-[11px]">{tr('(invited)')}</span>
               </li>
             ))}
           </ul>
           {d.group.locked_at ? (
-            <p className="text-[12px] text-muted">The group closed when it first submitted ({formatDate(d.group.locked_at)}). Ask your instructor for changes.</p>
+            <p className="text-[12px] text-muted">{tr('The group closed when it first submitted (')}{formatDate(d.group.locked_at)}{tr('). Ask your instructor for changes.')}</p>
           ) : d.groups_open ? (
             <>
               {room > 0 && (
                 <div className="space-y-2 border-t border-line pt-3">
                   <p className="text-[12px] text-muted">
-                    Invite a classmate without a group ({room} {room === 1 ? 'place' : 'places'} left).
+                    {tr('Invite a classmate without a group (')}{room} {room === 1 ? 'place' : 'places'}{' '}{tr('left).')}
                   </p>
                   {d.classmates.length === 0 ? (
-                    <p className="text-[12px] text-muted">Every classmate already has a group.</p>
+                    <p className="text-[12px] text-muted">{tr('Every classmate already has a group.')}</p>
                   ) : (
                     <div className="flex gap-2">
-                      <Select aria-label="Classmate to invite" value={invitee} onChange={(e) => setInvitee(e.target.value)} className="h-9 text-[13px]">
-                        <option value="">Choose a classmate…</option>
+                      <Select aria-label={tr('Classmate to invite')} value={invitee} onChange={(e) => setInvitee(e.target.value)} className="h-9 text-[13px]">
+                        <option value="">{tr('Choose a classmate…')}</option>
                         {d.classmates
                           .filter((c) => !invited.some((m) => m.user_id === c.user_id))
                           .map((c) => (
@@ -527,23 +530,23 @@ function MyGroupCard({ data: d, reload }: { data: MyAssignmentResponse; reload: 
                         disabled={!invitee || !!busy}
                         loading={busy === 'invite'}
                         onClick={() =>
-                          void run('invite', () => api(`/api/me/groups/${d.group!.id}/invites`, { body: { user_id: invitee } }), 'Invitation sent. They see it in My courses.').then(() =>
+                          void run('invite', () => api(`/api/me/groups/${d.group!.id}/invites`, { body: { user_id: invitee } }), tr('Invitation sent. They see it in My courses.')).then(() =>
                             setInvitee(''),
                           )
                         }
                       >
-                        Invite
+                        {tr('Invite')}
                       </Button>
                     </div>
                   )}
                 </div>
               )}
               <Button variant="ghost" className="px-0 text-[12px]" loading={busy === 'leave'} disabled={!!busy} onClick={() => void leave()}>
-                Leave the group
+                {tr('Leave the group')}
               </Button>
             </>
           ) : (
-            <p className="text-[12px] text-muted">Groups are closed.</p>
+            <p className="text-[12px] text-muted">{tr('Groups are closed.')}</p>
           )}
         </div>
       ) : (
@@ -553,21 +556,21 @@ function MyGroupCard({ data: d, reload }: { data: MyAssignmentResponse; reload: 
               {d.invites.map((g) => (
                 <li key={g.id} className="rounded-[4px] border border-accent-ui bg-accent-soft p-3">
                   <p className="text-ink">
-                    Invitation to <strong>{g.name}</strong>
+                    {tr('Invitation to')}{' '}<strong>{g.name}</strong>
                   </p>
                   <p className="text-[12px] text-muted">
                     {g.members
                       .filter((m) => m.status === 'accepted')
                       .map((m) => m.display_name)
-                      .join(', ') || 'No members yet'}
+                      .join(', ') || tr('No members yet')}
                   </p>
                   {d.groups_open && (
                     <div className="mt-2 flex gap-2">
                       <Button className="px-3 py-1 text-[12px]" loading={responding === `${g.id}-true`} disabled={!!responding} onClick={() => void respond(g.id, g.name, true)}>
-                        Accept
+                        {tr('Accept')}
                       </Button>
                       <Button variant="secondary" className="px-3 py-1 text-[12px]" loading={responding === `${g.id}-false`} disabled={!!responding} onClick={() => void respond(g.id, g.name, false)}>
-                        Decline
+                        {tr('Decline')}
                       </Button>
                     </div>
                   )}
@@ -579,18 +582,18 @@ function MyGroupCard({ data: d, reload }: { data: MyAssignmentResponse; reload: 
             <form
               onSubmit={(e) => {
                 e.preventDefault();
-                void run('create', () => api(`/api/me/assignments/${a.id}/groups`, { body: { name: name.trim() } }), `Group ${name.trim()} created. Invite your classmates.`);
+                void run('create', () => api(`/api/me/assignments/${a.id}/groups`, { body: { name: name.trim() } }), tr('Group {name} created. Invite your classmates.', { name: name.trim() }));
               }}
               className="space-y-2"
             >
-              <p className="text-muted">You are not in a group yet. Create one and invite classmates, or accept an invitation.</p>
-              <Input required maxLength={80} aria-label="Group name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Group name" />
+              <p className="text-muted">{tr('You are not in a group yet. Create one and invite classmates, or accept an invitation.')}</p>
+              <Input required maxLength={80} aria-label={tr('Group name')} value={name} onChange={(e) => setName(e.target.value)} placeholder={tr('Group name')} />
               <Button type="submit" loading={busy === 'create'} disabled={!name.trim()}>
-                Create group
+                {tr('Create group')}
               </Button>
             </form>
           ) : (
-            <Notice tone="warn">Groups are closed and you are not in one. Ask your instructor to place you in a group.</Notice>
+            <Notice tone="warn">{tr('Groups are closed and you are not in one. Ask your instructor to place you in a group.')}</Notice>
           )}
         </div>
       )}
@@ -600,8 +603,8 @@ function MyGroupCard({ data: d, reload }: { data: MyAssignmentResponse; reload: 
 
 function RubricCard({ assignment: a }: { assignment: AssignmentView }) {
   return (
-    <section className="rounded-[6px] border border-line bg-white p-5">
-      <p className="text-[14px] font-semibold text-ink">How it is graded</p>
+    <section className="rounded-[6px] border border-line bg-surface p-5">
+      <p className="text-[14px] font-semibold text-ink">{tr('How it is graded')}</p>
       <ul className="mt-2 space-y-2 text-[13px]">
         {a.rubric_json.map((c) => (
           <li key={c.key}>
@@ -615,7 +618,7 @@ function RubricCard({ assignment: a }: { assignment: AssignmentView }) {
       </ul>
       {a.interviews_enabled && (
         <p className="mt-3 border-t border-line pt-3 text-[12px] text-muted">
-          After grading you take a short voice interview about {a.mode === 'group' ? 'the files you wrote (up to 2 questions)' : 'your code'}.
+          {tr('After grading you take a short voice interview about')}{' '}{a.mode === 'group' ? tr('the files you wrote (up to 2 questions)') : tr('your code')}.
         </p>
       )}
     </section>
@@ -625,11 +628,11 @@ function RubricCard({ assignment: a }: { assignment: AssignmentView }) {
 function Results({ results: r, assignment: a }: { results: NonNullable<MyAssignmentResponse['results']>; assignment: AssignmentView }) {
   const total = r.total ?? weightedTotal(a.rubric_json, r.scores);
   return (
-    <NumberedSectionCard number="02" icon="grading" title="Results" subtitle="Your grade and feedback, published by your instructor." theme="good">
+    <NumberedSectionCard number="02" icon="grading" title={tr('Results')} subtitle={tr('Your grade and feedback, published by your instructor.')} theme="good">
       <div className="space-y-5">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <p className="font-mono-code text-[11px] font-semibold tracking-wider text-muted uppercase">Grade</p>
+            <p className="font-mono-code text-[11px] font-semibold tracking-wider text-muted uppercase">{tr('Grade')}</p>
             <p className="font-mono-code text-[40px] leading-none font-bold text-ink">
               {r.grade != null ? r.grade.toFixed(1) : '—'}
               <span className="text-[14px] font-normal text-muted"> / 10</span>
@@ -637,7 +640,7 @@ function Results({ results: r, assignment: a }: { results: NonNullable<MyAssignm
           </div>
           {r.adjustment && (
             <p className="max-w-sm text-[12px] text-muted">
-              Your instructor set your own grade (the group got {total?.toFixed(1) ?? '—'}).{r.adjustment.note && ` ${r.adjustment.note}`}
+              {tr('Your instructor set your own grade (the group got')}{' '}{total?.toFixed(1) ?? '—'}).{r.adjustment.note && ` ${r.adjustment.note}`}
             </p>
           )}
         </div>
@@ -662,7 +665,7 @@ function Results({ results: r, assignment: a }: { results: NonNullable<MyAssignm
           <div className="space-y-3 border-t border-line pt-4 text-[13px]">
             {r.feedback.strengths_json.length > 0 && (
               <div>
-                <p className="font-semibold text-ink">What went well</p>
+                <p className="font-semibold text-ink">{tr('What went well')}</p>
                 <ul className="mt-1 list-disc space-y-1 pl-5 text-muted">
                   {r.feedback.strengths_json.map((x) => (
                     <li key={x}>{x}</li>
@@ -672,7 +675,7 @@ function Results({ results: r, assignment: a }: { results: NonNullable<MyAssignm
             )}
             {r.feedback.improvements_json.length > 0 && (
               <div>
-                <p className="font-semibold text-ink">To improve</p>
+                <p className="font-semibold text-ink">{tr('To improve')}</p>
                 <ul className="mt-1 space-y-2">
                   {r.feedback.improvements_json.map((x) => (
                     <li key={x.what} className="rounded-[4px] border border-line bg-paper p-2.5">
@@ -686,7 +689,7 @@ function Results({ results: r, assignment: a }: { results: NonNullable<MyAssignm
             )}
             {r.feedback.next_steps_json?.length > 0 && (
               <div>
-                <p className="font-semibold text-ink">Next steps</p>
+                <p className="font-semibold text-ink">{tr('Next steps')}</p>
                 <ol className="mt-1 list-decimal space-y-1 pl-5 text-muted">
                   {r.feedback.next_steps_json.map((x) => (
                     <li key={x}>{x}</li>
@@ -707,12 +710,16 @@ function InterviewCard({ data: d }: { data: MyAssignmentResponse }) {
   const toast = useToast();
   const [busy, setBusy] = useState(false);
   const isGroup = d.assignment.mode === 'group';
+  // Group interviews use the language the teacher set; in an individual assignment the student may choose.
+  const [locale, setLocale] = useState<Locale>(d.assignment.language);
 
   async function start() {
     if (!d.submission) return;
     setBusy(true);
     try {
-      const res = await api<{ interview: { id: string } }>('/api/interviews', { body: { assignment_submission_id: d.submission.id } });
+      const res = await api<{ interview: { id: string } }>('/api/interviews', {
+        body: { assignment_submission_id: d.submission.id, ...(isGroup ? {} : { locale }) },
+      });
       navigate(`/interview/${res.interview.id}`);
     } catch (err) {
       const existing = existingInterviewId(err);
@@ -726,19 +733,26 @@ function InterviewCard({ data: d }: { data: MyAssignmentResponse }) {
     <NumberedSectionCard
       number="03"
       icon="mic"
-      title="Voice interview"
-      subtitle={isGroup ? 'About 90 seconds, up to 2 questions on the files you wrote. Each member takes their own.' : 'About 3 minutes, 4 or 5 questions about your own code.'}
+      title={tr('Voice interview')}
+      subtitle={isGroup ? tr('About 90 seconds, up to 2 questions on the files you wrote. Each member takes their own.') : tr('About 3 minutes, 4 or 5 questions about your own code.')}
       theme="accent"
     >
       {d.interview ? (
         <Link to={`/interview/${d.interview.id}`} className={linkButton}>
-          {d.interview.status === 'completed' ? 'See my interview report' : 'Open my interview'}
+          {d.interview.status === 'completed' ? tr('See my interview report') : tr('Open my interview')}
         </Link>
       ) : (
-        <Button loading={busy} onClick={() => void start()}>
-          <span className="material-symbols-outlined text-[17px]">mic</span>
-          <span>Prepare my interview</span>
-        </Button>
+        <div className="space-y-3">
+          {isGroup ? (
+            <p className="text-[12px] text-muted">{tr('Interview language: {language} (set by your instructor).', { language: LOCALE_NAME[d.assignment.language] })}</p>
+          ) : (
+            <InterviewLanguageField value={locale} onChange={setLocale} />
+          )}
+          <Button loading={busy} onClick={() => void start()}>
+            <span className="material-symbols-outlined text-[17px]">mic</span>
+            <span>{tr('Prepare my interview')}</span>
+          </Button>
+        </div>
       )}
     </NumberedSectionCard>
   );

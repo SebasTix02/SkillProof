@@ -1,3 +1,6 @@
+import { tr } from '../i18n';
+import { LanguageSelect } from './LanguageControl';
+import { ThemeToggle } from './ThemeControl';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
@@ -49,7 +52,7 @@ function Mark({ dark = false }: { dark?: boolean }) {
     <div
       className={cx(
         'flex h-7 w-7 shrink-0 items-center justify-center rounded-[4px] border transition-colors',
-        dark ? 'border-dark-hairline bg-dark-surface group-hover:border-accent-on-dark' : 'border-line bg-white group-hover:border-accent',
+        dark ? 'border-dark-hairline bg-dark-surface group-hover:border-accent-on-dark' : 'border-line bg-surface group-hover:border-accent',
       )}
     >
       <svg className={cx('h-4 w-4', dark ? 'text-accent-on-dark' : 'text-accent')} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
@@ -74,7 +77,7 @@ export function TopProgress() {
   const shown = useDelayed(pending > 0);
   if (!shown) return null;
   return (
-    <div role="progressbar" aria-label="Loading" className="no-print pointer-events-none fixed inset-x-0 top-0 z-[70] h-[3px] overflow-hidden bg-accent/15">
+    <div role="progressbar" aria-label={tr('Loading')} className="no-print pointer-events-none fixed inset-x-0 top-0 z-[70] h-[3px] overflow-hidden bg-accent/15">
       <div className="top-progress-bar" />
     </div>
   );
@@ -105,7 +108,7 @@ function SidebarBody({
 }) {
   const { me, org, selectOrg, signOut } = useAuth();
   const orgs = me?.organizations ?? [];
-  const name = me?.profile.display_name || me?.email || 'Account';
+  const name = me?.profile.display_name || me?.email || tr('Account');
   const activePage = activeParent(sections, active);
 
   // A page with sub-items opens by itself when it is the current page; the chevron opens or closes it by hand.
@@ -186,7 +189,7 @@ function SidebarBody({
     <div className="flex h-full flex-col bg-dark-canvas text-dark-ink">
       <div className={cx('flex h-14 shrink-0 items-center border-b border-dark-hairline', collapsed ? 'justify-center px-2' : 'px-4')}>
         {collapsed ? (
-          <Link to="/events" aria-label="SkillProof home" className={cx('group rounded-[4px]', focusRing)}>
+          <Link to="/events" aria-label={tr('SkillProof home')} className={cx('group rounded-[4px]', focusRing)}>
             <Mark dark />
           </Link>
         ) : (
@@ -194,17 +197,17 @@ function SidebarBody({
         )}
       </div>
 
-      <nav aria-label="Main" className="min-h-0 flex-1 overflow-y-auto px-2 py-4">
+      <nav aria-label={tr('Main')} className="min-h-0 flex-1 overflow-y-auto px-2 py-4">
         {sections.map((section, i) => (
           <div key={section.key} className={cx(i > 0 && 'mt-4 border-t border-dark-hairline pt-4')}>
             {!collapsed && (
               <p className="font-mono-code mb-2 truncate px-3 text-[10px] font-semibold tracking-[0.14em] text-dark-muted uppercase" title={section.title}>
-                {section.key === 'org' ? `Org // ${section.title}` : section.title}
+                {section.key === 'org' ? tr('Org // {name}', { name: section.title }) : section.title}
               </p>
             )}
             {section.key === 'org' && orgs.length > 1 && !collapsed && (
               <label className="mb-2 block px-2">
-                <span className="sr-only">Organization</span>
+                <span className="sr-only">{tr('Organization')}</span>
                 <select
                   value={org?.id ?? ''}
                   onChange={(e) => selectOrg(e.target.value)}
@@ -251,7 +254,7 @@ function SidebarBody({
                           type="button"
                           aria-expanded={open}
                           aria-controls={subId}
-                          aria-label={`${open ? 'Hide' : 'Show'} sections of ${item.label}`}
+                          aria-label={(open ? tr('Hide sections of {page}', { page: item.label }) : tr('Show sections of {page}', { page: item.label }))}
                           onClick={() => setToggled((t) => ({ ...t, [item.key]: !open }))}
                           className={cx('flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-[4px] text-dark-muted hover:bg-dark-surface hover:text-dark-ink', focusRing)}
                         >
@@ -341,8 +344,8 @@ function SidebarBody({
           <button
             type="button"
             onClick={() => void signOut()}
-            title={collapsed ? 'Sign out' : undefined}
-            aria-label={collapsed ? 'Sign out' : undefined}
+            title={collapsed ? tr('Sign out') : undefined}
+            aria-label={collapsed ? tr('Sign out') : undefined}
             className={cx(
               'flex flex-1 cursor-pointer items-center gap-2 rounded-[4px] border border-dark-hairline py-1.5 text-[12px] font-medium text-dark-muted hover:bg-dark-surface hover:text-dark-ink',
               focusRing,
@@ -350,14 +353,18 @@ function SidebarBody({
             )}
           >
             <Symbol name="logout" className="text-[18px]" />
-            {!collapsed && <span>Sign out</span>}
+            {!collapsed && <span>{tr('Sign out')}</span>}
           </button>
+          <ThemeToggle onDark compact />
+        </div>
+        <div className={cx('mt-1 flex', collapsed && 'justify-center')}>
+          {!collapsed && <LanguageSelect onDark />}
           {onToggleCollapsed && (
             <button
               type="button"
               onClick={onToggleCollapsed}
-              aria-label={collapsed ? 'Expand menu' : 'Collapse menu'}
-              title={collapsed ? 'Expand menu' : 'Collapse menu'}
+              aria-label={collapsed ? tr('Expand menu') : tr('Collapse menu')}
+              title={collapsed ? tr('Expand menu') : tr('Collapse menu')}
               className={cx('flex cursor-pointer items-center justify-center rounded-[4px] border border-dark-hairline px-2 py-1.5 text-dark-muted hover:bg-dark-surface hover:text-dark-ink', focusRing)}
             >
               <Symbol name={collapsed ? 'left_panel_open' : 'left_panel_close'} className="text-[18px]" />
@@ -518,9 +525,9 @@ export function AppShell({ children }: { children: ReactNode }) {
       <TopProgress />
       <a
         href="#main"
-        className="sr-only z-[60] rounded-[4px] bg-accent px-3 py-2 text-[13px] font-medium text-white focus:not-sr-only focus:fixed focus:top-2 focus:left-2"
+        className="sr-only z-[60] rounded-[4px] bg-accent px-3 py-2 text-[13px] font-medium text-on-accent focus:not-sr-only focus:fixed focus:top-2 focus:left-2"
       >
-        Skip to content
+        {tr('Skip to content')}
       </a>
 
       {/* Phones and tablets: a minimal dark top bar with the menu button. */}
@@ -532,7 +539,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           onClick={() => setOpen(true)}
           aria-expanded={open}
           aria-controls="app-menu"
-          aria-label="Open menu"
+          aria-label={tr('Open menu')}
           className={cx('flex h-9 w-9 cursor-pointer items-center justify-center rounded-[4px] border border-dark-hairline text-dark-ink hover:bg-dark-surface', focusRing)}
         >
           <Symbol name="menu" />
@@ -541,12 +548,12 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       {open && (
         <div className="no-print fixed inset-0 z-50 lg:hidden">
-          <button type="button" aria-label="Close menu" tabIndex={-1} onClick={() => setOpen(false)} className="absolute inset-0 h-full w-full cursor-default bg-ink/50" />
-          <div ref={drawer} id="app-menu" role="dialog" aria-modal="true" aria-label="Menu" className="absolute inset-y-0 left-0 w-[288px] max-w-[85vw]">
+          <button type="button" aria-label={tr('Close menu')} tabIndex={-1} onClick={() => setOpen(false)} className="absolute inset-0 h-full w-full cursor-default bg-ink/50" />
+          <div ref={drawer} id="app-menu" role="dialog" aria-modal="true" aria-label={tr('Menu')} className="absolute inset-y-0 left-0 w-[288px] max-w-[85vw]">
             <button
               type="button"
               onClick={() => setOpen(false)}
-              aria-label="Close menu"
+              aria-label={tr('Close menu')}
               className={cx('absolute top-2.5 right-2.5 z-10 flex h-9 w-9 cursor-pointer items-center justify-center rounded-[4px] border border-dark-hairline text-dark-ink hover:bg-dark-surface', focusRing)}
             >
               <Symbol name="close" />

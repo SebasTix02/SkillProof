@@ -293,6 +293,35 @@ Courses are their own product, apart from events (`20261120000001_courses_domain
 - Staff screens: Courses (overview, roster, assignments, gradebook), the assignment console (submissions, groups,
   missing students, similarity, grading controls), the submission page and Integrity (Events / Courses).
 
+## Content similarity
+
+Submissions of the same event or course assignment are compared by their code, without calling the model
+(`apps/api/src/engine/fingerprint.ts`, the winnowing method behind MOSS).
+
+- Each code file is normalized (comments, names, strings and numbers removed), cut into runs of 25 tokens and
+  winnowed (window 4). Renaming variables or reformatting does not hide a copy.
+- Fingerprints are computed while the repository is analysed and cached by git blob sha (`file_fingerprints`,
+  `analysis_files`), so a file is never fingerprinted twice.
+- When judging ends, a background job compares every pair at once through one index. Fingerprints in more than 40%
+  of the submissions (template code) and those of the starter code repository are ignored. A pair is flagged
+  (`shared_code`) when it shares 30% of the smaller submission or one block of 40 lines; identical files are flagged
+  too. The 50 longest fragments are stored with their lines.
+- The forensic comparison shows both sides of each fragment at the frozen commits, for events
+  (`/org/events/:id/compare`) and course assignments (`/org/courses/:courseId/assignments/:id/compare`).
+  "Compare the code again" recomputes (for example after setting the starter code).
+
+## Dark mode and languages
+
+- Light, Dark or System, per browser: the switch in the side menu and the public header, or Account → Appearance
+  & language. The same design tokens get dark values (`apps/web/src/index.css`); printing is always light.
+- English or Spanish, per person (`profiles.locale`; new accounts take the browser's language). The selector is in
+  the public header (sign-up and log-in), the side menu and Account. Every screen text is written once in English
+  with `tr()`; Spanish lives in `apps/web/src/i18n/esText.ts`, and a test fails when a text has no translation.
+- The AI follows the language too. Events and course assignments choose the language of the judge's feedback and of
+  the interviews about their submissions. Event and group assignment interviews always use it; in an individual
+  assignment or a personal interview the candidate can choose. The English prompts are unchanged; Spanish only
+  switches the language line.
+
 ## Known limits
 
 - **Not yet tested against live services.** The unit tests, database checks, typecheck and build pass. No run
@@ -300,12 +329,12 @@ Courses are their own product, apart from events (`20261120000001_courses_domain
   the scoring of YouTube videos in particular need a first real run.
 - The interview transcript is assembled in the browser, so a determined candidate could alter it. A server
   relay for the audio session would close this.
-- Similarity flags cover shared repositories and shared fork parents. Comparing file contents or embeddings is
-  not built yet.
+- Similarity compares submissions of the same event or assignment with each other, not with code on the internet,
+  and code rewritten by hand with another structure is not detected (the `embedding` signal is not built).
 - Only public GitHub repositories are supported.
 - The Vercel setup has not been deployed yet. Background jobs on Vercel in particular need a first real run.
 - Not built yet: sign in with GitHub, installable PWA.
 - Organizer suite, judge workspace, similarity forensics and course mode have their data model and API
   (`20261117000004_screens`): members and invitations, usage, audit trail, judge assignments and reviews,
   integrity decisions, courses and rosters. Some of these screens still show sample data until they are wired
-  to it. Only the data model exists for billing, invitation and result emails, and file-level similarity matches.
+  to it. Only the data model exists for billing and for invitation and result emails (sending needs an SMTP provider).

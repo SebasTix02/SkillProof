@@ -1,3 +1,4 @@
+import { tr } from '../i18n';
 import { useMemo, useState } from 'react';
 import { Button, Notice, NumberedSectionCard, Select, SkeletonTable } from './shared';
 import { useToast } from './toast';
@@ -33,7 +34,7 @@ export function JudgeAssignments({ eventId, submissions }: { eventId: string; su
     for (const a of assigned.data?.assignments ?? []) map.set(a.judge_id, [...(map.get(a.judge_id) ?? []), a]);
     return map;
   }, [assigned.data]);
-  const teamName = (sid: string) => submissions.find((s) => s.id === sid)?.team_name ?? 'Submission';
+  const teamName = (sid: string) => submissions.find((s) => s.id === sid)?.team_name ?? tr('Submission');
   const judgeList = judges.data?.judges ?? [];
 
   async function change(method: 'POST' | 'DELETE', judge: string, ids: string[], success: string) {
@@ -44,7 +45,7 @@ export function JudgeAssignments({ eventId, submissions }: { eventId: string; su
       setPicked(new Set());
       await assigned.reload();
     } catch (err) {
-      toast.error(`Could not change the assignments. ${errorMessage(err)}`);
+      toast.error(tr('Could not change the assignments. {error}', { error: errorMessage(err) }));
     } finally {
       setBusy(false);
     }
@@ -63,9 +64,9 @@ export function JudgeAssignments({ eventId, submissions }: { eventId: string; su
       id="section-judges"
       number="J"
       icon="gavel"
-      title="Judge Assignments"
-      subtitle="Choose who reviews which submission. Judges score them in their own workspace, apart from the AI."
-      sectionTag={`${assigned.data?.assignments.length ?? 0} ASSIGNMENTS`}
+      title={tr('Judge Assignments')}
+      subtitle={tr('Choose who reviews which submission. Judges score them in their own workspace, apart from the AI.')}
+      sectionTag={tr('{n} ASSIGNMENTS', { n: assigned.data?.assignments.length ?? 0 })}
       theme="accent"
     >
       {judges.loading || assigned.loading ? (
@@ -73,18 +74,18 @@ export function JudgeAssignments({ eventId, submissions }: { eventId: string; su
       ) : judges.error || assigned.error ? (
         <Notice tone="error">{judges.error ?? assigned.error}</Notice>
       ) : judgeList.length === 0 ? (
-        <p className="text-[13px] text-muted">No one in your organization can review yet. Invite judges from Organization settings.</p>
+        <p className="text-[13px] text-muted">{tr('No one in your organization can review yet. Invite judges from Organization settings.')}</p>
       ) : submissions.length === 0 ? (
-        <p className="text-[13px] text-muted">There are no submissions to assign yet.</p>
+        <p className="text-[13px] text-muted">{tr('There are no submissions to assign yet.')}</p>
       ) : (
         <div className="space-y-4">
           <div className="flex flex-wrap items-end gap-3">
             <label className="space-y-1">
-              <span className="font-mono-code block text-[11px] font-semibold tracking-wider text-ink uppercase">Judge</span>
+              <span className="font-mono-code block text-[11px] font-semibold tracking-wider text-ink uppercase">{tr('Judge')}</span>
               <Select value={judgeId} onChange={(e) => setJudgeId(e.target.value)} className="h-9 w-64 bg-paper text-[12px]">
-                <option value="">Choose a judge…</option>
+                <option value="">{tr('Choose a judge…')}</option>
                 {judgeList.map((j) => (
-                  <option key={j.user_id} value={j.user_id}>{j.display_name || 'Unnamed'} ({j.roles.join(', ')})</option>
+                  <option key={j.user_id} value={j.user_id}>{j.display_name || tr('Unnamed')} ({j.roles.join(', ')})</option>
                 ))}
               </Select>
             </label>
@@ -93,10 +94,10 @@ export function JudgeAssignments({ eventId, submissions }: { eventId: string; su
               disabled={!judgeId || picked.size === 0 || busy} loading={busy}
               onClick={() => void change('POST', judgeId, [...picked], `${picked.size} submission${picked.size === 1 ? '' : 's'} assigned.`)}
             >
-              Assign {picked.size || ''} selected
+              {tr('Assign')}{' '}{picked.size || ''} selected
             </Button>
             <button type="button" className="text-[12px] font-semibold text-accent hover:underline" onClick={() => setPicked(new Set(submissions.map((s) => s.id)))}>
-              Select all
+              {tr('Select all')}
             </button>
           </div>
 
@@ -118,17 +119,17 @@ export function JudgeAssignments({ eventId, submissions }: { eventId: string; su
             <div className="space-y-2 border-t border-line pt-3">
               {[...byJudge.entries()].map(([jid, list]) => (
                 <div key={jid} className="text-[12px]">
-                  <span className="font-semibold text-ink">{list[0]?.profiles?.display_name || judgeList.find((j) => j.user_id === jid)?.display_name || 'Judge'}</span>
+                  <span className="font-semibold text-ink">{list[0]?.profiles?.display_name || judgeList.find((j) => j.user_id === jid)?.display_name || tr('Judge')}</span>
                   <span className="text-muted"> · {list.length} assigned</span>
                   <div className="mt-1 flex flex-wrap gap-1.5">
                     {list.map((a) => (
-                      <span key={a.submission_id} className="font-mono-code inline-flex items-center gap-1 rounded-[3px] border border-line bg-white px-1.5 py-0.5 text-[11px]">
+                      <span key={a.submission_id} className="font-mono-code inline-flex items-center gap-1 rounded-[3px] border border-line bg-surface px-1.5 py-0.5 text-[11px]">
                         {teamName(a.submission_id)}
                         <button
                           type="button"
-                          aria-label={`Unassign ${teamName(a.submission_id)}`}
+                          aria-label={tr('Unassign {name}', { name: teamName(a.submission_id) })}
                           disabled={busy}
-                          onClick={() => void change('DELETE', jid, [a.submission_id], 'Assignment removed.')}
+                          onClick={() => void change('DELETE', jid, [a.submission_id], tr('Assignment removed.'))}
                           className="text-muted hover:text-bad"
                         >
                           ×

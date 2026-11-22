@@ -39,4 +39,19 @@ describe('colors come from the design system', () => {
     const offenders = files.filter((f) => /\[#[0-9a-fA-F]{3,8}\]|['"`]#[0-9a-fA-F]{3,8}['"`]/.test(readFileSync(f, 'utf8')));
     expect(offenders).toEqual([]);
   });
+
+  it('no component paints a fixed white or black surface (dark mode uses surface, paper and well)', () => {
+    const root = join(__dirname, '../..');
+    const files: string[] = [];
+    const walk = (dir: string) => {
+      for (const e of readdirSync(dir, { withFileTypes: true })) {
+        if (e.isDirectory()) walk(join(dir, e.name));
+        else if (/\.(tsx?)$/.test(e.name) && !/\.test\./.test(e.name)) files.push(join(dir, e.name));
+      }
+    };
+    walk(root);
+    // bg-white/10 and similar tints on the dark banners are fine; a solid bg-white is not (after:bg-white: switch knob).
+    const offenders = files.filter((f) => /(?<![\w:/-])(?:hover:|focus:)?bg-(?:white|black)(?![\w/-])/.test(readFileSync(f, 'utf8')));
+    expect(offenders).toEqual([]);
+  });
 });

@@ -1,3 +1,4 @@
+import { enqueue } from './queue.js';
 import { RubricSchema, type ActivityEntry } from '@skillproof/shared';
 import { analyzeRepo, type RepoRow } from '../engine/analyze.js';
 import { Activity, withActivity } from '../lib/activity.js';
@@ -109,8 +110,13 @@ export async function settleContest(store: ContestStore, contestId: string): Pro
     .in('status', ['queued', 'analyzing', 'paused']);
   if (error) throw new Error(`Database error: ${error.message}`);
   // Paused submissions keep it in judging; canceled ones do not.
-  if ((count ?? 0) === 0)
-    must(await db().from(store.contests).update({ status: 'review', judging_paused_at: null }).eq('id', contestId).eq('status', 'judging'));
+  if ((count ?? 0) === 0) {
+    const moved = must(
+      await db().from(store.contests).update({ status: 'review', judging_paused_at: null }).eq('id', contestId).eq('status', 'judging').select('id'),
+    ) as unknown[];
+    // Every submission is judged: compare their code (in the background; it only reads fingerprints).
+    if (moved.length) await enqueue(store.kind === 'event' ? 'similarity-event' : 'similarity-assignment', contestId).catch((err) => console.warn('Similarity job not queued:', err));
+  }
 }
 
 /**
@@ -163,10 +169,10 @@ export async function closeDueContests(store: ContestStore): Promise<number> {
 }
 
 /** What the grader is told about an assignment and who submitted it. */
-async function courseSubject(sub: SubmissionRow): Promise<{ label: string; spec: 'course_individual' | 'course_group'; course: CourseContext; rubricJson: unknown; start: string }> {
+async function courseSubject(sub: SubmissionRow): Promise<{ label: string; spec: 'course_individual' | 'course_group'; course: CourseContext; rubricJson: unknown; start: string; language: 'en' | 'es' }> {
   const a = must(
-    await db().from('course_assignments').select('title, instructions, learning_goals, mode, rubric_json, opens_at').eq('id', sub.assignment_id!).single(),
-  ) as { title: string; instructions: string; learning_goals: string; mode: 'individual' | 'group'; rubric_json: unknown; opens_at: string };
+    await db().from('course_assignments').select('title, instructions, learning_goals, mode, rubric_json, opens_at, language').eq('id', sub.assignment_id!).single(),
+  ) as { title: string; instructions: string; learning_goals: string; mode: 'individual' | 'group'; rubric_json: unknown; opens_at: string; language: 'en' | 'es' };
   const course: CourseContext = { title: a.title, instructions: a.instructions, learningGoals: a.learning_goals };
   if (sub.group_id) {
     const group = must(await db().from('assignment_groups').select('name').eq('id', sub.group_id).single()) as { name: string };
@@ -178,10 +184,10 @@ async function courseSubject(sub: SubmissionRow): Promise<{ label: string; spec:
         .eq('status', 'accepted'),
     ) as unknown as { profiles: { display_name: string; github_login: string | null } | null }[];
     course.members = members.map((m) => ({ name: m.profiles?.display_name ?? 'Student', login: m.profiles?.github_login ?? null, commits: null }));
-    return { label: group.name, spec: scoringSpecFor('assignment', a.mode) as 'course_group', course, rubricJson: a.rubric_json, start: a.opens_at };
+    return { label: group.name, spec: scoringSpecFor('assignment', a.mode) as 'course_group', course, rubricJson: a.rubric_json, start: a.opens_at, language: a.language };
   }
   const student = must(await db().from('profiles').select('display_name').eq('id', sub.student_id!).single()) as { display_name: string };
-  return { label: student.display_name || 'Student', spec: 'course_individual', course, rubricJson: a.rubric_json, start: a.opens_at };
+  return { label: student.display_name || 'Student', spec: 'course_individual', course, rubricJson: a.rubric_json, start: a.opens_at, language: a.language };
 }
 
 /** Analyses the frozen commit of one submission and scores it. Runs as a background job. */
@@ -220,15 +226,22 @@ export async function judgeContestSubmission(store: ContestStore, submissionId: 
       const usage = { kind: store.kind === 'event' ? 'judge' : 'grade', organizationId: sub.organization_id };
       let rubricJson: unknown;
       let start: string;
+      let language: 'en' | 'es' = 'en';
       let subject: Awaited<ReturnType<typeof courseSubject>> | null = null;
       if (store.kind === 'event') {
-        const event = must(await db().from('events').select('rubric_json, starts_at').eq('id', contestId).single()) as { rubric_json: unknown; starts_at: string };
+        const event = must(await db().from('events').select('rubric_json, starts_at, language').eq('id', contestId).single()) as {
+          rubric_json: unknown;
+          starts_at: string;
+          language: 'en' | 'es';
+        };
         rubricJson = event.rubric_json;
         start = event.starts_at;
+        language = event.language;
       } else {
         subject = await courseSubject(sub);
         rubricJson = subject.rubricJson;
         start = subject.start;
+        language = subject.language;
       }
       const { analysis } = await analyzeRepo(version.repos.owner, version.repos.name, { sha: sub.locked_commit_sha!, eventStart: start, usage });
       if (subject?.course.members) {
@@ -248,6 +261,7 @@ export async function judgeContestSubmission(store: ContestStore, submissionId: 
         spec: subject?.spec ?? 'hackathon',
         course: subject?.course,
         store: { scores: store.scores, feedback: store.feedback },
+        language,
       });
       await activity.checkpoint?.();
       // Only if nobody paused or canceled it meanwhile.

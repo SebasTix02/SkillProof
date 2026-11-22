@@ -1,3 +1,4 @@
+import { interviewLocale } from '../services/language.js';
 import { CreateInterviewSchema, FinishInterviewSchema, describeFocusEvents, MAX_INTERVIEW_PAUSE_MS, parseGithubUrl, type QuestionPlan } from '@skillproof/shared';
 import type { FastifyInstance } from 'fastify';
 import { env } from '../env.js';
@@ -49,6 +50,11 @@ async function interviewsOnCommit(userId: string, repoId: string, commitSha: str
   ) as ExistingInterview[];
 }
 
+/** The candidate tried to choose the language of an interview whose organizer already set it. */
+const languageFixed = (): never => {
+  throw badRequest('language_fixed', 'The organizer set the language of this interview, so it cannot be changed.');
+};
+
 const interviewExists = (id: string | null, commitSha: string) =>
   conflict(
     'interview_exists_for_commit',
@@ -67,17 +73,19 @@ export async function interviewRoutes(app: FastifyInstance): Promise<void> {
     let submissionId: string | null = null;
     let assignmentSubmissionId: string | null = null;
     let organizationId: string | null = null;
+    // Event and assignment interviews speak the language the organizer chose; personal ones, the candidate's.
+    let locale: 'en' | 'es' = 'en';
 
     if (input.submission_id) {
       const sub = must(
         await db()
           .from('submissions')
-          .select('id, submitted_by, organization_id, locked_commit_sha, events(interviews_enabled, status), current_version:submission_versions!submissions_current_version_fk(repo_id)')
+          .select('id, submitted_by, organization_id, locked_commit_sha, events(interviews_enabled, status, language), current_version:submission_versions!submissions_current_version_fk(repo_id)')
           .eq('id', input.submission_id)
           .maybeSingle(),
       ) as unknown as {
         id: string; submitted_by: string; organization_id: string; locked_commit_sha: string | null;
-        events: { interviews_enabled: boolean; status: string }; current_version: { repo_id: string } | null;
+        events: { interviews_enabled: boolean; status: string; language: 'en' | 'es' }; current_version: { repo_id: string } | null;
       } | null;
       if (!sub || sub.submitted_by !== user.id) throw notFound('Submission not found');
       if (!sub.events.interviews_enabled) throw forbidden('Interviews are not enabled for this event.');
@@ -92,20 +100,22 @@ export async function interviewRoutes(app: FastifyInstance): Promise<void> {
       commitSha = sub.locked_commit_sha;
       submissionId = sub.id;
       organizationId = sub.organization_id;
+      // An event decides the language of its interviews.
+      locale = interviewLocale('event', input.locale, sub.events.language) ?? languageFixed();
     } else if (input.assignment_submission_id) {
       // A course assignment: the student, or each member of the group, takes their own interview.
       const sub = must(
         await db()
           .from('assignment_submissions')
           .select(
-            'id, student_id, group_id, organization_id, locked_commit_sha, course_assignments(interviews_enabled, status), ' +
+            'id, student_id, group_id, organization_id, locked_commit_sha, course_assignments(interviews_enabled, status, language), ' +
               'current_version:assignment_submission_versions!assignment_submissions_current_version_fk(repo_id)',
           )
           .eq('id', input.assignment_submission_id)
           .maybeSingle(),
       ) as unknown as {
         id: string; student_id: string | null; group_id: string | null; organization_id: string; locked_commit_sha: string | null;
-        course_assignments: { interviews_enabled: boolean; status: string }; current_version: { repo_id: string } | null;
+        course_assignments: { interviews_enabled: boolean; status: string; language: 'en' | 'es' }; current_version: { repo_id: string } | null;
       } | null;
       if (!sub) throw notFound('Submission not found');
       const mine = sub.student_id
@@ -125,6 +135,8 @@ export async function interviewRoutes(app: FastifyInstance): Promise<void> {
       commitSha = sub.locked_commit_sha;
       assignmentSubmissionId = sub.id;
       organizationId = sub.organization_id;
+      // A group assignment keeps the language its teacher set; in an individual one the student may choose.
+      locale = interviewLocale(sub.group_id ? 'group_assignment' : 'individual_assignment', input.locale, sub.course_assignments.language) ?? languageFixed();
     } else {
       const ref = parseGithubUrl(input.repo_url!);
       if (!ref) throw badRequest('invalid_repo', 'Use a public GitHub repository URL.');
@@ -141,6 +153,8 @@ export async function interviewRoutes(app: FastifyInstance): Promise<void> {
       repoId = repo.id;
       // A personal interview is about the code as it is now: the head of the default branch.
       commitSha = await getHeadSha(meta.owner, meta.name, meta.defaultBranch);
+      const me = must(await db().from('profiles').select('locale').eq('id', user.id).single()) as { locale: 'en' | 'es' };
+      locale = interviewLocale('personal', input.locale, me.locale)!;
     }
 
     // One interview per repository and commit: after seeing the answer key, a second one would be answered from it.
@@ -157,6 +171,7 @@ export async function interviewRoutes(app: FastifyInstance): Promise<void> {
         submission_id: submissionId,
         assignment_submission_id: assignmentSubmissionId,
         organization_id: organizationId,
+        locale,
       })
       .select('id, status')
       .single();
@@ -211,6 +226,7 @@ export async function interviewRoutes(app: FastifyInstance): Promise<void> {
         submission_id: row.submission_id,
         assignment_submission_id: row.assignment_submission_id ?? null,
         spec: specOf(row),
+        locale: row.locale ?? 'en',
         // Where the candidate came from: their course assignment (for the way back).
         assignment: row.assignment_submissions?.course_assignments
           ? { id: row.assignment_submissions.assignment_id, course_id: row.assignment_submissions.course_assignments.course_id, title: row.assignment_submissions.course_assignments.title }
@@ -250,7 +266,7 @@ export async function interviewRoutes(app: FastifyInstance): Promise<void> {
     if (row.status !== 'ready' && !retry) throw conflict('not_ready', 'This interview cannot be started.');
 
     const { plan } = await planAndHooks(row);
-    const live = await createLiveToken(plan, `${row.repos.owner}/${row.repos.name}`, spec);
+    const live = await createLiveToken(plan, `${row.repos.owner}/${row.repos.name}`, spec, row.locale ?? 'en');
     if (row.status === 'ready') {
       const claimed = must(
         await db().from('interviews').update({ status: 'in_progress', started_at: new Date().toISOString() }).eq('id', row.id).eq('status', 'ready').select('id'),

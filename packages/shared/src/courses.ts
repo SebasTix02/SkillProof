@@ -1,3 +1,4 @@
+import { LOCALES } from './locale.js';
 import { z } from 'zod';
 import { GITHUB_REPO_URL, YOUTUBE_URL } from './events.js';
 import { RubricSchema } from './rubric.js';
@@ -27,6 +28,10 @@ const assignmentFields = {
   group_lock_at: z.iso.datetime({ offset: true }).nullable().default(null),
   max_submissions: z.number().int().min(1).max(100).nullable().default(null),
   interviews_enabled: z.boolean().default(false),
+  /** Language of the grader's feedback and of the interviews about the submissions. */
+  language: z.enum(LOCALES).default('en'),
+  /** Code every student starts from: it never counts as a copy in the similarity check. */
+  starter_repo_url: z.string().trim().regex(GITHUB_REPO_URL, 'Use a public GitHub repository URL, like https://github.com/owner/repo').nullable().default(null),
   rubric: RubricSchema,
 };
 
@@ -58,6 +63,8 @@ export const UpdateAssignmentSchema = z
     group_lock_at: z.iso.datetime({ offset: true }).nullable(),
     max_submissions: z.number().int().min(1).max(100).nullable(),
     interviews_enabled: z.boolean(),
+    language: z.enum(LOCALES),
+    starter_repo_url: z.string().trim().regex(GITHUB_REPO_URL, 'Use a public GitHub repository URL, like https://github.com/owner/repo').nullable(),
     rubric: RubricSchema,
   })
   .partial()

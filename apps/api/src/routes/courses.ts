@@ -50,6 +50,8 @@ export interface AssignmentRow {
   group_lock_at: string | null;
   max_submissions: number | null;
   interviews_enabled: boolean;
+  language: 'en' | 'es';
+  starter_repo_url: string | null;
   rubric_json: unknown;
   judging_paused_at: string | null;
   closed_at: string | null;
@@ -140,6 +142,8 @@ export function publicAssignment(a: AssignmentRow, counts: { submissions?: numbe
     groups_close_at: a.mode === 'group' ? (a.group_lock_at ?? a.due_at) : null,
     max_submissions: a.max_submissions,
     interviews_enabled: a.interviews_enabled,
+    language: a.language,
+    starter_repo_url: a.starter_repo_url,
     rubric_json: a.rubric_json,
     judging_paused_at: a.judging_paused_at,
     submission_count: counts.submissions ?? 0,

@@ -97,7 +97,7 @@ export function NumberedSectionCard({
 }) {
   const t = DOSSIER_THEMES[theme];
   return (
-    <section id={id} className={`overflow-hidden rounded-[6px] border bg-white ${t.cardBorder}`}>
+    <section id={id} className={`overflow-hidden rounded-[6px] border bg-surface ${t.cardBorder}`}>
       <div className={`flex flex-wrap items-center justify-between gap-3 px-6 py-4 ${t.headerBg}`}>
         <div className="flex items-center gap-3">
           <div className={`font-mono-code flex h-8 w-8 items-center justify-center rounded-[4px] text-[13px] font-bold ${t.iconBg}`}>

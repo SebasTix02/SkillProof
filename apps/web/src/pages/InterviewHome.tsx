@@ -1,3 +1,5 @@
+import { lazy, tr, trn, useI18n, type Locale } from '../i18n';
+import { InterviewLanguageField } from '../components/LanguageControl';
 import { useMemo, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
@@ -42,17 +44,17 @@ interface InterviewRow {
 const STATUS_BADGE: Record<
   InterviewRow['status'],
   { label: string; tone: 'neutral' | 'good' | 'warn' | 'bad' | 'accent'; dot: boolean }
-> = {
-  preparing: { label: 'READING THE REPO', tone: 'warn', dot: true },
-  ready: { label: 'READY FOR ROOM', tone: 'accent', dot: true },
-  in_progress: { label: 'IN PROGRESS', tone: 'accent', dot: true },
-  evaluating: { label: 'EVALUATING', tone: 'warn', dot: true },
-  completed: { label: 'SCORED', tone: 'good', dot: true },
-  error: { label: 'FAILED', tone: 'bad', dot: true },
-  canceled: { label: 'CANCELED', tone: 'neutral', dot: false },
-  report_paused: { label: 'REPORT PAUSED', tone: 'warn', dot: false },
-  report_canceled: { label: 'REPORT CANCELED', tone: 'neutral', dot: false },
-};
+> = lazy(() => ({
+  preparing: { label: tr('READING THE REPO'), tone: 'warn', dot: true },
+  ready: { label: tr('READY FOR ROOM'), tone: 'accent', dot: true },
+  in_progress: { label: tr('IN PROGRESS'), tone: 'accent', dot: true },
+  evaluating: { label: tr('EVALUATING'), tone: 'warn', dot: true },
+  completed: { label: tr('SCORED'), tone: 'good', dot: true },
+  error: { label: tr('FAILED'), tone: 'bad', dot: true },
+  canceled: { label: tr('CANCELED'), tone: 'neutral', dot: false },
+  report_paused: { label: tr('REPORT PAUSED'), tone: 'warn', dot: false },
+  report_canceled: { label: tr('REPORT CANCELED'), tone: 'neutral', dot: false },
+}));
 
 function getReport(row: InterviewRow): InterviewReportSummary | null {
   if (!row.interview_reports) return null;
@@ -65,6 +67,8 @@ export function InterviewHome() {
   const list = useLoad<{ interviews: InterviewRow[] }>('/api/me/interviews');
 
   const [repoUrl, setRepoUrl] = useState('');
+  const { locale: uiLocale } = useI18n();
+  const [interviewLocale, setInterviewLocale] = useState<Locale>(uiLocale);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [existingId, setExistingId] = useState<string | null>(null);
@@ -80,7 +84,7 @@ export function InterviewHome() {
     setExistingId(null);
     try {
       const res = await api<{ interview: { id: string } }>('/api/interviews', {
-        body: { repo_url: repoUrl.trim() },
+        body: { repo_url: repoUrl.trim(), locale: interviewLocale },
       });
       navigate(`/interview/${res.interview.id}`);
     } catch (err) {
@@ -160,30 +164,30 @@ export function InterviewHome() {
         borderBottom={false}
         eyebrow={
           <>
-            <Badge tone="accent">ORAL VERIFICATION DISPATCH</Badge>
+            <Badge tone="accent">{tr('ORAL VERIFICATION DISPATCH')}</Badge>
             <span className="text-line">•</span>
-            <span className="text-muted uppercase">REPOSITORY MAP &amp; VOICE INTERVIEW</span>
+            <span className="text-muted uppercase">{tr('REPOSITORY MAP & VOICE INTERVIEW')}</span>
             <span className="text-line">•</span>
             <span className="flex items-center gap-1.5 font-medium text-good">
               <LiveDot tone="good" />
-              {publicProfileUrl ? 'PUBLIC DOSSIER ACTIVE' : 'GEMINI LIVE VOICE READY'}
+              {publicProfileUrl ? tr('PUBLIC DOSSIER ACTIVE') : tr('GEMINI LIVE VOICE READY')}
             </span>
           </>
         }
-        title="My Interviews & Verification Runs"
-        subtitle="Paste a public GitHub repository you authored. SkillProof reads the codebase, prepares targeted questions tied to your actual files, and conducts a 3-minute live voice interview to generate a shareable ownership report."
+        title={tr('My Interviews & Verification Runs')}
+        subtitle={tr('Paste a public GitHub repository you authored. SkillProof reads the codebase, prepares targeted questions tied to your actual files, and conducts a 3-minute live voice interview to generate a shareable ownership report.')}
         rightSlot={
           <div className="font-mono-code flex items-center gap-2 text-[11px] text-muted">
-            <span>VERIFIED CREDENTIALS:</span>
-            <span className="rounded-[3px] border border-line bg-white px-2 py-0.5 font-semibold text-ink">
-              {stats.completedCount} COMPLETED
+            <span>{tr('VERIFIED CREDENTIALS:')}</span>
+            <span className="rounded-[3px] border border-line bg-surface px-2 py-0.5 font-semibold text-ink">
+              {stats.completedCount}{' '}{tr('COMPLETED')}
             </span>
             {publicProfileUrl && (
               <Link
                 to={publicProfileUrl}
                 className="rounded-[3px] border border-accent/25 bg-accent-soft px-2 py-0.5 font-semibold text-accent-ink hover:underline"
               >
-                VIEW PUBLIC PROFILE ↗
+                {tr('VIEW PUBLIC PROFILE ↗')}
               </Link>
             )}
           </div>
@@ -191,7 +195,7 @@ export function InterviewHome() {
       />
 
       {/* 2. Hero Visual Cockpit Launch Section (Split 7 / 5 Grid) */}
-      <section className="overflow-hidden rounded-[6px] border border-line bg-white">
+      <section className="overflow-hidden rounded-[6px] border border-line bg-surface">
         <div className="grid grid-cols-1 lg:grid-cols-12">
           <div className="flex flex-col justify-between space-y-5 border-b border-line p-6 sm:p-7 lg:col-span-7 lg:border-r lg:border-b-0">
             <div className="space-y-4">
@@ -199,11 +203,11 @@ export function InterviewHome() {
                 <div className="flex items-center gap-2">
                   <LiveDot tone="accent" />
                   <span className="font-mono-code text-[11px] font-bold tracking-wider text-accent uppercase">
-                    Trigger New 3-Min AI Voice Interview
+                    {tr('Trigger New 3-Min AI Voice Interview')}
                   </span>
                 </div>
                 <span className="font-mono-code rounded-[3px] border border-line bg-paper px-2 py-0.5 text-[11px] text-muted">
-                  QUOTA: 5 PERSONAL / 24H
+                  {tr('QUOTA: 5 PERSONAL / 24H')}
                 </span>
               </div>
 
@@ -213,7 +217,7 @@ export function InterviewHome() {
                     htmlFor="target-repo-url"
                     className="font-mono-code block text-[11px] font-semibold tracking-wider text-ink uppercase"
                   >
-                    Target Public GitHub Repository URL
+                    {tr('Target Public GitHub Repository URL')}
                   </label>
                   <div className="relative">
                     <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-accent">
@@ -223,29 +227,30 @@ export function InterviewHome() {
                       id="target-repo-url"
                       type="url"
                       required
-                      placeholder="https://github.com/you/your-project"
+                      placeholder={tr('https://github.com/you/your-project')}
                       value={repoUrl}
                       onChange={(e) => setRepoUrl(e.target.value)}
-                      className="font-mono-code w-full rounded-[4px] border border-line-strong bg-paper py-2.5 pr-3 pl-9 text-[13px] text-ink placeholder:text-faint transition-colors focus:border-accent focus:bg-white focus:outline-none"
+                      className="font-mono-code w-full rounded-[4px] border border-line-strong bg-paper py-2.5 pr-3 pl-9 text-[13px] text-ink placeholder:text-faint transition-colors focus:border-accent focus:bg-surface focus:outline-none"
                     />
                   </div>
                 </div>
 
+                <InterviewLanguageField value={interviewLocale} onChange={setInterviewLocale} hint={tr('The questions, the interviewer and the report use it.')} />
+
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-12">
                   <div className="flex items-center rounded-[4px] border border-line bg-paper px-3 py-2 sm:col-span-7">
                     <div className="font-mono-code text-[11px] text-muted">
-                      <span className="font-semibold text-ink">BRANCH TARGET:</span> Default branch HEAD commit SHA
-                      (frozen on start)
+                      <span className="font-semibold text-ink">{tr('BRANCH TARGET:')}</span>{' '}{tr('Default branch HEAD commit SHA (frozen on start)')}
                     </div>
                   </div>
                   <div className="flex items-end sm:col-span-5">
                     <button
                       type="submit"
                       disabled={busy}
-                      className="btn-tactile inline-flex h-[42px] w-full cursor-pointer items-center justify-center gap-1.5 rounded-[4px] border border-accent bg-accent px-4 text-[13px] font-medium whitespace-nowrap text-white hover:border-accent-hover hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
+                      className="btn-tactile inline-flex h-[42px] w-full cursor-pointer items-center justify-center gap-1.5 rounded-[4px] border border-accent bg-accent px-4 text-[13px] font-medium whitespace-nowrap text-on-accent hover:border-accent-hover hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       <span className="material-symbols-outlined text-[17px]">mic</span>
-                      <span>{busy ? 'Preparing Repository…' : 'Prepare 3-Min Interview'}</span>
+                      <span>{busy ? tr('Preparing Repository…') : tr('Prepare 3-Min Interview')}</span>
                       {!busy && <span className="arrow-nudge font-mono-code text-[12px]">→</span>}
                     </button>
                   </div>
@@ -256,7 +261,7 @@ export function InterviewHome() {
                     {error}{' '}
                     {existingId && (
                       <Link to={`/interview/${existingId}`} className="font-semibold underline">
-                        Open your interview
+                        {tr('Open your interview')}
                       </Link>
                     )}
                   </Notice>
@@ -271,71 +276,70 @@ export function InterviewHome() {
               <div className="font-mono-code flex flex-wrap items-center gap-3 text-[11px] text-muted">
                 <span className="flex items-center gap-1 text-good">
                   <span className="material-symbols-outlined text-[14px]">lock_open</span>
-                  Public GitHub repositories
+                  {tr('Public GitHub repositories')}
                 </span>
                 <span className="text-line">•</span>
-                <span>Selective Git Tree &amp; File Summary Cache</span>
+                <span>{tr('Selective Git Tree & File Summary Cache')}</span>
                 <span className="text-line">•</span>
-                <span className="text-accent">180s Gemini Live Voice Exam</span>
+                <span className="text-accent">{tr('180s Gemini Live Voice Exam')}</span>
               </div>
               <p className="text-[12px] leading-snug text-muted">
-                Reading the repository takes about a minute. Once ready, enter the live audio room to answer questions
-                about your implementation and architecture.
+                {tr('Reading the repository takes about a minute. Once ready, enter the live audio room to answer questions about your implementation and architecture.')}
               </p>
             </div>
           </div>
 
-          <div className="flex flex-col justify-between space-y-4 bg-ink p-5 text-white lg:col-span-5">
+          <div className="flex flex-col justify-between space-y-4 bg-ink p-5 text-paper lg:col-span-5">
             <div className="flex items-center justify-between border-b border-dark-hairline pb-2.5">
               <div className="flex items-center gap-2">
                 <LiveDot tone="mint" />
                 <span className="font-mono-code text-[11px] font-semibold tracking-wider text-good-on-dark uppercase">
-                  AI INTERVIEWER // READY
+                  {tr('AI INTERVIEWER // READY')}
                 </span>
               </div>
               <span className="font-mono-code rounded-[3px] border border-dark-hairline bg-dark-canvas px-2 py-0.5 text-[10px] text-dark-ink">
-                180s Live Audio
+                {tr('180s Live Audio')}
               </span>
             </div>
 
             <div className="relative overflow-hidden rounded-[4px] border border-dark-hairline bg-dark-canvas">
               <img
                 src={COCKPIT_ASSET}
-                alt="SkillProof AI software engineering oral interview cockpit"
+                alt={tr('SkillProof AI software engineering oral interview cockpit')}
                 className="block h-auto w-full object-cover"
               />
               <div className="font-mono-code flex items-center justify-between border-t border-dark-hairline bg-ink px-3 py-1.5 text-[11px]">
                 <span className="flex items-center gap-1.5 text-good-on-dark">
                   <span className="material-symbols-outlined text-[14px]">graphic_eq</span>
-                  Acoustic Stream Ready
+                  {tr('Acoustic Stream Ready')}
                 </span>
-                <span className="text-dark-muted">Answer Key Server-Sealed</span>
+                <span className="text-dark-muted">{tr('Answer Key Server-Sealed')}</span>
               </div>
             </div>
 
             <div className="font-mono-code flex items-center justify-between text-[11px] text-dark-muted">
               <span className="flex items-center gap-1.5">
                 <span className="material-symbols-outlined text-[14px] text-accent">verified_user</span>
-                Commit-Anchored Questions
+                {tr('Commit-Anchored Questions')}
               </span>
-              <span className="font-semibold text-good-on-dark">OWNERSHIP VERIFIED</span>
+              <span className="font-semibold text-good-on-dark">{tr('OWNERSHIP VERIFIED')}</span>
             </div>
           </div>
         </div>
       </section>
 
-      {/* With no interviews yet, one "Get started" card replaces the empty metrics, filters and table. */}
+      {/* With no interviews yet, one tr('Get started') card replaces the empty metrics, filters and table. */}
       {!list.loading && !list.error && allInterviews.length === 0 ? (
-        <section className="rounded-[6px] border border-line bg-white p-6 sm:p-8" aria-labelledby="get-started-title">
-          <p className="font-mono-code text-[11px] font-semibold tracking-wider text-accent-ink uppercase">Get started</p>
+        <section className="rounded-[6px] border border-line bg-surface p-6 sm:p-8" aria-labelledby="get-started-title">
+          <p className="font-mono-code text-[11px] font-semibold tracking-wider text-accent-ink uppercase">{tr('Get started')}</p>
           <h2 id="get-started-title" className="font-serif-heading mt-1 text-[24px] leading-[30px] text-ink">
-            Your first interview takes about five minutes
+            {tr('Your first interview takes about five minutes')}
           </h2>
           <ol className="mt-5 grid gap-4 md:grid-cols-3">
             {[
-              ['1', 'Pick a public repository you wrote', 'Paste its GitHub link above. SkillProof reads the code and prepares 4 or 5 questions about it.'],
-              ['2', 'Talk for 3 minutes', 'Answer out loud in a full-screen room. You can pause twice and skip a question.'],
-              ['3', 'Get your report', 'A score with quotes from what you said, which you can share on your public profile.'],
+              ['1', tr('Pick a public repository you wrote'), tr('Paste its GitHub link above. SkillProof reads the code and prepares 4 or 5 questions about it.')],
+              ['2', tr('Talk for 3 minutes'), tr('Answer out loud in a full-screen room. You can pause twice and skip a question.')],
+              ['3', tr('Get your report'), tr('A score with quotes from what you said, which you can share on your public profile.')],
             ].map(([n, title, text]) => (
               <li key={n} className="flex gap-3 rounded-[6px] border border-line bg-paper p-4">
                 <span className="font-mono-code flex h-7 w-7 shrink-0 items-center justify-center rounded-[4px] bg-accent text-[12px] font-semibold text-on-accent">
@@ -358,7 +362,7 @@ export function InterviewHome() {
             className={`${linkButton} mt-6 cursor-pointer`}
           >
             <span className="material-symbols-outlined text-[17px]">mic</span>
-            <span>Start with a repository</span>
+            <span>{tr('Start with a repository')}</span>
           </button>
         </section>
       ) : (
@@ -366,26 +370,26 @@ export function InterviewHome() {
       {/* 3. High-Impact KPI Telemetry Strip (4 Columns) */}
         <KpiGrid>
           <KpiCell
-            label="Total Interviews"
+            label={tr('Total Interviews')}
             icon="fact_check"
-            footer={`Completion Ratio: ${stats.total > 0 ? `${Math.round((stats.completedCount / stats.total) * 100)}%` : '—'}`}
+            footer={tr('Completion Ratio: {ratio}', { ratio: stats.total > 0 ? `${Math.round((stats.completedCount / stats.total) * 100)}%` : '—' })}
           >
             <div className="font-mono-code text-[26px] font-semibold tracking-tight text-ink">
-              {stats.total} {stats.total === 1 ? 'Audit' : 'Audits'}
+              {stats.total} {stats.total === 1 ? tr('Audit') : tr('Audits')}
             </div>
             <div className="mt-1 flex flex-wrap items-center gap-1.5">
-              <Badge tone="good">{stats.completedCount} Scored</Badge>
-              <Badge tone="warn">{stats.active} Active</Badge>
-              <Badge tone="bad">{stats.failed} Failed</Badge>
+              <Badge tone="good">{stats.completedCount}{' '}{tr('Scored')}</Badge>
+              <Badge tone="warn">{stats.active}{' '}{tr('Active')}</Badge>
+              <Badge tone="bad">{stats.failed}{' '}{tr('Failed')}</Badge>
             </div>
           </KpiCell>
   
           <KpiCell
-            label="Avg Ownership Score"
+            label={tr('Avg Ownership Score')}
             tinted
             badge={
               <Badge tone={stats.avgScore != null && stats.avgScore >= 70 ? 'good' : 'neutral'}>
-                {stats.avgScore != null ? (stats.avgScore >= 70 ? 'VERIFIED HIGH' : 'RECORDED') : 'NO RUNS YET'}
+                {stats.avgScore != null ? (stats.avgScore >= 70 ? tr('VERIFIED HIGH') : 'RECORDED') : tr('NO RUNS YET')}
               </Badge>
             }
             footer={<ScoreBar value={stats.avgScore} max={100} tone="good" />}
@@ -398,35 +402,35 @@ export function InterviewHome() {
             </div>
             <p className="mt-1 text-[12px] text-muted">
               {stats.completedCount > 0
-                ? `Computed across ${stats.completedCount} completed oral defense${stats.completedCount === 1 ? '' : 's'}`
-                : 'Complete a 3-minute voice interview to compute'}
+                ? trn('Computed across {count} completed oral defense', 'Computed across {count} completed oral defenses', stats.completedCount)
+                : tr('Complete a 3-minute voice interview to compute')}
             </p>
           </KpiCell>
   
           <KpiCell
-            label="Latest Audited Repo"
+            label={tr('Latest Audited Repo')}
             icon="verified"
             footer={
               <span className="font-medium text-good">
                 {stats.latestReport
-                  ? `Confidence: ${stats.latestReport.confidence.toUpperCase()}`
-                  : 'Awaiting completed evaluation'}
+                  ? tr('Confidence: {level}', { level: stats.latestReport.confidence.toUpperCase() })
+                  : tr('Awaiting completed evaluation')}
               </span>
             }
           >
             <div className="font-mono-code truncate rounded-[3px] border border-line bg-paper px-2 py-1 text-[12px] font-semibold text-ink">
-              {stats.latest?.repos ? `${stats.latest.repos.owner}/${stats.latest.repos.name}` : 'No repositories yet'}
+              {stats.latest?.repos ? `${stats.latest.repos.owner}/${stats.latest.repos.name}` : tr('No repositories yet')}
             </div>
             <p className="font-mono-code mt-1.5 flex items-center gap-1.5 text-[11px] text-muted">
               <LiveDot tone="accent" pulse={false} />
-              <span>{stats.latest ? STATUS_BADGE[stats.latest.status].label : 'Paste a GitHub URL above to begin'}</span>
+              <span>{stats.latest ? STATUS_BADGE[stats.latest.status].label : tr('Paste a GitHub URL above to begin')}</span>
             </p>
           </KpiCell>
   
-          <KpiCell label="Protocol Spec" icon="account_tree" footer="Commit-Locked Code Hooks">
-            <div className="font-serif-heading text-[24px] leading-tight font-semibold text-ink">3:00 Oral Exam</div>
+          <KpiCell label={tr('Protocol Spec')} icon="account_tree" footer={tr('Commit-Locked Code Hooks')}>
+            <div className="font-serif-heading text-[24px] leading-tight font-semibold text-ink">{tr('3:00 Oral Exam')}</div>
             <p className="font-mono-code mt-1 text-[11px] text-muted">
-              <span className="font-semibold text-accent">180s</span> live voice cross-examination
+              <span className="font-semibold text-accent">180s</span>{' '}{tr('live voice cross-examination')}
             </p>
           </KpiCell>
         </KpiGrid>
@@ -436,9 +440,9 @@ export function InterviewHome() {
           active={tab}
           onChange={setTab}
           tabs={[
-            { key: 'all', label: 'All Interviews', count: stats.total },
-            { key: 'event', label: 'Hackathon Submissions', count: stats.eventCount },
-            { key: 'personal', label: 'Independent Audits', count: stats.personalCount },
+            { key: 'all', label: tr('All Interviews'), count: stats.total },
+            { key: 'event', label: tr('Hackathon Submissions'), count: stats.eventCount },
+            { key: 'personal', label: tr('Independent Audits'), count: stats.personalCount },
           ]}
           rightSlot={
             <>
@@ -450,8 +454,8 @@ export function InterviewHome() {
                   type="text"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Filter by repository or status..."
-                  className="w-full rounded-[4px] border border-line bg-white py-1.5 pr-2.5 pl-8 text-[12px] text-ink focus:border-accent focus:outline-none"
+                  placeholder={tr('Filter by repository or status...')}
+                  className="w-full rounded-[4px] border border-line bg-surface py-1.5 pr-2.5 pl-8 text-[12px] text-ink focus:border-accent focus:outline-none"
                 />
               </div>
   
@@ -459,12 +463,12 @@ export function InterviewHome() {
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value as 'recent' | 'score' | 'repo')}
-                  aria-label="Sort interviews"
-                  className="font-mono-code cursor-pointer appearance-none rounded-[4px] border border-line bg-white py-1.5 pr-7 pl-2.5 text-[11px] text-ink focus:border-accent focus:outline-none"
+                  aria-label={tr('Sort interviews')}
+                  className="font-mono-code cursor-pointer appearance-none rounded-[4px] border border-line bg-surface py-1.5 pr-7 pl-2.5 text-[11px] text-ink focus:border-accent focus:outline-none"
                 >
-                  <option value="recent">SORT: MOST RECENT</option>
-                  <option value="score">SORT: HIGHEST SCORE</option>
-                  <option value="repo">SORT: REPO NAME (A-Z)</option>
+                  <option value="recent">{tr('SORT: MOST RECENT')}</option>
+                  <option value="score">{tr('SORT: HIGHEST SCORE')}</option>
+                  <option value="repo">{tr('SORT: REPO NAME (A-Z)')}</option>
                 </select>
                 <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2 text-muted">
                   <span className="material-symbols-outlined text-[14px]">expand_more</span>
@@ -475,18 +479,18 @@ export function InterviewHome() {
         />
   
         {/* 5. Structured Interviews Data Table */}
-        <section className="overflow-hidden rounded-[6px] border border-line bg-white">
+        <section className="overflow-hidden rounded-[6px] border border-line bg-surface">
           <PageState loading={list.loading} error={list.error} kind="table" />
   
           {!list.loading && !list.error && filteredInterviews.length === 0 && (
             <div className="space-y-2 p-10 text-center">
               <div className="font-serif-heading text-[20px] font-medium text-ink">
-                {allInterviews.length === 0 ? 'No verification runs recorded yet' : 'No interviews match your filter'}
+                {allInterviews.length === 0 ? tr('No verification runs recorded yet') : tr('No interviews match your filter')}
               </div>
               <p className="mx-auto max-w-md text-[13px] text-muted">
                 {allInterviews.length === 0
-                  ? 'Paste any public GitHub repository you authored in the launch console above to prepare your first 3-minute voice interview.'
-                  : 'Try clearing your search query or switching back to All Interviews.'}
+                  ? tr('Paste any public GitHub repository you authored in the launch console above to prepare your first 3-minute voice interview.')
+                  : tr('Try clearing your search query or switching back to All Interviews.')}
               </p>
             </div>
           )}
@@ -496,20 +500,20 @@ export function InterviewHome() {
               <table className="w-full border-collapse text-left">
                 <thead>
                   <tr className="font-mono-code border-b border-line bg-paper text-[11px] tracking-wider text-muted uppercase select-none">
-                    <th className="px-4 py-3 font-semibold">Repository</th>
-                    <th className="px-4 py-3 font-semibold">Context / Source</th>
-                    <th className="px-4 py-3 font-semibold">Date &amp; Duration</th>
-                    <th className="px-4 py-3 font-semibold">Status</th>
-                    <th className="px-4 py-3 font-semibold">Ownership Score</th>
-                    <th className="px-4 py-3 font-semibold">Verification State</th>
-                    <th className="px-4 py-3 text-right font-semibold">Action</th>
+                    <th className="px-4 py-3 font-semibold">{tr('Repository')}</th>
+                    <th className="px-4 py-3 font-semibold">{tr('Context / Source')}</th>
+                    <th className="px-4 py-3 font-semibold">{tr('Date & Duration')}</th>
+                    <th className="px-4 py-3 font-semibold">{tr('Status')}</th>
+                    <th className="px-4 py-3 font-semibold">{tr('Ownership Score')}</th>
+                    <th className="px-4 py-3 font-semibold">{tr('Verification State')}</th>
+                    <th className="px-4 py-3 text-right font-semibold">{tr('Action')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-line text-[13px]">
                   {filteredInterviews.map((i) => {
                     const report = getReport(i);
                     const badge = STATUS_BADGE[i.status];
-                    const repoLabel = i.repos ? `${i.repos.owner}/${i.repos.name}` : 'Repository';
+                    const repoLabel = i.repos ? `${i.repos.owner}/${i.repos.name}` : tr('Repository');
                     const tone = report ? scoreTone(report.ownership_score, 100) : 'neutral';
   
                     return (
@@ -534,13 +538,13 @@ export function InterviewHome() {
                         <td className="px-4 py-3.5">
                           {i.submission_id ? (
                             <div>
-                              <div className="font-medium text-ink">Hackathon Submission</div>
-                              <div className="font-mono-code text-[11px] text-accent">Event-Linked Defense</div>
+                              <div className="font-medium text-ink">{tr('Hackathon Submission')}</div>
+                              <div className="font-mono-code text-[11px] text-accent">{tr('Event-Linked Defense')}</div>
                             </div>
                           ) : (
                             <div>
-                              <div className="font-medium text-ink">Independent Audit</div>
-                              <div className="font-mono-code text-[11px] text-muted">Personal Credential Run</div>
+                              <div className="font-medium text-ink">{tr('Independent Audit')}</div>
+                              <div className="font-mono-code text-[11px] text-muted">{tr('Personal Credential Run')}</div>
                             </div>
                           )}
                         </td>
@@ -577,17 +581,17 @@ export function InterviewHome() {
                           {report ? (
                             <div className="font-mono-code flex items-center gap-1.5 text-[12px] font-medium text-ink">
                               <span className="material-symbols-outlined text-[16px] text-good">graphic_eq</span>
-                              <span>Confidence: {report.confidence}</span>
+                              <span>{tr('Confidence:')}{' '}{report.confidence}</span>
                             </div>
                           ) : i.status === 'error' ? (
                             <span className="font-mono-code text-[11px] font-medium text-bad">
-                              {i.error || 'Preparation or evaluation failed'}
+                              {i.error || tr('Preparation or evaluation failed')}
                             </span>
                           ) : (
                             <span className="font-mono-code text-[11px] text-muted">
                               {i.status === 'ready'
-                                ? 'Questions prepared • Ready to join'
-                                : 'Processing repository & transcript…'}
+                                ? tr('Questions prepared • Ready to join')
+                                : tr('Processing repository & transcript…')}
                             </span>
                           )}
                         </td>
@@ -597,19 +601,19 @@ export function InterviewHome() {
                             to={`/interview/${i.id}`}
                             className={`btn-tactile font-mono-code inline-flex items-center justify-center rounded-[4px] border px-3 py-1.5 text-[11px] font-semibold ${
                               i.status === 'completed'
-                                ? 'border-accent bg-accent-soft text-accent-ink hover:bg-accent hover:text-white'
+                                ? 'border-accent bg-accent-soft text-accent-ink hover:bg-accent hover:text-on-accent'
                                 : i.status === 'ready' || i.status === 'in_progress'
-                                  ? 'border-ink bg-ink text-white hover:border-accent hover:bg-accent'
+                                  ? 'border-ink bg-ink text-on-accent hover:border-accent hover:bg-accent'
                                   : i.status === 'error'
-                                    ? 'border-bad bg-bad-soft text-bad hover:bg-bad hover:text-white'
-                                    : 'border-line bg-white text-ink hover:border-accent hover:bg-paper'
+                                    ? 'border-bad bg-bad-soft text-bad hover:bg-bad hover:text-on-bad'
+                                    : 'border-line bg-surface text-ink hover:border-accent hover:bg-paper'
                             }`}
                           >
                             {i.status === 'completed'
-                              ? 'View Dossier Report ↗'
+                              ? tr('View Dossier Report ↗')
                               : i.status === 'ready' || i.status === 'in_progress'
-                                ? 'Join Live Room ↗'
-                                : 'Inspect Run ↗'}
+                                ? tr('Join Live Room ↗')
+                                : tr('Inspect Run ↗')}
                           </Link>
                         </td>
                       </tr>
@@ -622,12 +626,12 @@ export function InterviewHome() {
   
           <div className="font-mono-code flex flex-col items-center justify-between border-t border-line bg-paper px-4 py-2.5 text-[11px] text-muted sm:flex-row">
             <div>
-              SHOWING {filteredInterviews.length} OF {allInterviews.length} AUDIT RECORDS
+              {tr('SHOWING')}{' '}{filteredInterviews.length}{' '}{tr('OF')}{' '}{allInterviews.length}{' '}{tr('AUDIT RECORDS')}
             </div>
             <div className="mt-1 flex items-center gap-3 sm:mt-0">
-              <span className="font-semibold text-ink">ENGINE: GEMINI SELECTIVE REPO READER + GEMINI LIVE</span>
+              <span className="font-semibold text-ink">{tr('ENGINE: GEMINI SELECTIVE REPO READER + GEMINI LIVE')}</span>
               <span>•</span>
-              <span>MAX 5 PERSONAL / DAY</span>
+              <span>{tr('MAX 5 PERSONAL / DAY')}</span>
             </div>
           </div>
         </section>

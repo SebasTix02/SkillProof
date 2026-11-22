@@ -1,3 +1,4 @@
+import { tr } from '../i18n';
 import { createContext, useCallback, useContext, useMemo, useRef, useState, type ReactNode } from 'react';
 
 type Tone = 'good' | 'error' | 'info';
@@ -30,7 +31,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             key={t.id}
             role={t.tone === 'error' ? 'alert' : 'status'}
             className={
-              'pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-lg border bg-white px-4 py-3 text-sm shadow-lg ' +
+              'pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-lg border bg-surface px-4 py-3 text-sm shadow-lg ' +
               (t.tone === 'error' ? 'border-bad/40' : t.tone === 'good' ? 'border-good/40' : 'border-line')
             }
           >
@@ -39,7 +40,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               className={'mt-1.5 h-2 w-2 shrink-0 rounded-full ' + (t.tone === 'error' ? 'bg-bad' : t.tone === 'good' ? 'bg-good' : 'bg-accent')}
             />
             <span className="flex-1">{t.text}</span>
-            <button onClick={() => dismiss(t.id)} className="text-muted hover:text-ink" aria-label="Dismiss">×</button>
+            <button onClick={() => dismiss(t.id)} className="text-muted hover:text-ink" aria-label={tr('Dismiss')}>×</button>
           </div>
         ))}
       </div>

@@ -1,3 +1,4 @@
+import { tr } from '../../i18n';
 import type { ReactNode } from 'react';
 import { DOSSIER_THEMES, ORG_ROLE_SPECS, normalizeOrgRole, type DossierThemeKey, type OrgRoleKey } from './tokens';
 
@@ -60,7 +61,7 @@ export function CodeEvidenceViewer({
   maxHeightClass?: string;
 }) {
   return (
-    <div className="overflow-hidden rounded-[6px] border border-line bg-white">
+    <div className="overflow-hidden rounded-[6px] border border-line bg-surface">
       <div className="flex h-9 items-center justify-between border-b border-line bg-paper px-4">
         <div className="flex items-center gap-2">
           <span className="h-2 w-2 rounded-full bg-good" />
@@ -72,14 +73,14 @@ export function CodeEvidenceViewer({
         {badge}
       </div>
 
-      <div className={`font-mono-code overflow-x-auto overflow-y-auto bg-white p-3 text-[12px] leading-[20px] ${maxHeightClass}`}>
+      <div className={`font-mono-code overflow-x-auto overflow-y-auto bg-surface p-3 text-[12px] leading-[20px] ${maxHeightClass}`}>
         {commentHeader && <div className="pb-1 text-[11px] text-muted">{commentHeader}</div>}
         {lines.map((row) => (
           <div
             key={row.lineNumber}
             className={`-mx-3 flex px-3 transition-colors ${
               row.activeFlash
-                ? 'border-l-2 border-accent bg-accent font-semibold text-white'
+                ? 'border-l-2 border-accent bg-accent font-semibold text-on-accent'
                 : row.highlighted
                   ? 'border-l-2 border-accent bg-accent-soft/65 font-medium text-ink'
                   : 'text-muted'
@@ -88,7 +89,7 @@ export function CodeEvidenceViewer({
             <span
               className={`w-8 pr-3 text-right select-none ${
                 row.activeFlash
-                  ? 'font-semibold text-white'
+                  ? 'font-semibold text-on-accent'
                   : row.highlighted
                     ? 'font-semibold text-accent'
                     : 'text-faint'
@@ -96,13 +97,13 @@ export function CodeEvidenceViewer({
             >
               {row.lineNumber}
             </span>
-            <span className={`whitespace-pre ${row.activeFlash ? 'text-white' : 'text-ink'}`}>{row.content}</span>
+            <span className={`whitespace-pre ${row.activeFlash ? 'text-on-accent' : 'text-ink'}`}>{row.content}</span>
           </div>
         ))}
       </div>
 
       {(footerLeft || footerRight) && (
-        <footer className="font-mono-code flex items-center justify-between border-t border-line bg-white px-4 py-2 text-[11px] text-muted">
+        <footer className="font-mono-code flex items-center justify-between border-t border-line bg-surface px-4 py-2 text-[11px] text-muted">
           <div>{footerLeft}</div>
           <div>{footerRight}</div>
         </footer>
@@ -112,23 +113,23 @@ export function CodeEvidenceViewer({
 }
 
 export function VerificationProtocolCard({
-  title = 'Verification Protocol & Oral Defense Integrity',
+  title = tr('Verification Protocol & Oral Defense Integrity'),
   description,
   steps = [
     {
-      code: '01 / SELECTIVE REPO READING',
+      code: tr('01 / SELECTIVE REPO READING'),
       tone: 'text-accent',
-      text: 'Reads the Git tree, selects high-signal source files, and caches file summaries by blob SHA and commit.',
+      text: tr('Reads the Git tree, selects high-signal source files, and caches file summaries by blob SHA and commit.'),
     },
     {
-      code: '02 / 3-MIN VOICE CROSS-EXAM',
+      code: tr('02 / 3-MIN VOICE CROSS-EXAM'),
       tone: 'text-good',
-      text: 'Probes architectural trade-offs and specific code snippets out loud, following up on vague answers.',
+      text: tr('Probes architectural trade-offs and specific code snippets out loud, following up on vague answers.'),
     },
     {
-      code: '03 / OWNERSHIP REPORT & DOSSIER',
+      code: tr('03 / OWNERSHIP REPORT & DOSSIER'),
       tone: 'text-ink',
-      text: 'Produces an ownership score (0–100) and demonstrated skills backed by verbatim transcript quotes.',
+      text: tr('Produces an ownership score (0–100) and demonstrated skills backed by verbatim transcript quotes.'),
     },
   ],
 }: {
@@ -137,7 +138,7 @@ export function VerificationProtocolCard({
   steps?: { code: string; tone: string; text: string }[];
 }) {
   return (
-    <section className="space-y-5 rounded-[6px] border border-line bg-white p-6">
+    <section className="space-y-5 rounded-[6px] border border-line bg-surface p-6">
       <div className="flex items-start gap-3.5">
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[4px] border border-accent bg-accent-soft text-accent-ink">
           <span className="material-symbols-outlined text-[20px]">security</span>
@@ -147,12 +148,11 @@ export function VerificationProtocolCard({
           <p className="text-[13px] leading-[21px] text-muted">
             {description ?? (
               <>
-                SkillProof analyzes your repository structure and prepares an interview plan with expected points that
-                never leave the server (
+                {tr('SkillProof analyzes your repository structure and prepares an interview plan with expected points that never leave the server (')}
                 <code className="font-mono-code rounded-[3px] border border-line bg-paper px-1.5 py-0.5 text-[11px] text-accent">
                   publicQuestions
                 </code>
-                ). Your browser receives a single-use token for Gemini Live to conduct the 3-minute voice session.
+                {tr('). Your browser receives a single-use token for Gemini Live to conduct the 3-minute voice session.')}
               </>
             )}
           </p>
@@ -233,7 +233,7 @@ export function SeverityAlertBanner({
     >
       <div className="flex items-start gap-4">
         <div
-          className={`mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-[4px] text-white ${
+          className={`mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-[4px] text-on-bad ${
             isBad ? 'bg-bad' : 'bg-warn'
           }`}
         >
@@ -242,7 +242,7 @@ export function SeverityAlertBanner({
         <div className="space-y-1.5">
           <div className="flex flex-wrap items-center gap-2.5">
             <span
-              className={`font-mono-code rounded-[3px] px-2.5 py-0.5 text-[11px] font-bold tracking-wider text-white uppercase ${
+              className={`font-mono-code rounded-[3px] px-2.5 py-0.5 text-[11px] font-bold tracking-wider text-on-bad uppercase ${
                 isBad ? 'bg-bad' : 'bg-warn'
               }`}
             >

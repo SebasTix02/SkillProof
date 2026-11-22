@@ -1,3 +1,4 @@
+import { tr } from '../i18n';
 import { Button } from './shared';
 
 type Status = 'submitted' | 'queued' | 'analyzing' | 'scored' | 'error' | 'paused' | 'canceled';
@@ -31,13 +32,13 @@ export function SubmissionJudgingControls({
   return (
     <>
       {running && (
-        <Button variant="secondary" className={cls} disabled={!!busy} loading={busy === `pause-${id}`} onClick={() => act(`pause-${id}`, `${basePath}/${id}/pause`, `Judging of ${name} paused. It stops at the next checkpoint.`)}>
-          {busy === `pause-${id}` ? 'Pausing…' : 'Pause'}
+        <Button variant="secondary" className={cls} disabled={!!busy} loading={busy === `pause-${id}`} onClick={() => act(`pause-${id}`, `${basePath}/${id}/pause`, tr('Judging of {name} paused. It stops at the next checkpoint.', { name }))}>
+          {busy === `pause-${id}` ? tr('Pausing…') : tr('Pause')}
         </Button>
       )}
       {status === 'paused' && (
-        <Button className={cls} disabled={!!busy} loading={busy === `resume-${id}`} onClick={() => act(`resume-${id}`, `${basePath}/${id}/resume`, `Judging of ${name} resumed.`)}>
-          {busy === `resume-${id}` ? 'Resuming…' : 'Resume'}
+        <Button className={cls} disabled={!!busy} loading={busy === `resume-${id}`} onClick={() => act(`resume-${id}`, `${basePath}/${id}/resume`, tr('Judging of {name} resumed.', { name }))}>
+          {busy === `resume-${id}` ? tr('Resuming…') : tr('Resume')}
         </Button>
       )}
       {(running || status === 'paused') && (
@@ -46,15 +47,15 @@ export function SubmissionJudgingControls({
           className={cls}
           disabled={!!busy} loading={busy === `cancel-${id}`}
           onClick={() =>
-            act(`cancel-${id}`, `${basePath}/${id}/cancel`, `Judging of ${name} canceled.`, `Cancel judging ${name}? No new scores are written. You can start over with "Judge again".`)
+            act(`cancel-${id}`, `${basePath}/${id}/cancel`, tr('Judging of {name} canceled.', { name }), tr('Cancel judging {name}? No new scores are written. You can start over with "Judge again".', { name }))
           }
         >
-          {busy === `cancel-${id}` ? 'Canceling…' : 'Cancel'}
+          {busy === `cancel-${id}` ? tr('Canceling…') : tr('Cancel')}
         </Button>
       )}
       {(status === 'error' || status === 'canceled') && frozen && (
-        <Button variant="secondary" className={cls} disabled={!!busy} loading={busy === `re-${id}`} onClick={() => act(`re-${id}`, `${basePath}/${id}/rejudge`, `Judging ${name} again.`)}>
-          {busy === `re-${id}` ? 'Queuing…' : 'Judge again'}
+        <Button variant="secondary" className={cls} disabled={!!busy} loading={busy === `re-${id}`} onClick={() => act(`re-${id}`, `${basePath}/${id}/rejudge`, tr('Judging {name} again.', { name }))}>
+          {busy === `re-${id}` ? tr('Queuing…') : tr('Judge again')}
         </Button>
       )}
     </>
