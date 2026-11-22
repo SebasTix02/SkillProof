@@ -707,7 +707,7 @@ export function SubmissionDetail() {
                       className={`cursor-pointer border-b-2 px-3.5 py-2.5 whitespace-nowrap transition-colors ${
                         active
                           ? 'border-accent bg-surface font-bold text-accent'
-                          : 'border-transparent text-muted hover:bg-white/60 hover:text-ink'
+                          : 'border-transparent text-muted hover:bg-surface hover:text-ink'
                       }`}
                     >
                       {String(idx + 1).padStart(2, '0')}. {c.name} ({c.weight}%)

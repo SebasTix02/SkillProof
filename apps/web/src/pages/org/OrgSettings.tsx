@@ -433,7 +433,7 @@ export function OrgSettings() {
                     type="button"
                     onClick={() => setRoleFilter(tab.key)}
                     className={`font-mono-code cursor-pointer rounded-[3px] border px-2.5 py-1 text-[11px] font-medium transition-colors ${
-                      roleFilter === tab.key ? 'border-accent bg-surface font-semibold text-accent' : 'border-transparent text-muted hover:bg-white/70 hover:text-ink'
+                      roleFilter === tab.key ? 'border-accent bg-surface font-semibold text-accent' : 'border-transparent text-muted hover:bg-surface hover:text-ink'
                     }`}
                   >
                     {tab.label}

@@ -70,8 +70,8 @@
   /* Surfaces and text. */
   --color-ink: var(--color-neutral-900);
   --color-muted: var(--color-neutral-500);
-  /* The lightest gray allowed for text (4.5:1 on white): placeholders, de-emphasized metadata. */
-  --color-faint: #707784;
+  /* The lightest gray allowed for text (4.5:1 on surface, paper and well): placeholders, de-emphasized metadata. */
+  --color-faint: #666d7a;
   --color-line: var(--color-neutral-200);
   /* Borders that identify a control (inputs, selects): 3:1, WCAG 1.4.11. */
   --color-line-strong: var(--color-neutral-400);
@@ -202,9 +202,34 @@
   --color-bad-ui: var(--color-bad-400);
   --color-on-bad: var(--color-dark-canvas);
 
+  /*
+   * The light end of each scale keeps its job (50-100 tinted backgrounds, 200 soft borders), so in dark mode it becomes
+   * a dark tint: section headers, notes and quotes (DOSSIER_THEMES) stay dark with light text on them. 100 matches the
+   * -soft role. 300-900 do not change: 300 is still the tone read on the dark surfaces (*-on-dark).
+   */
+  --color-neutral-50: #171a20;
+  --color-neutral-100: #1b1f26;
+  --color-neutral-200: #262b34;
+  --color-accent-50: #131b30;
+  --color-accent-100: #14244d;
+  --color-accent-200: #24396b;
+  --color-good-50: #0f1f19;
+  --color-good-100: #0d2a1f;
+  --color-good-200: #1c4a37;
+  --color-warn-50: #21190f;
+  --color-warn-100: #33210c;
+  --color-warn-200: #573812;
+  --color-bad-50: #241312;
+  --color-bad-100: #3a1513;
+  --color-bad-200: #5c2520;
+
   /* The side menu and dark banners sit one step below the page so they still read as their own block. */
   --color-sidebar: #08090b;
   --color-dark-inset: #0a0c0f;
+}
+
+:root[data-theme='dark'] .skeleton::after {
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.06), transparent);
 }
 
 html {
@@ -281,7 +306,7 @@ body {
 }
 
 .card-interactive:hover {
-  border-color: #5d6470;
+  border-color: var(--color-muted);
 }
 
 .arrow-nudge {

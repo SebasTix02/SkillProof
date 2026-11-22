@@ -925,8 +925,8 @@ function ResultsView({
               </div>
 
               {/* Cockpit Visual Preview Framing */}
-              <div className="relative overflow-hidden rounded-[4px] border border-line bg-dark-canvas">
-                <div className="font-mono-code flex items-center justify-between border-b border-dark-hairline bg-ink px-3 py-1.5 text-[11px] text-dark-muted">
+              <div className="relative overflow-hidden rounded-[4px] border border-dark-hairline bg-dark-canvas">
+                <div className="font-mono-code flex items-center justify-between border-b border-dark-hairline bg-dark-inset px-3 py-1.5 text-[11px] text-dark-muted">
                   <div className="flex items-center gap-2">
                     <span className="h-2 w-2 rounded-full bg-good-on-dark" />
                     <span className="font-medium text-white">{tr('AUTOMATED EVALUATION')}</span>
@@ -993,11 +993,11 @@ function ResultsView({
           </div>
 
           {/* Right 5 Cols: Dark Audio Dossier Audit & Ownership Interview Panel */}
-          <div className="flex flex-col justify-between space-y-5 rounded-[6px] border border-dark-hairline bg-ink p-6 text-paper lg:col-span-5">
+          <div className="flex flex-col justify-between space-y-5 rounded-[6px] border border-dark-hairline bg-dark-inset p-6 text-white lg:col-span-5">
             <div className="space-y-4">
               <div className="flex items-center justify-between border-b border-white/10 pb-3">
                 <span className="font-mono-code inline-flex items-center gap-1.5 rounded-[3px] border border-accent/40 bg-accent/20 px-2.5 py-1 text-[11px] font-semibold tracking-wider text-accent-on-dark uppercase">
-                  <span className="material-symbols-outlined text-[15px] text-accent">mic</span>
+                  <span className="material-symbols-outlined text-[15px] text-accent-on-dark">mic</span>
                   <span>{tr('AUDIO DOSSIER AUDIT')}</span>
                 </span>
                 <span className="font-mono-code text-[11px] text-white/50">{tr('3:00 ORAL DEFENSE')}</span>

@@ -66,7 +66,7 @@ function AuthPortalShell({
                 alt={tr('SkillProof sign-in')}
                 className="block h-[240px] w-full object-cover sm:h-[280px]"
               />
-              <div className="flex items-center justify-between border-t border-dark-hairline bg-ink px-4 py-2.5 text-paper">
+              <div className="flex items-center justify-between border-t border-dark-hairline bg-dark-inset px-4 py-2.5 text-white">
                 <div className="flex items-center gap-2">
                   <span className="material-symbols-outlined text-[16px] text-good-on-dark">verified_user</span>
                   <span className="font-mono-code text-[11px] tracking-wide">
@@ -770,7 +770,7 @@ export function MyAccount() {
         <div className="flex flex-col space-y-6">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-4">
             <div className="flex flex-wrap items-center gap-2.5">
-              <span className="font-mono-code rounded-[3px] border border-accent/40 bg-accent/20 px-2.5 py-1 text-[11px] tracking-wider text-accent-soft uppercase">
+              <span className="font-mono-code rounded-[3px] border border-accent/40 bg-accent/20 px-2.5 py-1 text-[11px] tracking-wider text-accent-on-dark uppercase">
                 {tr('Your account')}
               </span>
               <span className="font-mono-code flex items-center gap-2 rounded-[3px] border border-good/40 bg-good/20 px-2.5 py-1 text-[11px] text-good-on-dark">
@@ -781,7 +781,7 @@ export function MyAccount() {
             {me.email && (
               <div className="font-mono-code flex items-center gap-2 rounded-[3px] border border-white/10 bg-dark-surface px-3 py-1 text-[11px] text-dark-muted">
                 <span>{tr('Signed in as')}</span>
-                <span className="font-medium tracking-wide text-accent-soft">{me.email}</span>
+                <span className="font-medium tracking-wide text-accent-on-dark">{me.email}</span>
               </div>
             )}
           </div>

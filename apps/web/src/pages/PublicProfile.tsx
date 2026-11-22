@@ -120,8 +120,8 @@ export function PublicProfile() {
       {/* 1. Recruiter Access Header Bar */}
       <DarkBanner className="no-print flex flex-col justify-between gap-4 p-4 sm:p-5 lg:flex-row lg:items-center">
         <div className="flex flex-wrap items-center gap-3">
-          <div className="font-mono-code flex items-center gap-2 rounded-[4px] border border-accent/40 bg-accent/20 px-3 py-1.5 text-[11px] font-bold tracking-wider text-accent-soft">
-            <span className="material-symbols-outlined text-[16px] text-accent">verified_user</span>
+          <div className="font-mono-code flex items-center gap-2 rounded-[4px] border border-accent/40 bg-accent/20 px-3 py-1.5 text-[11px] font-bold tracking-wider text-accent-on-dark">
+            <span className="material-symbols-outlined text-[16px] text-accent-on-dark">verified_user</span>
             <span>{tr('PUBLIC DOSSIER // /P/')}{profile.slug.toUpperCase()}</span>
           </div>
           <span className="hidden text-white/30 sm:inline">|</span>
@@ -139,7 +139,7 @@ export function PublicProfile() {
             onClick={() => window.print()}
             className="btn-tactile font-mono-code flex cursor-pointer items-center gap-1.5 rounded-[4px] border border-white/15 bg-white/10 px-3 py-1.5 text-[11px] font-medium text-white hover:bg-white/20"
           >
-            <span className="material-symbols-outlined text-[15px] text-accent-soft">picture_as_pdf</span>
+            <span className="material-symbols-outlined text-[15px] text-accent-on-dark">picture_as_pdf</span>
             <span>{tr('Print / Save PDF')}</span>
           </button>
 
@@ -501,7 +501,7 @@ export function PublicProfile() {
                 {tr('Dossier Slug:')}{' '}<code className="font-semibold text-warn-on-dark">/p/{profile.slug}</code>
               </div>
               <div className="rounded-[4px] border border-dark-hairline bg-dark-surface px-3 py-1.5">
-                {tr('Completed interviews:')}{' '}<code className="font-semibold text-accent-soft">{verified.length}</code>
+                {tr('Completed interviews:')}{' '}<code className="font-semibold text-accent-on-dark">{verified.length}</code>
               </div>
               <span className="flex items-center gap-1.5 rounded-[4px] border border-good/40 bg-good/20 px-3 py-1.5 font-semibold text-good-on-dark">
                 <span className="material-symbols-outlined text-[14px]">lock</span>

@@ -289,7 +289,7 @@ export function InterviewHome() {
             </div>
           </div>
 
-          <div className="flex flex-col justify-between space-y-4 bg-ink p-5 text-paper lg:col-span-5">
+          <div className="flex flex-col justify-between space-y-4 bg-dark-inset p-5 text-white lg:col-span-5">
             <div className="flex items-center justify-between border-b border-dark-hairline pb-2.5">
               <div className="flex items-center gap-2">
                 <LiveDot tone="mint" />
@@ -308,7 +308,7 @@ export function InterviewHome() {
                 alt={tr('SkillProof AI software engineering oral interview cockpit')}
                 className="block h-auto w-full object-cover"
               />
-              <div className="font-mono-code flex items-center justify-between border-t border-dark-hairline bg-ink px-3 py-1.5 text-[11px]">
+              <div className="font-mono-code flex items-center justify-between border-t border-dark-hairline bg-dark-inset px-3 py-1.5 text-[11px]">
                 <span className="flex items-center gap-1.5 text-good-on-dark">
                   <span className="material-symbols-outlined text-[14px]">graphic_eq</span>
                   {tr('Acoustic Stream Ready')}
@@ -319,7 +319,7 @@ export function InterviewHome() {
 
             <div className="font-mono-code flex items-center justify-between text-[11px] text-dark-muted">
               <span className="flex items-center gap-1.5">
-                <span className="material-symbols-outlined text-[14px] text-accent">verified_user</span>
+                <span className="material-symbols-outlined text-[14px] text-accent-on-dark">verified_user</span>
                 {tr('Commit-Anchored Questions')}
               </span>
               <span className="font-semibold text-good-on-dark">{tr('OWNERSHIP VERIFIED')}</span>
