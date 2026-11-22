@@ -1,4 +1,5 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { Link, useLocation } from 'react-router-dom';
 import { tr, trn, useI18n } from '../i18n';
 import { errorMessage } from '../lib/api';
@@ -189,13 +190,16 @@ export function NotificationBell({
         )}
       </button>
 
-      {open && (
+      {/* In <body>, not next to the bell: the side menu is sticky (its own stacking context), so a panel inside it
+          would sit under page content that has a z-index of its own (images, banners). */}
+      {open &&
+        createPortal(
         <div
           ref={panel}
           role="dialog"
           aria-labelledby={titleId}
           style={style}
-          className="fixed z-[70] flex max-h-[min(560px,calc(100vh-24px))] flex-col overflow-hidden rounded-[6px] border border-line-strong bg-surface text-ink"
+          className="fixed z-[75] flex max-h-[min(560px,calc(100vh-24px))] flex-col overflow-hidden rounded-[6px] border border-line-strong bg-surface text-ink"
         >
           <header className="flex items-start justify-between gap-3 border-b border-line px-4 py-3">
             <div>
@@ -253,7 +257,8 @@ export function NotificationBell({
               </Link>
             </footer>
           )}
-        </div>
+        </div>,
+        document.body,
       )}
     </>
   );

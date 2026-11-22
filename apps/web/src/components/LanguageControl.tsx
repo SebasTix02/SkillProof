@@ -1,5 +1,6 @@
 import { LOCALES, LOCALE_NAME, type Locale } from '@skillproof/shared';
 import { useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react';
+import { createPortal } from 'react-dom';
 import { t, tr, useI18n } from '../i18n';
 
 /** The language's name in the language in use ("Spanish" / "Inglés"); '' if the browser cannot name it. */
@@ -133,7 +134,9 @@ export function LanguageMenu({
         )}
       </button>
 
-      {open && (
+      {/* In <body>: inside the sticky side menu it would sit under page content with a z-index of its own. */}
+      {open &&
+        createPortal(
         <div
           ref={menu}
           id={menuId}
@@ -141,7 +144,7 @@ export function LanguageMenu({
           aria-label={t('language.label')}
           onKeyDown={onMenuKey}
           style={style}
-          className={`fixed z-[60] w-[232px] rounded-[6px] border p-1 ${
+          className={`fixed z-[75] w-[232px] rounded-[6px] border p-1 ${
             onDark ? 'border-dark-hairline bg-dark-surface' : 'border-line-strong bg-surface'
           }`}
         >
@@ -207,7 +210,8 @@ export function LanguageMenu({
               </button>
             );
           })}
-        </div>
+        </div>,
+        document.body,
       )}
     </>
   );
