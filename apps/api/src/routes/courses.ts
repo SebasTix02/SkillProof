@@ -810,6 +810,18 @@ export async function courseRoutes(app: FastifyInstance): Promise<void> {
     return { ok: true };
   });
 
+  /**
+   * The signed-in person's notifications (the bell in the side menu). Only what needs an answer and still can get
+   * one: today, group invitations that are still open. One kind per item, so new kinds can be added later.
+   */
+  app.get('/api/me/notifications', async (req) => {
+    const user = await requireUser(req);
+    const invites = (await myInvites(user.id)).filter((i) => i.open);
+    return {
+      notifications: invites.map(({ open: _open, ...i }) => ({ kind: 'group_invite' as const, id: `group_invite:${i.group_id}`, ...i })),
+    };
+  });
+
   app.post('/api/me/groups/:id/leave', async (req) => {
     const user = await requireUser(req);
     const { id } = parse(IdParams, req.params);
@@ -834,29 +846,58 @@ async function mySubmissions(userId: string, assignments: AssignmentRow[]) {
   return map;
 }
 
-/** Group invitations waiting for the student's answer. */
+/**
+ * Group invitations waiting for the student's answer, newest first. `open`: it can still be answered, by the same
+ * rule as the database (groups_closed): the group has not submitted yet, the assignment is open and groups have not
+ * closed. Invitations from archived courses are left out.
+ */
 async function myInvites(userId: string) {
   const rows = must(
     await db()
       .from('assignment_group_members')
-      .select('group_id, invited_by, assignment_groups(name, assignment_id, course_assignments(title, course_id, due_at, group_lock_at))')
+      .select(
+        'group_id, invited_by, created_at, assignment_groups(name, assignment_id, locked_at, course_assignments(title, course_id, status, due_at, group_lock_at, courses(name, archived_at)))',
+      )
       .eq('user_id', userId)
-      .eq('status', 'invited'),
+      .eq('status', 'invited')
+      .order('created_at', { ascending: false }),
   ) as unknown as {
     group_id: string;
     invited_by: string | null;
-    assignment_groups: { name: string; assignment_id: string; course_assignments: { title: string; course_id: string; due_at: string; group_lock_at: string | null } | null } | null;
+    created_at: string;
+    assignment_groups: {
+      name: string;
+      assignment_id: string;
+      locked_at: string | null;
+      course_assignments: {
+        title: string;
+        course_id: string;
+        status: string;
+        due_at: string;
+        group_lock_at: string | null;
+        courses: { name: string; archived_at: string | null } | null;
+      } | null;
+    } | null;
   }[];
   const people = await names(rows.map((r) => r.invited_by));
+  const now = Date.now();
   return rows
-    .filter((r) => r.assignment_groups?.course_assignments)
-    .map((r) => ({
-      group_id: r.group_id,
-      group_name: r.assignment_groups!.name,
-      assignment_id: r.assignment_groups!.assignment_id,
-      assignment_title: r.assignment_groups!.course_assignments!.title,
-      course_id: r.assignment_groups!.course_assignments!.course_id,
-      closes_at: r.assignment_groups!.course_assignments!.group_lock_at ?? r.assignment_groups!.course_assignments!.due_at,
-      invited_by: people.get(r.invited_by ?? '')?.display_name ?? null,
-    }));
+    .filter((r) => r.assignment_groups?.course_assignments && !r.assignment_groups.course_assignments.courses?.archived_at)
+    .map((r) => {
+      const g = r.assignment_groups!;
+      const a = g.course_assignments!;
+      const closesAt = a.group_lock_at ?? a.due_at;
+      return {
+        group_id: r.group_id,
+        group_name: g.name,
+        assignment_id: g.assignment_id,
+        assignment_title: a.title,
+        course_id: a.course_id,
+        course_name: a.courses?.name ?? null,
+        closes_at: closesAt,
+        invited_at: r.created_at,
+        invited_by: people.get(r.invited_by ?? '')?.display_name ?? null,
+        open: !g.locked_at && a.status === 'open' && Date.parse(closesAt) > now,
+      };
+    });
 }

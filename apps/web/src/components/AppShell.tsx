@@ -1,4 +1,5 @@
 import { tr } from '../i18n';
+import { NotificationBell } from './NotificationBell';
 import { PreferenceControls } from './ThemeControl';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
@@ -100,13 +101,17 @@ function SidebarBody({
   active,
   collapsed,
   onToggleCollapsed,
+  showBell = true,
 }: {
   sections: NavSection[];
   active: string | null;
   collapsed: boolean;
   onToggleCollapsed?: () => void;
+  /** The mobile drawer leaves it out: the top bar already has the bell. */
+  showBell?: boolean;
 }) {
   const { me, org, selectOrg, signOut } = useAuth();
+  const myCourses = (me?.enrolled_courses ?? 0) > 0;
   const orgs = me?.organizations ?? [];
   const name = me?.profile.display_name || me?.email || tr('Account');
   const activePage = activeParent(sections, active);
@@ -187,13 +192,16 @@ function SidebarBody({
 
   return (
     <div className="flex h-full flex-col bg-dark-canvas text-dark-ink">
-      <div className={cx('flex h-14 shrink-0 items-center border-b border-dark-hairline', collapsed ? 'justify-center px-2' : 'px-4')}>
+      <div className={cx('flex h-14 shrink-0 items-center border-b border-dark-hairline', collapsed ? 'justify-center px-2' : 'justify-between gap-2 pr-2 pl-4')}>
         {collapsed ? (
           <Link to="/events" aria-label={tr('SkillProof home')} className={cx('group rounded-[4px]', focusRing)}>
             <Mark dark />
           </Link>
         ) : (
-          <Logo to="/events" dark />
+          <>
+            <Logo to="/events" dark />
+            {showBell && <NotificationBell onDark placement="bottom-start" showMyCourses={myCourses} />}
+          </>
         )}
       </div>
 
@@ -350,6 +358,11 @@ function SidebarBody({
                 {org ? ` · ${org.name}` : ''}
               </p>
             </div>
+          </div>
+        )}
+        {collapsed && showBell && (
+          <div className="mb-1 flex justify-center">
+            <NotificationBell onDark placement="right-end" showMyCourses={myCourses} className="w-full border border-dark-hairline" />
           </div>
         )}
         <div className={cx('flex gap-1', collapsed && 'flex-col')}>
@@ -549,6 +562,8 @@ export function AppShell({ children }: { children: ReactNode }) {
       {/* Phones and tablets: a minimal dark top bar with the menu button. */}
       <header className="no-print sticky top-0 z-40 flex h-14 items-center justify-between gap-3 border-b border-dark-hairline bg-dark-canvas px-4 lg:hidden">
         <Logo to="/events" dark />
+        <div className="flex items-center gap-1.5">
+        <NotificationBell onDark placement="bottom-end" showMyCourses={(me?.enrolled_courses ?? 0) > 0} />
         <button
           ref={opener}
           type="button"
@@ -560,6 +575,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         >
           <Symbol name="menu" />
         </button>
+        </div>
       </header>
 
       {open && (
@@ -574,7 +590,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             >
               <Symbol name="close" />
             </button>
-            <SidebarBody sections={sections} active={active} collapsed={false} />
+            <SidebarBody sections={sections} active={active} collapsed={false} showBell={false} />
           </div>
         </div>
       )}
