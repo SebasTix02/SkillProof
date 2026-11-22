@@ -3,8 +3,9 @@ import { lazy, tr } from '../i18n';
  * What the side menu shows: every screen the signed-in user can open, grouped by section.
  *
  * Pure (no React), so the role rules are tested in nav.test.ts. Screens that need an id (an event, a submission,
- * an interview) are not in the menu: they highlight their parent item instead (see `activeItem`). Sections of one
- * page (#section-… of Organization settings or Account) are sub-items (`children`) of that page's item.
+ * an interview) are not in the menu: they highlight their parent item instead (see `activeItem`). Sub-items
+ * (`children`) are the sections of one page (#section-… of Settings or Account) or, under Courses, the organization's
+ * courses (pages of their own: /org/courses/:id owns everything below it).
  */
 import type { Me, Organization } from './auth';
 
@@ -55,7 +56,30 @@ export function roleLabel(org: Organization | null): string {
   return tr('Candidate');
 }
 
-export function navSections(me: Me | null, org: Organization | null): NavSection[] {
+/** A course of the current organization, for the sub-items of Courses (from GET /api/orgs/:id/courses). */
+export interface NavCourse {
+  id: string;
+  name: string;
+  code?: string | null;
+}
+
+/** Courses listed under Courses; with more, the last sub-item opens the full list. */
+export const MAX_NAV_COURSES = 8;
+
+/** One sub-item per course (the newest first, as the API sends them), so a course is one click away. */
+function courseChildren(courses: NavCourse[]): NavItem[] {
+  const shown = courses.slice(0, MAX_NAV_COURSES).map((c) => ({
+    key: `org-course-${c.id}`,
+    label: c.name,
+    to: `/org/courses/${c.id}`,
+    icon: 'courses' as const,
+  }));
+  if (courses.length > MAX_NAV_COURSES)
+    shown.push({ key: 'org-courses-all', label: tr('All courses ({n})', { n: courses.length }), to: '/org/courses', icon: 'courses' });
+  return shown;
+}
+
+export function navSections(me: Me | null, org: Organization | null, courses: NavCourse[] = []): NavSection[] {
   const personal: NavItem[] = [
     { key: 'events', label: tr('Events'), to: '/events', icon: 'events', owns: ['/events', '/e'] },
     { key: 'interviews', label: tr('Interviews'), to: '/interviews', icon: 'interviews', owns: ['/interviews', '/interview'] },
@@ -89,7 +113,11 @@ export function navSections(me: Me | null, org: Organization | null): NavSection
   else items.push({ key: 'org-events', label: tr('Event console'), to: '/org/events', icon: 'console', owns: ['/org/events'] });
   if (can('event.create')) items.push({ key: 'org-new', label: tr('New event'), to: '/org/events/new', icon: 'plus' });
   // Courses and integrity are separate screens: a course is not an event, and integrity covers events and assignments.
-  if (can('course.manage')) items.push({ key: 'org-courses', label: tr('Courses'), to: '/org/courses', icon: 'courses' });
+  // Its sub-items are the organization's courses (none when it has none); a course's own pages highlight its item.
+  if (can('course.manage')) {
+    const children = courseChildren(courses);
+    items.push({ key: 'org-courses', label: tr('Courses'), to: '/org/courses', icon: 'courses', ...(children.length ? { children } : {}) });
+  }
   if (can('integrity.decide') || can('event.manage'))
     items.push({ key: 'org-integrity', label: tr('Integrity'), to: '/org/integrity', icon: 'integrity', owns: ['/org/integrity', '/org/events/*/compare'] });
   // Organization settings is one page; its sections are sub-items, each one shown only with its permission.
@@ -109,7 +137,8 @@ export function navSections(me: Me | null, org: Organization | null): NavSection
       icon: 'audit',
     });
   if (settings.length)
-    items.push({ key: 'org-settings', label: tr('Organization settings'), to: '/org/settings', icon: 'settings', children: settings });
+    // "Settings" alone: it sits under the organization's own heading, and the long name did not fit the menu.
+    items.push({ key: 'org-settings', label: tr('Settings'), to: '/org/settings', icon: 'settings', children: settings });
   sections.push({ key: 'org', title: org.name, items });
   return sections;
 }

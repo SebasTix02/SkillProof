@@ -38,6 +38,7 @@ import { api, errorMessage } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
 import { COURSE_STATUS_TONE, groupSizeLabel, localInput, type AssignmentMode, type AssignmentView } from '../../lib/courses';
 import { STATUS_LABEL } from '../../lib/types';
+import { notifyCoursesChanged } from '../../lib/navCourses';
 import { useLoad } from '../../lib/useLoad';
 
 interface CourseSummary {
@@ -91,6 +92,7 @@ export function CoursesHome() {
     try {
       const res = await api<{ course: CourseSummary }>(`/api/orgs/${org.id}/courses`, { body: form });
       toast.success(tr('Course {name} created.', { name: res.course.name }));
+      notifyCoursesChanged();
       navigate(`/org/courses/${res.course.id}/roster`);
     } catch (err) {
       toast.error(tr('Could not create the course. {error}', { error: errorMessage(err) }));
@@ -268,6 +270,7 @@ function Overview({ detail }: { detail: CourseDetail }) {
     try {
       await api(`/api/courses/${course.id}/archive`, { method: 'POST' });
       toast.success(tr('Course archived.'));
+      notifyCoursesChanged();
       navigate('/org/courses');
     } catch (err) {
       toast.error(tr('Could not archive the course. {error}', { error: errorMessage(err) }));

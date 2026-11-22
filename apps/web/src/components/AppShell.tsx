@@ -5,6 +5,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 import { pendingRequests, useDelayed, usePendingRequests } from '../lib/loading';
 import { activeItem, activeParent, navSections, roleLabel, type NavIcon, type NavItem, type NavSection } from '../lib/nav';
+import { useNavCourses } from '../lib/navCourses';
 
 const cx = (...parts: (string | false | null | undefined)[]) => parts.filter(Boolean).join(' ');
 
@@ -246,14 +247,18 @@ function SidebarBody({
                         className={cx(linkClass(isActive || (collapsed && item.key === activePage), inTrail), 'min-w-0 flex-1')}
                       >
                         <Symbol name={ICON[item.icon]} className={isActive || inTrail ? 'text-accent-on-dark' : undefined} />
-                        {!collapsed && <span className="truncate">{item.label}</span>}
+                        {!collapsed && (
+                          <span className="truncate" title={item.label}>
+                            {item.label}
+                          </span>
+                        )}
                       </Link>
                       {children.length > 0 && !collapsed && (
                         <button
                           type="button"
                           aria-expanded={open}
                           aria-controls={subId}
-                          aria-label={(open ? tr('Hide sections of {page}', { page: item.label }) : tr('Show sections of {page}', { page: item.label }))}
+                          aria-label={open ? tr('Collapse {page}', { page: item.label }) : tr('Expand {page}', { page: item.label })}
                           onClick={() => setToggled((t) => ({ ...t, [item.key]: !open }))}
                           className={cx('flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-[4px] text-dark-muted hover:bg-dark-surface hover:text-dark-ink', focusRing)}
                         >
@@ -265,8 +270,15 @@ function SidebarBody({
                       <ul id={subId} className="relative mt-0.5 mb-1 space-y-0.5 before:absolute before:inset-y-1 before:left-[22px] before:w-px before:bg-dark-hairline">
                         {children.map((c) => (
                           <li key={c.key}>
-                            <Link to={c.to} aria-current={c.key === active ? 'location' : undefined} className={linkClass(c.key === active, false, true)}>
-                              <span className="truncate">{c.label}</span>
+                            {/* A #section is a place on the page; a course is a page of its own. */}
+                            <Link
+                              to={c.to}
+                              aria-current={c.key === active ? (c.to.includes('#') ? 'location' : 'page') : undefined}
+                              className={linkClass(c.key === active, false, true)}
+                            >
+                              <span className="truncate" title={c.label}>
+                                {c.label}
+                              </span>
                             </Link>
                           </li>
                         ))}
@@ -303,8 +315,9 @@ function SidebarBody({
               key={c.key}
               role="menuitem"
               to={c.to}
+              title={c.label}
               className={cx(
-                'block rounded-[4px] py-1.5 pr-3 pl-5 hover:bg-dark-canvas',
+                'block max-w-[280px] truncate rounded-[4px] py-1.5 pr-3 pl-5 hover:bg-dark-canvas',
                 focusRing,
                 c.key === active ? 'font-semibold text-accent-on-dark' : 'text-dark-muted hover:text-dark-ink',
               )}
@@ -453,7 +466,8 @@ const FOCUSABLE = 'a[href], button:not([disabled]), select, input, [tabindex]:no
 export function AppShell({ children }: { children: ReactNode }) {
   const { me, org } = useAuth();
   const location = useLocation();
-  const sections = useMemo(() => navSections(me, org), [me, org]);
+  const courses = useNavCourses(org?.id ?? null, !!org?.permissions.includes('course.manage'));
+  const sections = useMemo(() => navSections(me, org, courses), [me, org, courses]);
 
   // Sections of the current page that are sub-items of the menu, for the scroll-spy.
   const pageSections = useMemo(() => {
