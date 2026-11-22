@@ -1,6 +1,5 @@
 import { formatDateTime, tr } from '../i18n';
-import { LanguageSelect } from './LanguageControl';
-import { ThemeToggle } from './ThemeControl';
+import { PreferenceControls } from './ThemeControl';
 import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode, SelectHTMLAttributes, TextareaHTMLAttributes } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
@@ -183,8 +182,7 @@ export function Layout({ children }: { children: ReactNode }) {
               </nav>
             )}
 
-            <LanguageSelect />
-            <ThemeToggle compact />
+            <PreferenceControls />
             {session ? (
               <>
                 <Link to="/events" className={cx(linkButton, 'px-3.5 py-1.5 text-[12px] whitespace-nowrap')}>

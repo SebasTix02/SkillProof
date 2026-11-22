@@ -15,6 +15,7 @@ import {
   formatDate,
   linkButton,
   linkButtonSecondary,
+  Tabs,
 } from '../../components/shared';
 import { MyReviewQueue } from '../../components/MyReviewQueue';
 import { useToast } from '../../components/toast';
@@ -241,31 +242,19 @@ export function OrgEvents() {
           />
 
           {/* Status Filter Strip */}
-          <div className="flex flex-wrap items-center gap-1.5 border-b border-line pb-3">
-            {(
-              [
-                { key: 'all', label: tr('All ({n})', { n: events.length }) },
-                { key: 'open', label: tr('Open') },
-                { key: 'judging', label: tr('Judging') },
-                { key: 'review', label: tr('In Review') },
-                { key: 'published', label: tr('Published') },
-                { key: 'draft', label: tr('Drafts') },
-              ] as const
-            ).map((tab) => (
-              <button
-                key={tab.key}
-                type="button"
-                onClick={() => setStatusFilter(tab.key)}
-                className={`font-mono-code cursor-pointer rounded-[3px] border px-2.5 py-1 text-[11px] font-semibold transition-colors ${
-                  statusFilter === tab.key
-                    ? 'border-accent bg-accent-soft text-accent-ink'
-                    : 'border-transparent bg-paper text-muted hover:border-line hover:text-ink'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
+          <Tabs
+            variant="chips"
+            size="sm"
+            ariaLabel={tr('Filter events by status')}
+            className="border-b border-line pb-3"
+            tabs={(['all', 'open', 'judging', 'review', 'published', 'draft'] as const).map((key) => ({
+              key,
+              label: { all: tr('All'), open: tr('Open'), judging: tr('Judging'), review: tr('In Review'), published: tr('Published'), draft: tr('Drafts') }[key],
+              count: key === 'all' ? events.length : events.filter((e) => e.status === key).length,
+            }))}
+            active={statusFilter}
+            onChange={setStatusFilter}
+          />
 
           {filtered.length === 0 ? (
             <div className="rounded-[4px] border border-dashed border-line bg-paper/50 p-10 text-center">

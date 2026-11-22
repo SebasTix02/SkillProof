@@ -1,5 +1,5 @@
 import { getLocale, t, tr } from '../i18n';
-import { LanguageSelect } from '../components/LanguageControl';
+import { LanguageChoice } from '../components/LanguageControl';
 import { ThemeChoice } from '../components/ThemeControl';
 import { useEffect, useState, type FormEvent, type ReactNode, useCallback } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
@@ -15,6 +15,7 @@ import {
   ToggleSwitch,
   useConfirm,
   TONE_CLASS,
+  Tabs,
 } from '../components/shared';
 import { api, errorMessage } from '../lib/api';
 import { useToast } from '../components/toast';
@@ -66,7 +67,7 @@ function AuthPortalShell({
                 alt={tr('SkillProof sign-in')}
                 className="block h-[240px] w-full object-cover sm:h-[280px]"
               />
-              <div className="flex items-center justify-between border-t border-dark-hairline bg-ink px-4 py-2.5 text-paper">
+              <div className="flex items-center justify-between border-t border-dark-hairline bg-dark-inset px-4 py-2.5 text-white">
                 <div className="flex items-center gap-2">
                   <span className="material-symbols-outlined text-[16px] text-good-on-dark">verified_user</span>
                   <span className="font-mono-code text-[11px] tracking-wide">
@@ -127,41 +128,16 @@ function AuthPortalShell({
             </div>
 
             {/* Auth Mode Navigation Tabs */}
-            <div className="flex items-center justify-between border-b border-line">
-              <div className="flex items-center gap-6">
-                <Link
-                  to={`/login${search}`}
-                  className={`font-mono-code -mb-[1px] border-b-2 pb-2.5 text-[12px] font-semibold tracking-wider uppercase transition-colors ${
-                    mode === 'login'
-                      ? 'border-accent text-accent'
-                      : 'border-transparent text-muted hover:text-ink'
-                  }`}
-                >
-                  {tr('Sign In')}
-                </Link>
-                <Link
-                  to={`/signup${search}`}
-                  className={`font-mono-code -mb-[1px] border-b-2 pb-2.5 text-[12px] font-semibold tracking-wider uppercase transition-colors ${
-                    mode === 'signup'
-                      ? 'border-accent text-accent'
-                      : 'border-transparent text-muted hover:text-ink'
-                  }`}
-                >
-                  {tr('Request Access / Register')}
-                </Link>
-              </div>
-              <Link
-                to="/forgot-password"
-                className={`font-mono-code -mb-[1px] flex items-center gap-1 border-b-2 pb-2.5 text-[11px] font-medium transition-colors ${
-                  mode === 'recovery'
-                    ? 'border-accent text-accent'
-                    : 'border-transparent text-muted hover:text-accent'
-                }`}
-              >
-                <span className="material-symbols-outlined text-[14px]">key</span>
-                <span>{tr('Reset Key')}</span>
-              </Link>
-            </div>
+            <Tabs
+              ariaLabel={tr('Account access')}
+              size="sm"
+              active={mode}
+              tabs={[
+                { key: 'login', label: tr('Sign In'), icon: 'login', to: `/login${search}` },
+                { key: 'signup', label: tr('Request Access / Register'), icon: 'person_add', to: `/signup${search}` },
+                { key: 'recovery', label: tr('Reset Key'), icon: 'key', to: '/forgot-password' },
+              ]}
+            />
 
             {/* Active Form / View Content */}
             <div className="pt-1">{children}</div>
@@ -770,7 +746,7 @@ export function MyAccount() {
         <div className="flex flex-col space-y-6">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-4">
             <div className="flex flex-wrap items-center gap-2.5">
-              <span className="font-mono-code rounded-[3px] border border-accent/40 bg-accent/20 px-2.5 py-1 text-[11px] tracking-wider text-accent-soft uppercase">
+              <span className="font-mono-code rounded-[3px] border border-accent/40 bg-accent/20 px-2.5 py-1 text-[11px] tracking-wider text-accent-on-dark uppercase">
                 {tr('Your account')}
               </span>
               <span className="font-mono-code flex items-center gap-2 rounded-[3px] border border-good/40 bg-good/20 px-2.5 py-1 text-[11px] text-good-on-dark">
@@ -781,7 +757,7 @@ export function MyAccount() {
             {me.email && (
               <div className="font-mono-code flex items-center gap-2 rounded-[3px] border border-white/10 bg-dark-surface px-3 py-1 text-[11px] text-dark-muted">
                 <span>{tr('Signed in as')}</span>
-                <span className="font-medium tracking-wide text-accent-soft">{me.email}</span>
+                <span className="font-medium tracking-wide text-accent-on-dark">{me.email}</span>
               </div>
             )}
           </div>
@@ -1127,14 +1103,14 @@ export function MyAccount() {
             subtitle={t('theme.appearanceHint')}
             sectionTag={tr('SECTION 04 // APPEARANCE')}
           >
-            <div className="flex flex-wrap items-end gap-6">
+            <div className="flex flex-wrap items-start gap-x-10 gap-y-5">
               <div className="space-y-1.5">
                 <p className="text-[12px] font-semibold text-ink">{t('theme.label')}</p>
                 <ThemeChoice />
               </div>
               <div className="space-y-1.5">
-                <label htmlFor="account-language" className="block text-[12px] font-semibold text-ink">{t('language.label')}</label>
-                <LanguageSelect id="account-language" />
+                <p className="text-[12px] font-semibold text-ink">{t('language.label')}</p>
+                <LanguageChoice id="account-language" />
                 <p className="text-[12px] text-muted">{t('language.hint')}</p>
               </div>
             </div>

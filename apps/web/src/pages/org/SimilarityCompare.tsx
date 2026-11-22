@@ -17,7 +17,7 @@ import {
   ScoreBar,
   Select,
   SeverityAlertBanner,
-  TabStrip,
+  Tabs,
   Textarea,
   TopAccentKpiCard,
   formatDate,
@@ -606,7 +606,8 @@ export function SimilarityCompare() {
       </div>
 
       {/* 5. View Switcher */}
-      <TabStrip
+      <Tabs
+        ariaLabel={tr('Comparison views')}
         tabs={[
           { key: 'side_by_side', label: tr('Side-by-Side Comparison'), icon: 'compare' },
           { key: 'repo_overlap', label: tr('Commit & Stack Provenance'), icon: 'account_tree' },

@@ -597,7 +597,7 @@ export function Landing() {
       {/* 5. High-Impact Dark Architectural Call to Action */}
       <DarkBanner id="demo" className="p-8 sm:p-12 lg:p-14">
         <div className="mx-auto max-w-[740px] space-y-5 text-center">
-          <div className="font-mono-code inline-flex items-center gap-2 rounded-[3px] border border-dark-hairline bg-dark-surface px-3 py-1 text-[11px] font-semibold tracking-wider text-accent-soft uppercase">
+          <div className="font-mono-code inline-flex items-center gap-2 rounded-[3px] border border-dark-hairline bg-dark-surface px-3 py-1 text-[11px] font-semibold tracking-wider text-accent-on-dark uppercase">
             <LiveDot tone="accent" pulse={false} />
             {tr('THE STANDARD FOR AUTHENTIC CODE CREDENTIALING')}
           </div>

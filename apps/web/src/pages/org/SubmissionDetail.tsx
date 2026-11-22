@@ -15,6 +15,7 @@ import {
   ScoreBar,
   Select,
   Spinner,
+  Tabs,
   formatDate,
   linkButton,
   linkButtonSecondary,
@@ -696,25 +697,14 @@ export function SubmissionDetail() {
           {/* Syntactic Rubric Evidence Explorer */}
           {rubric.length > 0 && ordered.length > 0 && (
             <div className="overflow-hidden rounded-[6px] border border-line bg-surface">
-              <div className="font-mono-code flex items-center overflow-x-auto border-b border-line bg-paper text-[11px]">
-                {rubric.map((c, idx) => {
-                  const active = idx === activeCriterionIdx;
-                  return (
-                    <button
-                      key={c.key}
-                      type="button"
-                      onClick={() => setActiveCriterionIdx(idx)}
-                      className={`cursor-pointer border-b-2 px-3.5 py-2.5 whitespace-nowrap transition-colors ${
-                        active
-                          ? 'border-accent bg-surface font-bold text-accent'
-                          : 'border-transparent text-muted hover:bg-white/60 hover:text-ink'
-                      }`}
-                    >
-                      {String(idx + 1).padStart(2, '0')}. {c.name} ({c.weight}%)
-                    </button>
-                  );
-                })}
-              </div>
+              <Tabs
+                size="sm"
+                ariaLabel={tr('Rubric criteria')}
+                className="bg-paper px-2 pt-1"
+                tabs={rubric.map((c, idx) => ({ key: String(idx), label: `${String(idx + 1).padStart(2, '0')}. ${c.name}`, count: `${c.weight}%` }))}
+                active={String(activeCriterionIdx)}
+                onChange={(k) => setActiveCriterionIdx(Number(k))}
+              />
 
               <div className="font-mono-code flex items-center justify-between bg-dark-inset px-4 py-2 text-[11px] text-white/80">
                 <div className="flex items-center gap-2">

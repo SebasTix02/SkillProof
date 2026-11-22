@@ -1,11 +1,12 @@
 import { tr } from '../i18n';
-import { LanguageSelect } from './LanguageControl';
-import { ThemeToggle } from './ThemeControl';
+import { NotificationBell } from './NotificationBell';
+import { PreferenceControls } from './ThemeControl';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 import { pendingRequests, useDelayed, usePendingRequests } from '../lib/loading';
 import { activeItem, activeParent, navSections, roleLabel, type NavIcon, type NavItem, type NavSection } from '../lib/nav';
+import { useNavCourses } from '../lib/navCourses';
 
 const cx = (...parts: (string | false | null | undefined)[]) => parts.filter(Boolean).join(' ');
 
@@ -100,13 +101,17 @@ function SidebarBody({
   active,
   collapsed,
   onToggleCollapsed,
+  showBell = true,
 }: {
   sections: NavSection[];
   active: string | null;
   collapsed: boolean;
   onToggleCollapsed?: () => void;
+  /** The mobile drawer leaves it out: the top bar already has the bell. */
+  showBell?: boolean;
 }) {
   const { me, org, selectOrg, signOut } = useAuth();
+  const myCourses = (me?.enrolled_courses ?? 0) > 0;
   const orgs = me?.organizations ?? [];
   const name = me?.profile.display_name || me?.email || tr('Account');
   const activePage = activeParent(sections, active);
@@ -187,13 +192,16 @@ function SidebarBody({
 
   return (
     <div className="flex h-full flex-col bg-dark-canvas text-dark-ink">
-      <div className={cx('flex h-14 shrink-0 items-center border-b border-dark-hairline', collapsed ? 'justify-center px-2' : 'px-4')}>
+      <div className={cx('flex h-14 shrink-0 items-center border-b border-dark-hairline', collapsed ? 'justify-center px-2' : 'justify-between gap-2 pr-2 pl-4')}>
         {collapsed ? (
           <Link to="/events" aria-label={tr('SkillProof home')} className={cx('group rounded-[4px]', focusRing)}>
             <Mark dark />
           </Link>
         ) : (
-          <Logo to="/events" dark />
+          <>
+            <Logo to="/events" dark />
+            {showBell && <NotificationBell onDark placement="bottom-start" showMyCourses={myCourses} />}
+          </>
         )}
       </div>
 
@@ -247,14 +255,18 @@ function SidebarBody({
                         className={cx(linkClass(isActive || (collapsed && item.key === activePage), inTrail), 'min-w-0 flex-1')}
                       >
                         <Symbol name={ICON[item.icon]} className={isActive || inTrail ? 'text-accent-on-dark' : undefined} />
-                        {!collapsed && <span className="truncate">{item.label}</span>}
+                        {!collapsed && (
+                          <span className="truncate" title={item.label}>
+                            {item.label}
+                          </span>
+                        )}
                       </Link>
                       {children.length > 0 && !collapsed && (
                         <button
                           type="button"
                           aria-expanded={open}
                           aria-controls={subId}
-                          aria-label={(open ? tr('Hide sections of {page}', { page: item.label }) : tr('Show sections of {page}', { page: item.label }))}
+                          aria-label={open ? tr('Collapse {page}', { page: item.label }) : tr('Expand {page}', { page: item.label })}
                           onClick={() => setToggled((t) => ({ ...t, [item.key]: !open }))}
                           className={cx('flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-[4px] text-dark-muted hover:bg-dark-surface hover:text-dark-ink', focusRing)}
                         >
@@ -266,8 +278,15 @@ function SidebarBody({
                       <ul id={subId} className="relative mt-0.5 mb-1 space-y-0.5 before:absolute before:inset-y-1 before:left-[22px] before:w-px before:bg-dark-hairline">
                         {children.map((c) => (
                           <li key={c.key}>
-                            <Link to={c.to} aria-current={c.key === active ? 'location' : undefined} className={linkClass(c.key === active, false, true)}>
-                              <span className="truncate">{c.label}</span>
+                            {/* A #section is a place on the page; a course is a page of its own. */}
+                            <Link
+                              to={c.to}
+                              aria-current={c.key === active ? (c.to.includes('#') ? 'location' : 'page') : undefined}
+                              className={linkClass(c.key === active, false, true)}
+                            >
+                              <span className="truncate" title={c.label}>
+                                {c.label}
+                              </span>
                             </Link>
                           </li>
                         ))}
@@ -304,8 +323,9 @@ function SidebarBody({
               key={c.key}
               role="menuitem"
               to={c.to}
+              title={c.label}
               className={cx(
-                'block rounded-[4px] py-1.5 pr-3 pl-5 hover:bg-dark-canvas',
+                'block max-w-[280px] truncate rounded-[4px] py-1.5 pr-3 pl-5 hover:bg-dark-canvas',
                 focusRing,
                 c.key === active ? 'font-semibold text-accent-on-dark' : 'text-dark-muted hover:text-dark-ink',
               )}
@@ -340,6 +360,11 @@ function SidebarBody({
             </div>
           </div>
         )}
+        {collapsed && showBell && (
+          <div className="mb-1 flex justify-center">
+            <NotificationBell onDark placement="right-end" showMyCourses={myCourses} className="w-full border border-dark-hairline" />
+          </div>
+        )}
         <div className={cx('flex gap-1', collapsed && 'flex-col')}>
           <button
             type="button"
@@ -355,22 +380,25 @@ function SidebarBody({
             <Symbol name="logout" className="text-[18px]" />
             {!collapsed && <span>{tr('Sign out')}</span>}
           </button>
-          <ThemeToggle onDark compact />
+          {/* Theme and language together: the page preferences live in one place. */}
+          <PreferenceControls onDark vertical={collapsed} placement={collapsed ? 'right-end' : 'top-end'} />
         </div>
-        <div className={cx('mt-1 flex', collapsed && 'justify-center')}>
-          {!collapsed && <LanguageSelect onDark />}
-          {onToggleCollapsed && (
-            <button
-              type="button"
-              onClick={onToggleCollapsed}
-              aria-label={collapsed ? tr('Expand menu') : tr('Collapse menu')}
-              title={collapsed ? tr('Expand menu') : tr('Collapse menu')}
-              className={cx('flex cursor-pointer items-center justify-center rounded-[4px] border border-dark-hairline px-2 py-1.5 text-dark-muted hover:bg-dark-surface hover:text-dark-ink', focusRing)}
-            >
-              <Symbol name={collapsed ? 'left_panel_open' : 'left_panel_close'} className="text-[18px]" />
-            </button>
-          )}
-        </div>
+        {onToggleCollapsed && (
+          <button
+            type="button"
+            onClick={onToggleCollapsed}
+            aria-label={collapsed ? tr('Expand menu') : tr('Collapse menu')}
+            title={collapsed ? tr('Expand menu') : tr('Collapse menu')}
+            className={cx(
+              'mt-1 flex w-full cursor-pointer items-center gap-2 rounded-[4px] py-1.5 text-[12px] font-medium text-dark-muted hover:bg-dark-surface hover:text-dark-ink',
+              focusRing,
+              collapsed ? 'justify-center px-0' : 'px-2.5',
+            )}
+          >
+            <Symbol name={collapsed ? 'left_panel_open' : 'left_panel_close'} className="text-[18px]" />
+            {!collapsed && <span>{tr('Collapse menu')}</span>}
+          </button>
+        )}
       </div>
     </div>
   );
@@ -451,7 +479,8 @@ const FOCUSABLE = 'a[href], button:not([disabled]), select, input, [tabindex]:no
 export function AppShell({ children }: { children: ReactNode }) {
   const { me, org } = useAuth();
   const location = useLocation();
-  const sections = useMemo(() => navSections(me, org), [me, org]);
+  const courses = useNavCourses(org?.id ?? null, !!org?.permissions.includes('course.manage'));
+  const sections = useMemo(() => navSections(me, org, courses), [me, org, courses]);
 
   // Sections of the current page that are sub-items of the menu, for the scroll-spy.
   const pageSections = useMemo(() => {
@@ -533,6 +562,8 @@ export function AppShell({ children }: { children: ReactNode }) {
       {/* Phones and tablets: a minimal dark top bar with the menu button. */}
       <header className="no-print sticky top-0 z-40 flex h-14 items-center justify-between gap-3 border-b border-dark-hairline bg-dark-canvas px-4 lg:hidden">
         <Logo to="/events" dark />
+        <div className="flex items-center gap-1.5">
+        <NotificationBell onDark placement="bottom-end" showMyCourses={(me?.enrolled_courses ?? 0) > 0} />
         <button
           ref={opener}
           type="button"
@@ -544,6 +575,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         >
           <Symbol name="menu" />
         </button>
+        </div>
       </header>
 
       {open && (
@@ -558,7 +590,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             >
               <Symbol name="close" />
             </button>
-            <SidebarBody sections={sections} active={active} collapsed={false} />
+            <SidebarBody sections={sections} active={active} collapsed={false} showBell={false} />
           </div>
         </div>
       )}

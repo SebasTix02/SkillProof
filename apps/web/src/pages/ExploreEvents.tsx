@@ -138,18 +138,18 @@ export function ExploreEvents() {
         />
 
         <div className="grid grid-cols-1 items-stretch gap-6 lg:grid-cols-12">
-          <div className="relative flex min-h-[300px] flex-col justify-between overflow-hidden rounded-[6px] border border-line bg-ink lg:col-span-7">
+          <div className="relative flex min-h-[300px] flex-col justify-between overflow-hidden rounded-[6px] border border-line bg-dark-canvas lg:col-span-7">
             <div className="absolute inset-0 z-0">
               <img
                 src={GLOBE_BANNER}
                 alt={tr('Global developer hackathon live evaluation hub')}
                 className="h-full w-full object-cover opacity-85"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-ink via-ink/55 to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-dark-canvas via-dark-canvas/55 to-transparent" />
             </div>
 
             <div className="relative z-10 flex flex-wrap items-center justify-between gap-2 p-5">
-              <span className="font-mono-code inline-flex items-center gap-2 rounded-[3px] border border-white/20 bg-ink/90 px-2.5 py-1 text-[11px] font-medium tracking-wide text-paper">
+              <span className="font-mono-code inline-flex items-center gap-2 rounded-[3px] border border-white/20 bg-dark-canvas/90 px-2.5 py-1 text-[11px] font-medium tracking-wide text-white">
                 <LiveDot tone="good" />
                 {tr('COMMIT-LOCKED EVALUATION // GEMINI RUBRIC ENGINE')}
               </span>
@@ -159,7 +159,7 @@ export function ExploreEvents() {
             </div>
 
             <div className="relative z-10 mt-auto space-y-2 p-6">
-              <span className="font-mono-code text-[11px] font-semibold tracking-wider text-accent-soft uppercase">
+              <span className="font-mono-code text-[11px] font-semibold tracking-wider text-accent-on-dark uppercase">
                 {featured ? tr('FEATURED FLAGSHIP ARENA') : tr('EVALUATION ARENA ARCHITECTURE')}
               </span>
               <h2 className="font-serif-heading text-[26px] leading-tight font-medium text-white sm:text-[30px]">
@@ -453,7 +453,7 @@ export function ExploreEvents() {
                   className="card-interactive group flex flex-col justify-between overflow-hidden rounded-[6px] border border-line bg-surface"
                 >
                   {isFirst && (
-                    <div className="relative h-40 w-full overflow-hidden border-b border-line bg-ink">
+                    <div className="relative h-40 w-full overflow-hidden border-b border-line bg-dark-canvas">
                       <img src={ARENA_THUMB} alt={e.name} className="h-full w-full object-cover" />
                       <div className="absolute top-3 left-3 flex items-center gap-1.5">
                         <Badge tone="good" dot>
@@ -533,7 +533,7 @@ export function ExploreEvents() {
       <DarkBanner>
         <div className="flex flex-col justify-between gap-6 lg:flex-row lg:items-center">
           <div className="space-y-1.5">
-            <div className="font-mono-code text-[11px] font-semibold tracking-widest text-accent uppercase">
+            <div className="font-mono-code text-[11px] font-semibold tracking-widest text-accent-on-dark uppercase">
               {tr('YOUR EVENTS IN NUMBERS')}
             </div>
             <h3 className="font-serif-heading text-[22px] font-medium text-white">
@@ -558,7 +558,7 @@ export function ExploreEvents() {
                 {tr('Public Open Arenas')}
               </div>
               <div className="font-mono-code text-[20px] font-bold text-white">{openEvents.length}</div>
-              <div className="font-mono-code text-[11px] text-accent">{tr('Commit-Locked')}</div>
+              <div className="font-mono-code text-[11px] text-accent-on-dark">{tr('Commit-Locked')}</div>
             </div>
 
             <Link to="/interview/new" className={`${linkButton} px-5 py-2.5`}>

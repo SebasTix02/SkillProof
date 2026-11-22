@@ -25,6 +25,7 @@ import {
   type OrgRoleKey,
   useConfirm,
   permissionLabels,
+  Tabs,
 } from '../../components/shared';
 import { useToast } from '../../components/toast';
 import { api, errorMessage } from '../../lib/api';
@@ -417,28 +418,20 @@ export function OrgSettings() {
                 <span className="material-symbols-outlined pointer-events-none absolute top-2 left-3 text-[16px] text-muted">search</span>
                 <Input value={memberSearch} onChange={(e) => setMemberSearch(e.target.value)} placeholder={tr('Search by name, email or role…')} className="h-9 bg-surface pl-9 text-[12px]" />
               </div>
-              <div className="flex flex-wrap items-center gap-1.5">
-                <span className="font-mono-code mr-1 text-[11px] text-muted">{tr('Role:')}</span>
-                {(
-                  [
-                    { key: 'all', label: tr('All ({n})', { n: memberList.length }) },
-                    { key: 'owner', label: tr('Owners') },
-                    { key: 'organizer', label: tr('Organizers') },
-                    { key: 'judge', label: tr('Judges') },
-                    { key: 'auditor', label: tr('Auditors') },
-                  ] as const
-                ).map((tab) => (
-                  <button
-                    key={tab.key}
-                    type="button"
-                    onClick={() => setRoleFilter(tab.key)}
-                    className={`font-mono-code cursor-pointer rounded-[3px] border px-2.5 py-1 text-[11px] font-medium transition-colors ${
-                      roleFilter === tab.key ? 'border-accent bg-surface font-semibold text-accent' : 'border-transparent text-muted hover:bg-white/70 hover:text-ink'
-                    }`}
-                  >
-                    {tab.label}
-                  </button>
-                ))}
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="font-mono-code text-[11px] text-muted" aria-hidden="true">{tr('Role:')}</span>
+                <Tabs
+                  variant="chips"
+                  size="sm"
+                  ariaLabel={tr('Filter members by role')}
+                  tabs={(['all', 'owner', 'organizer', 'judge', 'auditor'] as const).map((key) => ({
+                    key,
+                    label: { all: tr('All'), owner: tr('Owners'), organizer: tr('Organizers'), judge: tr('Judges'), auditor: tr('Auditors') }[key],
+                    count: key === 'all' ? memberList.length : memberList.filter((m) => primaryRole(m.roles) === key).length,
+                  }))}
+                  active={roleFilter}
+                  onChange={setRoleFilter}
+                />
               </div>
             </div>
 

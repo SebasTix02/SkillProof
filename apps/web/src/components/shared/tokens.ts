@@ -89,7 +89,7 @@ export const DOSSIER_THEMES: Record<DossierThemeKey, DossierAccentTheme> = {
   accent: {
     key: 'accent',
     cardBorder: 'border-line hover:border-accent-ui',
-    headerBg: 'bg-gradient-to-r from-accent-50 via-white to-transparent border-b border-line',
+    headerBg: 'bg-gradient-to-r from-accent-50 via-surface to-transparent border-b border-line',
     iconBg: 'bg-accent text-on-accent',
     badgeBg: 'bg-accent text-on-accent',
     pillClass: 'border-accent-200 bg-accent-soft text-accent-ink',
@@ -113,7 +113,7 @@ export const DOSSIER_THEMES: Record<DossierThemeKey, DossierAccentTheme> = {
   good: {
     key: 'good',
     cardBorder: 'border-good-200 hover:border-good-ui',
-    headerBg: 'bg-gradient-to-r from-good-50 via-white to-transparent border-b border-good-200',
+    headerBg: 'bg-gradient-to-r from-good-50 via-surface to-transparent border-b border-good-200',
     iconBg: 'bg-good text-on-good',
     badgeBg: 'bg-good text-on-good',
     pillClass: 'border-good-200 bg-good-soft text-good-ink',
@@ -125,7 +125,7 @@ export const DOSSIER_THEMES: Record<DossierThemeKey, DossierAccentTheme> = {
   warn: {
     key: 'warn',
     cardBorder: 'border-warn-200 hover:border-warn-ui',
-    headerBg: 'bg-gradient-to-r from-warn-50 via-white to-transparent border-b border-warn-200',
+    headerBg: 'bg-gradient-to-r from-warn-50 via-surface to-transparent border-b border-warn-200',
     iconBg: 'bg-warn text-on-warn',
     badgeBg: 'bg-warn text-on-warn',
     pillClass: 'border-warn-200 bg-warn-soft text-warn-ink',

@@ -8,7 +8,7 @@ import { LOCALE_NAME } from '@skillproof/shared';
  *   /courses/:id/a/:aid    one assignment: instructions, my group, my submission, results and interview
  */
 import { AssignmentSubmitSchema, weightedTotal } from '@skillproof/shared';
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   Badge,
@@ -28,6 +28,7 @@ import {
   scoreTone,
   useConfirm,
 } from '../components/shared';
+import { NOTIFICATIONS_CHANGED, respondToInvite } from '../lib/notifications';
 import { useToast } from '../components/toast';
 import { api, errorMessage, existingInterviewId } from '../lib/api';
 import { COURSE_STATUS_TONE, groupSizeLabel, nextStep, type AssignmentView, type GroupView, type Person } from '../lib/courses';
@@ -57,6 +58,7 @@ interface Invite {
   course_id: string;
   closes_at: string;
   invited_by: string | null;
+  open: boolean;
 }
 
 const courseMeta = (c: { organization?: string | null; code: string; term: string; section?: string }) =>
@@ -84,16 +86,24 @@ function AssignmentRowItem({ courseId, a }: { courseId: string; a: MyAssignment 
   );
 }
 
-/** Accept or decline an invitation to a group. */
-function useRespond(reload: () => unknown) {
+/** Reload a screen whenever notifications change (an invitation answered here, in the bell or in another screen). */
+function useReloadOnNotifications(reload: () => unknown) {
+  useEffect(() => {
+    const onChanged = () => void reload();
+    window.addEventListener(NOTIFICATIONS_CHANGED, onChanged);
+    return () => window.removeEventListener(NOTIFICATIONS_CHANGED, onChanged);
+  }, [reload]);
+}
+
+/** Accept or decline an invitation to a group. The screens and the bell reload through NOTIFICATIONS_CHANGED. */
+function useRespond() {
   const toast = useToast();
   const [busy, setBusy] = useState<string | null>(null);
   async function respond(groupId: string, groupName: string, accept: boolean) {
     setBusy(`${groupId}-${accept}`);
     try {
-      await api(`/api/me/groups/${groupId}/respond`, { body: { accept } });
+      await respondToInvite(groupId, accept);
       toast.success(accept ? tr('You joined {name}.', { name: groupName }) : tr('Invitation to {name} declined.', { name: groupName }));
-      await reload();
     } catch (err) {
       toast.error(errorMessage(err));
     } finally {
@@ -109,9 +119,12 @@ function useRespond(reload: () => unknown) {
 
 export function MyCourses() {
   const data = useLoad<{ courses: MyCourse[]; invites: Invite[] }>('/api/me/courses');
-  const { busy, respond } = useRespond(data.reload);
+  const { busy, respond } = useRespond();
+  useReloadOnNotifications(data.reload);
   if (!data.data) return <PageState loading={data.loading} error={data.error} kind="list" />;
-  const { courses, invites } = data.data;
+  const { courses } = data.data;
+  // Closed invitations (the group submitted, or groups closed) can no longer be answered.
+  const invites = data.data.invites.filter((i) => i.open);
   return (
     <div className="space-y-6">
       <DossierPageHeader
@@ -259,6 +272,7 @@ interface MyAssignmentResponse {
 export function MyAssignmentPage() {
   const { id: courseId = '', aid = '' } = useParams();
   const data = useLoad<MyAssignmentResponse>(`/api/me/assignments/${aid}`);
+  useReloadOnNotifications(data.reload);
   if (!data.data) return <PageState loading={data.loading} error={data.error} kind="detail" />;
   const d = data.data;
   const a = d.assignment;
@@ -451,7 +465,7 @@ function SubmitCard({ data: d, groupReady, onSubmitted }: { data: MyAssignmentRe
 function MyGroupCard({ data: d, reload }: { data: MyAssignmentResponse; reload: () => unknown }) {
   const toast = useToast();
   const confirm = useConfirm();
-  const { busy: responding, respond } = useRespond(reload);
+  const { busy: responding, respond } = useRespond();
   const a = d.assignment;
   const [name, setName] = useState('');
   const [invitee, setInvitee] = useState('');

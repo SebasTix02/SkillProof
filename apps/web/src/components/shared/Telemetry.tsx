@@ -221,6 +221,7 @@ export function WaveformVisualizer({
         {bars.map((h, i) => (
           <div
             key={i}
+            // dark-lint-ignore: barras decorativas sobre la superficie oscura fija de la sala.
             className={`w-1 rounded-full ${active ? (i < 10 ? 'bg-accent' : 'bg-white/75') : 'bg-white/25'}`}
             style={{ height: `${Math.max(8, Math.round((h / 100) * 44))}px` }}
           />
