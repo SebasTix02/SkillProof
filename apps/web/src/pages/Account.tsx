@@ -15,6 +15,7 @@ import {
   ToggleSwitch,
   useConfirm,
   TONE_CLASS,
+  Tabs,
 } from '../components/shared';
 import { api, errorMessage } from '../lib/api';
 import { useToast } from '../components/toast';
@@ -127,41 +128,16 @@ function AuthPortalShell({
             </div>
 
             {/* Auth Mode Navigation Tabs */}
-            <div className="flex items-center justify-between border-b border-line">
-              <div className="flex items-center gap-6">
-                <Link
-                  to={`/login${search}`}
-                  className={`font-mono-code -mb-[1px] border-b-2 pb-2.5 text-[12px] font-semibold tracking-wider uppercase transition-colors ${
-                    mode === 'login'
-                      ? 'border-accent text-accent'
-                      : 'border-transparent text-muted hover:text-ink'
-                  }`}
-                >
-                  {tr('Sign In')}
-                </Link>
-                <Link
-                  to={`/signup${search}`}
-                  className={`font-mono-code -mb-[1px] border-b-2 pb-2.5 text-[12px] font-semibold tracking-wider uppercase transition-colors ${
-                    mode === 'signup'
-                      ? 'border-accent text-accent'
-                      : 'border-transparent text-muted hover:text-ink'
-                  }`}
-                >
-                  {tr('Request Access / Register')}
-                </Link>
-              </div>
-              <Link
-                to="/forgot-password"
-                className={`font-mono-code -mb-[1px] flex items-center gap-1 border-b-2 pb-2.5 text-[11px] font-medium transition-colors ${
-                  mode === 'recovery'
-                    ? 'border-accent text-accent'
-                    : 'border-transparent text-muted hover:text-accent'
-                }`}
-              >
-                <span className="material-symbols-outlined text-[14px]">key</span>
-                <span>{tr('Reset Key')}</span>
-              </Link>
-            </div>
+            <Tabs
+              ariaLabel={tr('Account access')}
+              size="sm"
+              active={mode}
+              tabs={[
+                { key: 'login', label: tr('Sign In'), icon: 'login', to: `/login${search}` },
+                { key: 'signup', label: tr('Request Access / Register'), icon: 'person_add', to: `/signup${search}` },
+                { key: 'recovery', label: tr('Reset Key'), icon: 'key', to: '/forgot-password' },
+              ]}
+            />
 
             {/* Active Form / View Content */}
             <div className="pt-1">{children}</div>

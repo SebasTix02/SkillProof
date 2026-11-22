@@ -74,60 +74,6 @@ export function CopyLinkButton({
   );
 }
 
-export interface TabItem<K extends string> {
-  key: K;
-  label: string;
-  count?: number;
-  icon?: string;
-}
-
-export function TabStrip<K extends string>({
-  tabs,
-  active,
-  onChange,
-  rightSlot,
-}: {
-  tabs: readonly TabItem<K>[];
-  active: K;
-  onChange: (key: K) => void;
-  rightSlot?: ReactNode;
-}) {
-  return (
-    <section className="flex flex-col justify-between gap-4 border-b border-line pb-3 md:flex-row md:items-center">
-      <div className="flex flex-wrap items-center gap-6">
-        {tabs.map((item) => {
-          const isCurrent = active === item.key;
-          return (
-            <button
-              key={item.key}
-              type="button"
-              onClick={() => onChange(item.key)}
-              className={`relative -mb-3 flex cursor-pointer items-center gap-1.5 border-b-2 pb-3 text-[13px] transition-colors ${
-                isCurrent
-                  ? 'border-accent font-semibold text-ink'
-                  : 'border-transparent font-medium text-muted hover:text-ink'
-              }`}
-            >
-              {item.icon && <span className="material-symbols-outlined text-[16px]">{item.icon}</span>}
-              <span>{item.label}</span>
-              {typeof item.count === 'number' && (
-                <span
-                  className={`font-mono-code rounded-[3px] border px-1.5 py-0.2 text-[11px] font-bold ${
-                    isCurrent ? 'border-accent/25 bg-accent-soft text-accent-ink' : 'border-line bg-paper text-muted'
-                  }`}
-                >
-                  {item.count}
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </div>
-      {rightSlot && <div className="flex flex-wrap items-center gap-2.5">{rightSlot}</div>}
-    </section>
-  );
-}
-
 export function DarkBanner({
   id,
   children,

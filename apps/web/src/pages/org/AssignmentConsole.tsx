@@ -24,7 +24,7 @@ import {
   SIMILARITY_SIGNAL_LABEL,
   SUBMISSION_STATUS_LABEL,
   Select,
-  TabStrip,
+  Tabs,
   Textarea,
   ToggleSwitch,
   formatDate,
@@ -204,7 +204,8 @@ export function AssignmentConsole() {
         ))}
       </div>
 
-      <TabStrip
+      <Tabs
+        ariaLabel={tr('Assignment sections')}
         tabs={[
           { key: 'submissions' as const, label: tr('Submissions'), count: submissions.length, icon: 'inventory_2' },
           ...(isGroup ? [{ key: 'groups' as const, label: tr('Groups'), count: groups.length, icon: 'groups' }] : []),

@@ -15,7 +15,7 @@ import {
   SUBMISSION_STATUS_LABEL,
   ScoreBar,
   Select,
-  TabStrip,
+  Tabs,
   Textarea,
   TopAccentKpiCard,
   WaveformVisualizer,
@@ -393,23 +393,19 @@ export function IntegrityReview() {
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          <div role="tablist" aria-label={tr('Review events or courses')} className="font-mono-code flex overflow-hidden rounded-[4px] border border-line text-[11px]">
-            {(['events', 'courses'] as const).map((k) => (
-              <button
-                key={k}
-                type="button"
-                role="tab"
-                aria-selected={source === k}
-                onClick={() => {
-                  setSource(k);
-                  setSelectedSubId(null);
-                }}
-                className={`cursor-pointer px-3 py-1.5 ${source === k ? 'bg-accent-soft font-bold text-accent-ink' : 'bg-surface text-muted hover:text-ink'}`}
-              >
-                {k === 'events' ? tr('Events') : tr('Courses')}
-              </button>
-            ))}
-          </div>
+          <Tabs
+            variant="segmented"
+            ariaLabel={tr('Review events or courses')}
+            tabs={[
+              { key: 'events', label: tr('Events'), icon: 'emoji_events' },
+              { key: 'courses', label: tr('Courses'), icon: 'school' },
+            ]}
+            active={source}
+            onChange={(k) => {
+              setSource(k);
+              setSelectedSubId(null);
+            }}
+          />
           {source === 'events' && events.length > 0 && (
             <Select
               aria-label={tr('Event')}
@@ -516,7 +512,7 @@ export function IntegrityReview() {
           </div>
         )}
 
-        <TabStrip
+        <Tabs
           tabs={[
             {
               key: 'roster',
@@ -545,6 +541,7 @@ export function IntegrityReview() {
           ]}
           active={activeTab}
           onChange={setActiveTab}
+          ariaLabel={tr('Integrity review sections')}
         />
       </section>
 
@@ -703,32 +700,19 @@ export function IntegrityReview() {
                   />
                 </div>
 
-                <div className="font-mono-code flex flex-wrap items-center divide-x divide-line overflow-hidden rounded-[4px] border border-line text-[11px]">
-                  {(
-                    [
-                      { key: 'all', label: tr('All ({n})', { n: submissions.length }) },
-                      { key: 'flagged', label: tr('Flagged ({n})', { n: flaggedSet.size }) },
-                      {
-                        key: 'incomplete_defense',
-                        label: tr('No Defense ({n})', { n: submissions.length - metrics.withOwnershipCount }),
-                      },
-                      { key: 'scored', label: tr('Scored ({n})', { n: metrics.scoredCount }) },
-                    ] as const
-                  ).map((f) => (
-                    <button
-                      key={f.key}
-                      type="button"
-                      onClick={() => setFilter(f.key)}
-                      className={`cursor-pointer px-2.5 py-1.5 transition-colors ${
-                        filter === f.key
-                          ? 'bg-accent-soft font-bold text-accent-ink'
-                          : 'bg-surface text-muted hover:bg-paper hover:text-ink'
-                      }`}
-                    >
-                      {f.label}
-                    </button>
-                  ))}
-                </div>
+                <Tabs
+                  variant="segmented"
+                  size="sm"
+                  ariaLabel={tr('Filter submissions')}
+                  tabs={[
+                    { key: 'all', label: tr('All ({n})', { n: submissions.length }) },
+                    { key: 'flagged', label: tr('Flagged ({n})', { n: flaggedSet.size }) },
+                    { key: 'incomplete_defense', label: tr('No Defense ({n})', { n: submissions.length - metrics.withOwnershipCount }) },
+                    { key: 'scored', label: tr('Scored ({n})', { n: metrics.scoredCount }) },
+                  ]}
+                  active={filter}
+                  onChange={setFilter}
+                />
               </div>
 
               <div className="flex items-center gap-2">

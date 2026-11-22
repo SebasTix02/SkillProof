@@ -11,7 +11,7 @@ import {
   Notice,
   PageState,
   ScoreBar,
-  TabStrip,
+  Tabs,
   VerificationProtocolCard,
   formatAudioDuration,
   formatDate,
@@ -436,7 +436,8 @@ export function InterviewHome() {
         </KpiGrid>
   
         {/* 4. Filter & Tab Controls */}
-        <TabStrip
+        <Tabs
+          ariaLabel={tr('Filter interviews')}
           active={tab}
           onChange={setTab}
           tabs={[
@@ -455,7 +456,7 @@ export function InterviewHome() {
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder={tr('Filter by repository or status...')}
-                  className="w-full rounded-[4px] border border-line bg-surface py-1.5 pr-2.5 pl-8 text-[12px] text-ink focus:border-accent focus:outline-none"
+                  className="w-full rounded-[4px] border border-line-strong bg-surface py-1.5 pr-2.5 pl-8 text-[12px] text-ink placeholder:text-faint focus:border-accent focus:outline-none"
                 />
               </div>
   

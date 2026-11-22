@@ -23,6 +23,7 @@ import {
   NumberedSectionCard,
   PageState,
   Select,
+  Tabs,
   Textarea,
   ToggleSwitch,
   formatDate,
@@ -229,25 +230,17 @@ export function CoursePage() {
       />
 
       {/* The course's own screens. The side menu has tr('Courses'); these are the sections of one course. */}
-      <nav aria-label={tr('Course sections')} className="flex flex-wrap gap-1 border-b border-line">
-        {tabs().map((t) => (
-          <Link
-            key={t.key}
-            to={t.key === 'overview' ? `/org/courses/${course.id}` : `/org/courses/${course.id}/${t.key}`}
-            aria-current={active === t.key ? 'page' : undefined}
-            className={`-mb-px inline-flex items-center gap-2 border-b-2 px-3.5 py-2.5 text-[13px] font-medium transition-colors ${
-              active === t.key ? 'border-accent-ui text-accent-ink' : 'border-transparent text-muted hover:text-ink'
-            }`}
-          >
-            <span className="material-symbols-outlined text-[18px]" aria-hidden="true">
-              {t.icon}
-            </span>
-            {t.label}
-            {t.key === 'roster' && <span className="font-mono-code text-[11px] text-muted">{members.length}</span>}
-            {t.key === 'assignments' && <span className="font-mono-code text-[11px] text-muted">{assignments.length}</span>}
-          </Link>
-        ))}
-      </nav>
+      <Tabs
+        ariaLabel={tr('Course sections')}
+        active={active}
+        tabs={tabs().map((t) => ({
+          key: t.key,
+          label: t.label,
+          icon: t.icon,
+          to: t.key === 'overview' ? `/org/courses/${course.id}` : `/org/courses/${course.id}/${t.key}`,
+          count: t.key === 'roster' ? members.length : t.key === 'assignments' ? assignments.length : undefined,
+        }))}
+      />
 
       {active === 'overview' && <Overview detail={detail.data} />}
       {active === 'roster' && <Roster detail={detail.data} onChanged={() => void detail.reload()} canManage={canManage} />}
