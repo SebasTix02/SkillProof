@@ -17,6 +17,7 @@ import {
   formatDate,
   scoreTone,
   linkButton,
+  Select,
 } from '../components/shared';
 import { api, errorMessage, existingInterviewId } from '../lib/api';
 import { useAuth } from '../lib/auth';
@@ -460,21 +461,16 @@ export function InterviewHome() {
                 />
               </div>
   
-              <div className="relative">
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value as 'recent' | 'score' | 'repo')}
-                  aria-label={tr('Sort interviews')}
-                  className="font-mono-code cursor-pointer appearance-none rounded-[4px] border border-line bg-surface py-1.5 pr-7 pl-2.5 text-[11px] text-ink focus:border-accent focus:outline-none"
-                >
-                  <option value="recent">{tr('SORT: MOST RECENT')}</option>
-                  <option value="score">{tr('SORT: HIGHEST SCORE')}</option>
-                  <option value="repo">{tr('SORT: REPO NAME (A-Z)')}</option>
-                </select>
-                <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2 text-muted">
-                  <span className="material-symbols-outlined text-[14px]">expand_more</span>
-                </span>
-              </div>
+              <Select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as 'recent' | 'score' | 'repo')}
+                aria-label={tr('Sort interviews')}
+                className="font-mono-code w-auto py-1.5 pl-2.5 text-[11px]"
+              >
+                <option value="recent">{tr('SORT: MOST RECENT')}</option>
+                <option value="score">{tr('SORT: HIGHEST SCORE')}</option>
+                <option value="repo">{tr('SORT: REPO NAME (A-Z)')}</option>
+              </Select>
             </>
           }
         />

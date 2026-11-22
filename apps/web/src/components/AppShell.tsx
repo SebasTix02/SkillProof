@@ -214,12 +214,13 @@ function SidebarBody({
               </p>
             )}
             {section.key === 'org' && orgs.length > 1 && !collapsed && (
-              <label className="mb-2 block px-2">
+              <label className="relative mb-2 block px-2">
                 <span className="sr-only">{tr('Organization')}</span>
+                <Symbol name="expand_more" className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-[18px] text-dark-muted" />
                 <select
                   value={org?.id ?? ''}
                   onChange={(e) => selectOrg(e.target.value)}
-                  className="w-full rounded-[4px] border border-dark-hairline bg-dark-surface px-2 py-1.5 text-[12px] text-dark-ink focus:border-accent-on-dark focus:outline-none"
+                  className="w-full cursor-pointer appearance-none rounded-[4px] border border-dark-hairline bg-dark-surface py-1.5 pr-8 pl-2.5 text-[12px] text-dark-ink hover:border-dark-muted focus:border-accent-on-dark focus:outline-none"
                 >
                   {orgs.map((o) => (
                     <option key={o.id} value={o.id}>

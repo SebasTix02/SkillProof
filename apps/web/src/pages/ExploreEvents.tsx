@@ -12,6 +12,7 @@ import {
   formatCountdown,
   formatDate,
   linkButton,
+  Select,
 } from '../components/shared';
 import { useAuth } from '../lib/auth';
 import { STATUS_LABEL, VISIBILITY_LABEL, type EventView } from '../lib/types';
@@ -276,29 +277,29 @@ export function ExploreEvents() {
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              <select
+              <Select
                 value={filterKind}
                 onChange={(e) => setFilterKind(e.target.value as typeof filterKind)}
                 aria-label={tr('Filter events')}
-                className="h-10 cursor-pointer rounded-[4px] border border-line bg-surface px-3 text-[13px] text-ink focus:border-accent focus:outline-none"
+                className="h-10 w-auto py-0"
               >
                 <option value="all">{tr('All Event Types')}</option>
                 <option value="interviews">{tr('3-Min Voice Defense Enabled')}</option>
                 <option value="public">{tr('Public Arenas')}</option>
                 <option value="code">{tr('Access-Code Protected')}</option>
                 <option value="invite">{tr('Invite-Only Cohorts')}</option>
-              </select>
+              </Select>
 
-              <select
+              <Select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
                 aria-label={tr('Sort events')}
-                className="h-10 cursor-pointer rounded-[4px] border border-line bg-surface px-3 text-[13px] text-ink focus:border-accent focus:outline-none"
+                className="h-10 w-auto py-0"
               >
                 <option value="deadline">{tr('Sort: Ending Soon')}</option>
                 <option value="recent">{tr('Sort: Recently Started')}</option>
                 <option value="name">{tr('Sort: Name (A–Z)')}</option>
-              </select>
+              </Select>
             </div>
           </div>
 

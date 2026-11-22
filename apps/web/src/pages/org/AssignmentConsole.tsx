@@ -385,6 +385,8 @@ function GroupsPanel({ assignment: a, groups, ungrouped, canManage, reload }: { 
   const [newName, setNewName] = useState('');
   const [newMembers, setNewMembers] = useState<string[]>([]);
   const [placing, setPlacing] = useState<Record<string, string>>({});
+  /** The most members a new group can have (the assignment's group size, 20 when it has none). */
+  const maxMembers = a.group_max ?? 20;
   const everyone: Person[] = [
     ...ungrouped,
     ...groups.flatMap((g) => g.members.filter((m) => m.status === 'accepted').map((m) => ({ user_id: m.user_id, display_name: `${m.display_name} (${g.name})`, github_login: m.github_login }))),
@@ -501,21 +503,38 @@ function GroupsPanel({ assignment: a, groups, ungrouped, canManage, reload }: { 
             <Field label={tr('Name')}>
               <Input required maxLength={80} value={newName} onChange={(e) => setNewName(e.target.value)} placeholder={tr('Team 4')} />
             </Field>
-            <Field label={tr('Members')} hint={tr('Up to {n}. Hold Ctrl or ⌘ to pick several.', { n: a.group_max })}>
-              <select
-                multiple
-                aria-label={tr('Members')}
-                value={newMembers}
-                onChange={(e) => setNewMembers([...e.target.selectedOptions].map((o) => o.value).slice(0, a.group_max ?? 20))}
-                className="h-24 w-full rounded-[4px] border border-line-strong bg-surface p-1.5 text-[13px]"
-              >
-                {everyone.map((p) => (
-                  <option key={p.user_id} value={p.user_id}>
-                    {p.display_name}
-                  </option>
-                ))}
-              </select>
-            </Field>
+            {/* A list of checkboxes instead of a multiple <select> (which needed Ctrl or ⌘): the limit is visible and
+                reached options are disabled. A fieldset, since a <label> (Field) cannot hold several inputs. */}
+            <fieldset className="min-w-0">
+              <legend className="font-mono-code mb-1.5 block text-[11px] font-semibold tracking-wider text-ink uppercase">{tr('Members')}</legend>
+              <div className="max-h-40 overflow-y-auto rounded-[4px] border border-line-strong bg-surface p-1">
+                {everyone.length === 0 && <p className="px-2 py-1.5 text-[12px] text-muted">{tr('No students on the roster yet.')}</p>}
+                {everyone.map((p) => {
+                  const checked = newMembers.includes(p.user_id);
+                  const full = !checked && newMembers.length >= maxMembers;
+                  return (
+                    <label
+                      key={p.user_id}
+                      className={`flex items-center gap-2.5 rounded-[3px] px-2 py-1.5 text-[13px] transition-colors ${
+                        full ? 'cursor-not-allowed text-muted opacity-60' : 'cursor-pointer text-ink hover:bg-well'
+                      } ${checked ? 'bg-accent-soft' : ''}`}
+                    >
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 shrink-0 cursor-pointer accent-accent disabled:cursor-not-allowed"
+                        checked={checked}
+                        disabled={full}
+                        onChange={() => setNewMembers(checked ? newMembers.filter((id) => id !== p.user_id) : [...newMembers, p.user_id])}
+                      />
+                      <span className="truncate">{p.display_name}</span>
+                    </label>
+                  );
+                })}
+              </div>
+              <span className="font-mono-code mt-1 block text-[11px] text-muted" aria-live="polite">
+                {tr('{n} of {max} chosen', { n: newMembers.length, max: maxMembers })}
+              </span>
+            </fieldset>
             <Button type="submit" loading={busy === 'create'} disabled={!newName.trim()}>
               {tr('Create group')}
             </Button>

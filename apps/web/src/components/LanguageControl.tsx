@@ -217,22 +217,63 @@ export function LanguageMenu({
   );
 }
 
-/** English / Español as a radio group, next to the theme choice in Account (same look as ThemeChoice). */
-export function LanguageChoice({ id }: { id?: string }) {
+/**
+ * English / Español as a radio group with the language code (same look as ThemeChoice). Without `value` it is the
+ * interface language (Account); with `value` and `onChange` it is a form field (an event's or an interview's
+ * language). Left/Right move and select, and only the chosen option is in the Tab order.
+ */
+export function LanguageChoice({
+  id,
+  value,
+  onChange,
+  size = 'md',
+  ariaLabel,
+  ariaLabelledby,
+}: {
+  id?: string;
+  value?: Locale;
+  onChange?: (l: Locale) => void;
+  size?: 'md' | 'sm';
+  ariaLabel?: string;
+  ariaLabelledby?: string;
+}) {
   const { locale, setLocale } = useI18n();
+  const current = value ?? locale;
+  const choose = onChange ?? setLocale;
+  const refs = useRef<(HTMLButtonElement | null)[]>([]);
+  const onKeyDown = (e: KeyboardEvent) => {
+    const i = LOCALES.indexOf(current);
+    const step = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -1 : 0;
+    if (!step) return;
+    e.preventDefault();
+    const next = (i + step + LOCALES.length) % LOCALES.length;
+    choose(LOCALES[next]!);
+    refs.current[next]?.focus();
+  };
   return (
-    <div id={id} role="radiogroup" aria-label={t('language.label')} className="inline-flex overflow-hidden rounded-[4px] border border-line-strong">
-      {LOCALES.map((l) => (
+    <div
+      id={id}
+      role="radiogroup"
+      aria-label={ariaLabelledby ? undefined : (ariaLabel ?? t('language.label'))}
+      aria-labelledby={ariaLabelledby}
+      onKeyDown={onKeyDown}
+      className="inline-flex shrink-0 overflow-hidden rounded-[4px] border border-line-strong"
+    >
+      {LOCALES.map((l, i) => (
         <button
           key={l}
+          ref={(el) => {
+            refs.current[i] = el;
+          }}
           type="button"
           role="radio"
-          aria-checked={locale === l}
+          aria-checked={current === l}
+          tabIndex={current === l ? 0 : -1}
           lang={l}
-          onClick={() => setLocale(l)}
-          className={`flex cursor-pointer items-center gap-2 px-3 py-1.5 text-[13px] ${
-            locale === l ? 'bg-accent-soft font-semibold text-accent-ink' : 'bg-surface text-muted hover:text-ink'
-          }`}
+          onClick={() => choose(l)}
+          className={`flex cursor-pointer items-center gap-2 transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent-ui ${
+            size === 'sm' ? 'px-2.5 py-1 text-[12px]' : 'px-3 py-1.5 text-[13px]'
+          } ${current === l ? 'bg-accent-soft font-semibold text-accent-ink' : 'bg-surface text-muted hover:bg-well hover:text-ink'}`}
         >
           <span className="font-mono-code rounded-[3px] border border-current/40 px-1 text-[10px] leading-[16px] font-semibold tracking-wider" aria-hidden="true">
             {l.toUpperCase()}
@@ -246,48 +287,31 @@ export function LanguageChoice({ id }: { id?: string }) {
 
 /** The language an event or an assignment uses for the AI's feedback and for interviews about its submissions. */
 export function ContestLanguageField({ value, onChange }: { value: Locale; onChange: (l: Locale) => void }) {
+  const labelId = useId();
   return (
-    <div className="flex flex-wrap items-start justify-between gap-4 rounded-[4px] border border-line bg-paper p-3.5">
+    <div className="flex flex-wrap items-center justify-between gap-4 rounded-[4px] border border-line bg-paper p-3.5">
       <div className="max-w-md">
-        <label htmlFor="contest-language" className="text-[13px] font-semibold text-ink">
+        <p id={labelId} className="text-[13px] font-semibold text-ink">
           {tr('Language of feedback and interviews')}
-        </label>
+        </p>
         <p className="mt-0.5 text-[12px] text-muted">{tr('The AI writes the scores and feedback, and runs the voice interviews, in this language.')}</p>
       </div>
-      <select
-        id="contest-language"
-        value={value}
-        onChange={(e) => onChange(e.target.value as Locale)}
-        className="cursor-pointer rounded-[4px] border border-line-strong bg-surface px-2.5 py-1.5 text-[13px] text-ink"
-      >
-        {LOCALES.map((l) => (
-          <option key={l} value={l}>
-            {LOCALE_NAME[l]}
-          </option>
-        ))}
-      </select>
+      <LanguageChoice id="contest-language" value={value} onChange={onChange} ariaLabelledby={labelId} />
     </div>
   );
 }
 
 /** The language of the interview the candidate is about to start (where they may choose it). */
 export function InterviewLanguageField({ value, onChange, hint }: { value: Locale; onChange: (l: Locale) => void; hint?: string }) {
+  const labelId = useId();
   return (
-    <label className="flex flex-wrap items-center gap-2 text-[12px] text-muted">
-      <span className="font-semibold text-ink">{tr('Interview language')}</span>
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value as Locale)}
-        className="cursor-pointer rounded-[4px] border border-line-strong bg-surface px-2 py-1 text-[12px] text-ink"
-      >
-        {LOCALES.map((l) => (
-          <option key={l} value={l}>
-            {LOCALE_NAME[l]}
-          </option>
-        ))}
-      </select>
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[12px] text-muted">
+      <span id={labelId} className="font-semibold text-ink">
+        {tr('Interview language')}
+      </span>
+      <LanguageChoice value={value} onChange={onChange} size="sm" ariaLabelledby={labelId} />
       {hint && <span>{hint}</span>}
-    </label>
+    </div>
   );
 }
 

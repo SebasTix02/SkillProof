@@ -63,7 +63,43 @@ export function Field({ label, hint, children }: { label: string; hint?: string;
 
 export const Input = (props: InputHTMLAttributes<HTMLInputElement>) => <input {...props} className={cx(field, props.className)} />;
 export const Textarea = (props: TextareaHTMLAttributes<HTMLTextAreaElement>) => <textarea {...props} className={cx(field, props.className)} />;
-export const Select = (props: SelectHTMLAttributes<HTMLSelectElement>) => <select {...props} className={cx(field, props.className)} />;
+/** Size and layout classes go on the wrapper (so the arrow sits inside the box); the rest stay on the <select>. */
+const WRAPPER_CLASS = /^(?:[\w-]+:)*(?:w|max-w|min-w|flex|basis|shrink|grow|self|order|col-span|row-span)-/;
+
+/**
+ * A native <select> (keyboard, screen readers and the phone's own picker work as usual) drawn like the rest of the
+ * fields: its own arrow, a pointer, a stronger border on hover, a dimmed look when disabled. Width classes in
+ * `className` (w-64, max-w-xl, flex-1…) size it; `multiple` lists keep the plain look.
+ */
+export function Select({ className = '', multiple, ...props }: SelectHTMLAttributes<HTMLSelectElement>) {
+  if (multiple) return <select {...props} multiple className={cx(field, className)} />;
+  const classes = className.split(/\s+/).filter(Boolean);
+  const outer = classes.filter((c) => WRAPPER_CLASS.test(c));
+  const inner = classes.filter((c) => !WRAPPER_CLASS.test(c));
+  // On the dark headers the select is white on white/10: the arrow follows.
+  const onDark = inner.some((c) => /^text-white/.test(c));
+  return (
+    <span className={cx('relative block', outer.length ? outer.join(' ') : 'w-full')}>
+      <select
+        {...props}
+        className={cx(
+          field,
+          'cursor-pointer appearance-none pr-9 hover:border-muted disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:border-line-strong',
+          inner.join(' '),
+        )}
+      />
+      <span
+        className={cx(
+          'material-symbols-outlined pointer-events-none absolute inset-y-0 right-2.5 flex items-center text-[18px]',
+          onDark ? 'text-white/70' : 'text-muted',
+        )}
+        aria-hidden="true"
+      >
+        expand_more
+      </span>
+    </span>
+  );
+}
 
 export function Card({ children, className }: { children: ReactNode; className?: string }) {
   return <section className={cx('rounded-[6px] border border-line bg-surface p-5', className)}>{children}</section>;
