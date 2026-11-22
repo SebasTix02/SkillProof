@@ -33,7 +33,7 @@ function itemClass(variant: TabsVariant, size: 'md' | 'sm', active: boolean, dis
   const state = disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer';
   if (variant === 'underline') {
     const pad = size === 'sm' ? 'px-3 py-2 text-[12px]' : 'px-3.5 py-2.5 text-[13px]';
-    return `group relative -mb-px inline-flex shrink-0 items-center gap-2 rounded-t-[4px] border-b-2 whitespace-nowrap transition-colors ${pad} ${state} ${
+    return `group relative inline-flex shrink-0 items-center gap-2 rounded-t-[4px] border-b-2 whitespace-nowrap transition-colors ${pad} ${state} ${
       active
         ? 'border-accent-ui font-semibold text-ink'
         : `border-transparent font-medium text-muted ${disabled ? '' : 'hover:border-line-strong hover:bg-well hover:text-ink'}`
@@ -110,7 +110,10 @@ export function Tabs<K extends string>({
       onKeyDown={onKeyDown}
       className={
         variant === 'underline'
-          ? 'flex min-w-0 items-end gap-1 overflow-x-auto'
+          ? // The list (not each tab) sits 1px over the strip's bottom line, so nothing pokes out of it: with
+            // overflow-x auto, overflow-y is auto too and a 1px overhang showed a vertical scrollbar. On narrow
+            // screens the tabs scroll sideways with a thin bar.
+            '-mb-px flex min-w-0 items-end gap-1 overflow-x-auto overflow-y-hidden [scrollbar-width:thin]'
           : variant === 'segmented'
             ? 'inline-flex flex-wrap items-center gap-0.5 rounded-[4px] border border-line bg-well p-0.5'
             : 'flex flex-wrap items-center gap-1.5'
