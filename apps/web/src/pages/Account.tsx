@@ -1,5 +1,5 @@
 import { getLocale, t, tr } from '../i18n';
-import { LanguageSelect } from '../components/LanguageControl';
+import { LanguageChoice } from '../components/LanguageControl';
 import { ThemeChoice } from '../components/ThemeControl';
 import { useEffect, useState, type FormEvent, type ReactNode, useCallback } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
@@ -1127,14 +1127,14 @@ export function MyAccount() {
             subtitle={t('theme.appearanceHint')}
             sectionTag={tr('SECTION 04 // APPEARANCE')}
           >
-            <div className="flex flex-wrap items-end gap-6">
+            <div className="flex flex-wrap items-start gap-x-10 gap-y-5">
               <div className="space-y-1.5">
                 <p className="text-[12px] font-semibold text-ink">{t('theme.label')}</p>
                 <ThemeChoice />
               </div>
               <div className="space-y-1.5">
-                <label htmlFor="account-language" className="block text-[12px] font-semibold text-ink">{t('language.label')}</label>
-                <LanguageSelect id="account-language" />
+                <p className="text-[12px] font-semibold text-ink">{t('language.label')}</p>
+                <LanguageChoice id="account-language" />
                 <p className="text-[12px] text-muted">{t('language.hint')}</p>
               </div>
             </div>

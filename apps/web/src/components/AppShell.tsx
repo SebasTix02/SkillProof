@@ -1,6 +1,5 @@
 import { tr } from '../i18n';
-import { LanguageSelect } from './LanguageControl';
-import { ThemeToggle } from './ThemeControl';
+import { PreferenceControls } from './ThemeControl';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
@@ -355,22 +354,25 @@ function SidebarBody({
             <Symbol name="logout" className="text-[18px]" />
             {!collapsed && <span>{tr('Sign out')}</span>}
           </button>
-          <ThemeToggle onDark compact />
+          {/* Theme and language together: the page preferences live in one place. */}
+          <PreferenceControls onDark vertical={collapsed} placement={collapsed ? 'right-end' : 'top-end'} />
         </div>
-        <div className={cx('mt-1 flex', collapsed && 'justify-center')}>
-          {!collapsed && <LanguageSelect onDark />}
-          {onToggleCollapsed && (
-            <button
-              type="button"
-              onClick={onToggleCollapsed}
-              aria-label={collapsed ? tr('Expand menu') : tr('Collapse menu')}
-              title={collapsed ? tr('Expand menu') : tr('Collapse menu')}
-              className={cx('flex cursor-pointer items-center justify-center rounded-[4px] border border-dark-hairline px-2 py-1.5 text-dark-muted hover:bg-dark-surface hover:text-dark-ink', focusRing)}
-            >
-              <Symbol name={collapsed ? 'left_panel_open' : 'left_panel_close'} className="text-[18px]" />
-            </button>
-          )}
-        </div>
+        {onToggleCollapsed && (
+          <button
+            type="button"
+            onClick={onToggleCollapsed}
+            aria-label={collapsed ? tr('Expand menu') : tr('Collapse menu')}
+            title={collapsed ? tr('Expand menu') : tr('Collapse menu')}
+            className={cx(
+              'mt-1 flex w-full cursor-pointer items-center gap-2 rounded-[4px] py-1.5 text-[12px] font-medium text-dark-muted hover:bg-dark-surface hover:text-dark-ink',
+              focusRing,
+              collapsed ? 'justify-center px-0' : 'px-2.5',
+            )}
+          >
+            <Symbol name={collapsed ? 'left_panel_open' : 'left_panel_close'} className="text-[18px]" />
+            {!collapsed && <span>{tr('Collapse menu')}</span>}
+          </button>
+        )}
       </div>
     </div>
   );
