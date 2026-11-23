@@ -2,26 +2,7 @@
 
 const INPUT_RATE = 16000;
 const OUTPUT_RATE = 24000;
-
-const WORKLET = `
-class PcmCapture extends AudioWorkletProcessor {
-  constructor() { super(); this.buf = new Int16Array(1600); this.n = 0; }
-  process(inputs) {
-    const ch = inputs[0] && inputs[0][0];
-    if (!ch) return true;
-    for (let i = 0; i < ch.length; i++) {
-      const s = Math.max(-1, Math.min(1, ch[i]));
-      this.buf[this.n++] = s < 0 ? s * 0x8000 : s * 0x7fff;
-      if (this.n === this.buf.length) {
-        this.port.postMessage(this.buf.buffer.slice(0));
-        this.n = 0;
-      }
-    }
-    return true;
-  }
-}
-registerProcessor('pcm-capture', PcmCapture);
-`;
+const WORKLET_URL = '/pcm-capture.worklet.js';
 
 function toBase64(buffer: ArrayBuffer): string {
   const bytes = new Uint8Array(buffer);
@@ -42,12 +23,7 @@ export const MIC_MIME = `audio/pcm;rate=${INPUT_RATE}`;
 /** Streams the microphone as base64 PCM chunks of 100 ms. Returns a function that stops it. */
 export async function startMic(stream: MediaStream, onChunk: (base64: string) => void): Promise<() => void> {
   const ctx = new AudioContext({ sampleRate: INPUT_RATE });
-  const url = URL.createObjectURL(new Blob([WORKLET], { type: 'application/javascript' }));
-  try {
-    await ctx.audioWorklet.addModule(url);
-  } finally {
-    URL.revokeObjectURL(url);
-  }
+  await ctx.audioWorklet.addModule(WORKLET_URL);
   const source = ctx.createMediaStreamSource(stream);
   const node = new AudioWorkletNode(ctx, 'pcm-capture');
   node.port.onmessage = (e: MessageEvent<ArrayBuffer>) => onChunk(toBase64(e.data));
