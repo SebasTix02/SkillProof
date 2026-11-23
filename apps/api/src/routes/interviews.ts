@@ -15,9 +15,18 @@ import {
 import { primaryModels } from '../lib/models.js';
 import { enqueue } from '../services/queue.js';
 
-const PERSONAL_PER_DAY = 5;
 // A dropped connection can be reopened for as long as the interview could still be running, pauses included.
 const tokenRetryWindowMs = (seconds: number) => seconds * 1000 + MAX_INTERVIEW_PAUSE_MS;
+
+function hasUnlimitedPersonalInterviews(email: string | null, grants: { scope: string; role_key: string }[]): boolean {
+  if (grants.some((g) => g.scope === 'global' && g.role_key === 'platform_admin')) return true;
+  if (!email) return false;
+  const allowlist = (env().PERSONAL_INTERVIEW_UNLIMITED_EMAILS ?? '')
+    .split(/[,\n;]+/)
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean);
+  return allowlist.includes(email.toLowerCase());
+}
 
 type InterviewWithRepo = InterviewRow & {
   repos: { owner: string; name: string; url: string };
@@ -140,15 +149,20 @@ export async function interviewRoutes(app: FastifyInstance): Promise<void> {
     } else {
       const ref = parseGithubUrl(input.repo_url!);
       if (!ref) throw badRequest('invalid_repo', 'Use a public GitHub repository URL.');
-      const since = new Date(Date.now() - 24 * 3600_000).toISOString();
-      const { count } = await db()
-        .from('interviews')
-        .select('id', { count: 'exact', head: true })
-        .eq('user_id', user.id)
-        .is('submission_id', null)
-        .is('assignment_submission_id', null)
-        .gte('created_at', since);
-      if ((count ?? 0) >= PERSONAL_PER_DAY) throw tooMany(`You can start ${PERSONAL_PER_DAY} personal interviews per day.`);
+      if (!hasUnlimitedPersonalInterviews(user.email, user.grants)) {
+        const limit = env().PERSONAL_INTERVIEWS_PER_DAY;
+        const since = new Date(Date.now() - 24 * 3600_000).toISOString();
+        const { count } = await db()
+          .from('interviews')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+          .is('submission_id', null)
+          .is('assignment_submission_id', null)
+          .neq('status', 'error')
+          .neq('status', 'canceled')
+          .gte('created_at', since);
+        if ((count ?? 0) >= limit) throw tooMany(`You can start ${limit} personal interviews per day.`);
+      }
       const { repo, meta } = await resolveRepo(ref.owner, ref.name);
       repoId = repo.id;
       // A personal interview is about the code as it is now: the head of the default branch.

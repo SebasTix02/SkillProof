@@ -69,6 +69,10 @@ export const EnvSchema = z.object({
   REPO_MAX_FULL_FILES: z.coerce.number().int().min(5).default(30),
   /** Files outside the budget that get a one-sentence AI summary. The others get a local outline only. */
   REPO_MAX_SUMMARISED_FILES: z.coerce.number().int().min(0).default(20),
+  /** Maximum personal interviews a user can start in a rolling 24h window (failed/canceled attempts are excluded). */
+  PERSONAL_INTERVIEWS_PER_DAY: z.coerce.number().int().min(1).max(1000).default(15),
+  /** Optional comma-separated emails exempt from the daily personal interview cap (e.g. demo/admin accounts). */
+  PERSONAL_INTERVIEW_UNLIMITED_EMAILS: z.string().optional(),
 });
 export type Env = z.infer<typeof EnvSchema>;
 
