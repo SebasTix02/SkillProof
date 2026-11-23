@@ -7,8 +7,10 @@ export const EnvSchema = z.object({
   WEB_ORIGIN: z.string().default('http://localhost:5173'),
   SUPABASE_URL: z.url(),
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(20),
-  /** Gemini Developer API key. Always needed for the Live interview (ephemeral tokens exist only there). */
+  /** Gemini Developer API key (or multiple comma-separated keys for automatic rotation). Always needed for the Live interview. */
   GEMINI_API_KEY: z.string().min(10),
+  /** Optional pool of additional comma-separated Gemini Developer API keys rotated on 429/503/403. */
+  GEMINI_API_KEYS: z.string().optional(),
   /** When true, text and video analysis go through Vertex AI so Google Cloud credits apply. */
   USE_VERTEX: bool.default(false),
   GOOGLE_CLOUD_PROJECT: z.string().optional(),
@@ -88,4 +90,25 @@ export function env(): Env {
     cached = e;
   }
   return cached;
+}
+
+/**
+ * Deduplicated pool of Gemini Developer API keys configured in `GEMINI_API_KEY` (supports comma/newline/semicolon separation)
+ * and `GEMINI_API_KEYS`. Rotating across multiple project keys multiplies available RPM/TPM quota and isolates key-level 429/503 limits.
+ */
+export function parseApiKeyList(...sources: (string | undefined)[]): string[] {
+  const keys: string[] = [];
+  for (const src of sources) {
+    if (!src) continue;
+    for (const part of src.split(/[,\n;]+/)) {
+      const cleaned = part.trim().replace(/^['"]|['"]$/g, '');
+      if (cleaned.length >= 10 && !keys.includes(cleaned)) keys.push(cleaned);
+    }
+  }
+  return keys;
+}
+
+export function geminiApiKeys(e: Pick<Env, 'GEMINI_API_KEY' | 'GEMINI_API_KEYS'> = env()): string[] {
+  const keys = parseApiKeyList(e.GEMINI_API_KEY, e.GEMINI_API_KEYS);
+  return keys.length > 0 ? keys : [e.GEMINI_API_KEY.trim()];
 }

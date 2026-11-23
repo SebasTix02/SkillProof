@@ -9,7 +9,7 @@ import { analyzeRepo, type AnalysisRow, type HookSnippet, type RepoRow } from '.
 import { Activity, withActivity } from '../lib/activity.js';
 import { JobStopped, interviewCheckpoint } from '../lib/control.js';
 import { badRequest } from '../lib/errors.js';
-import { UNTRUSTED_NOTICE, generateJson, isTransientAiError, liveAi, AiUnavailableError } from '../lib/gemini.js';
+import { UNTRUSTED_NOTICE, generateJson, isTransientAiError, liveAi, withLiveAiRotation, AiUnavailableError } from '../lib/gemini.js';
 import { getFileAuthors } from '../lib/github.js';
 import {
   COURSE_GROUP_PLAN_SYSTEM, COURSE_PLAN_SYSTEM, INTERVIEW_SPECS, courseBlock, interviewerOpening,
@@ -311,23 +311,25 @@ export async function createLiveToken(
   const now = Date.now();
   // Room time, plus the most the candidate may pause, plus a margin to reconnect.
   const expiresAt = new Date(now + (INTERVIEW_SPECS[spec].seconds + MAX_INTERVIEW_PAUSE_MS / 1000 + 240) * 1000).toISOString();
-  const token = await liveAi().authTokens.create({
-    config: {
-      uses: 1,
-      expireTime: expiresAt,
-      newSessionExpireTime: new Date(now + 90_000).toISOString(),
-      liveConnectConstraints: {
-        model: MODELS.live,
-        config: {
-          responseModalities: [Modality.AUDIO],
-          systemInstruction: interviewerInstruction(plan, repoName, spec, locale),
-          inputAudioTranscription: {},
-          outputAudioTranscription: {},
-          tools: [{ functionDeclarations: LIVE_TOOLS }],
+  const token = await withLiveAiRotation((client) =>
+    client.authTokens.create({
+      config: {
+        uses: 1,
+        expireTime: expiresAt,
+        newSessionExpireTime: new Date(now + 90_000).toISOString(),
+        liveConnectConstraints: {
+          model: MODELS.live,
+          config: {
+            responseModalities: [Modality.AUDIO],
+            systemInstruction: interviewerInstruction(plan, repoName, spec, locale),
+            inputAudioTranscription: {},
+            outputAudioTranscription: {},
+            tools: [{ functionDeclarations: LIVE_TOOLS }],
+          },
         },
       },
-    },
-  });
+    }),
+  );
   if (!token.name) throw new Error('Gemini did not return a live token.');
   return { token: token.name, model: MODELS.live, expiresAt };
 }

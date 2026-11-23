@@ -12,8 +12,14 @@ export function friendlyJobError(err: unknown, action: 'judge' | 'prepare' | 'ev
       : action === 'prepare'
         ? 'Start a new interview in a few minutes.'
         : 'Your answers are saved.';
-  if (err instanceof AiUnavailableError)
+  if (err instanceof AiUnavailableError) {
+    const causeStatus = aiErrorStatus(err.cause);
+    const causeText = err.cause instanceof Error ? err.cause.message : String(err.cause ?? '');
+    if (causeStatus === 429 || /RESOURCE_EXHAUSTED|quota|rate limit/i.test(causeText)) {
+      return `The Gemini rate limit or quota was reached across all ${err.models.length} fallback targets (${err.models.join(', ')}). Add backup API keys in GEMINI_API_KEYS or wait a minute. ${retry}`;
+    }
     return `Gemini is overloaded right now. SkillProof tried ${err.models.length} models and none answered. ${retry}`;
+  }
   if (err instanceof HttpError) return err.message;
   const text = err instanceof Error ? err.message : String(err);
   const status = aiErrorStatus(err);

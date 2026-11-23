@@ -2,16 +2,16 @@ import { GoogleGenAI, ThinkingLevel, type GenerateContentResponse, type Part } f
 import { MAX_THOUGHT_CHARS, estimateCostUsd } from '@skillproof/shared';
 import { modelChain } from './models.js';
 import { z } from 'zod';
-import { env } from '../env.js';
+import { env, geminiApiKeys } from '../env.js';
 import { currentActivity } from './activity.js';
 import { HEALTH_WINDOW_MS, Limiter, ModelHealth, backoffMs, retryHintMs } from './aiLimiter.js';
 import { db } from './supabase.js';
 
-let liveClient: GoogleGenAI | undefined;
+const liveClients = new Map<number, GoogleGenAI>();
 
 /** Where text calls go: the Gemini API with an API key, or Vertex AI (which uses Google Cloud credits). */
 export type Provider = 'studio' | 'vertex';
-const clients = new Map<Provider, GoogleGenAI>();
+const clients = new Map<string, GoogleGenAI>();
 
 export const mainProvider = (): Provider => (env().USE_VERTEX ? 'vertex' : 'studio');
 
@@ -20,13 +20,16 @@ export function secondProvider(): Provider | null {
   const e = env();
   if (!e.GEMINI_CROSS_PROVIDER) return null;
   if (mainProvider() === 'studio') return e.GOOGLE_CLOUD_PROJECT ? 'vertex' : null;
-  return e.GEMINI_API_KEY ? 'studio' : null;
+  return geminiApiKeys(e).length > 0 ? 'studio' : null;
 }
 
-export function aiClient(provider: Provider = mainProvider()): GoogleGenAI {
-  let client = clients.get(provider);
+export function aiClient(provider: Provider = mainProvider(), keyIndex = 0): GoogleGenAI {
+  const cacheKey = provider === 'vertex' ? 'vertex' : `studio:${keyIndex}`;
+  let client = clients.get(cacheKey);
   if (!client) {
     const e = env();
+    const keys = geminiApiKeys(e);
+    const apiKey = keys[keyIndex] ?? keys[0]!;
     // A call that hangs is treated like a busy model: retried once, then moved to the backup.
     const httpOptions = { timeout: e.GEMINI_TIMEOUT_MS };
     client =
@@ -39,8 +42,8 @@ export function aiClient(provider: Provider = mainProvider()): GoogleGenAI {
             ...(e.GOOGLE_SERVICE_ACCOUNT_JSON ? { googleAuthOptions: { credentials: e.GOOGLE_SERVICE_ACCOUNT_JSON } } : {}),
             httpOptions,
           })
-        : new GoogleGenAI({ apiKey: e.GEMINI_API_KEY, httpOptions });
-    clients.set(provider, client);
+        : new GoogleGenAI({ apiKey, httpOptions });
+    clients.set(cacheKey, client);
   }
   return client;
 }
@@ -49,14 +52,36 @@ export function aiClient(provider: Provider = mainProvider()): GoogleGenAI {
 export const textAi = () => aiClient();
 
 /** Client for the Gemini Developer API, the only place ephemeral Live tokens exist. */
-export function liveAi(): GoogleGenAI {
-  if (!liveClient) {
-    liveClient = new GoogleGenAI({
-      apiKey: env().GEMINI_API_KEY,
-      httpOptions: { apiVersion: env().LIVE_TOKEN_API_VERSION },
+export function liveAi(keyIndex = 0): GoogleGenAI {
+  let client = liveClients.get(keyIndex);
+  if (!client) {
+    const e = env();
+    const keys = geminiApiKeys(e);
+    const apiKey = keys[keyIndex] ?? keys[0]!;
+    client = new GoogleGenAI({
+      apiKey,
+      httpOptions: { apiVersion: e.LIVE_TOKEN_API_VERSION },
     });
+    liveClients.set(keyIndex, client);
   }
-  return liveClient;
+  return client;
+}
+
+/** Runs an operation against the Gemini Developer API (such as minting a Live token), rotating across all configured API keys on transient/quota errors. */
+export async function withLiveAiRotation<T>(fn: (client: GoogleGenAI, keyIndex: number) => Promise<T>): Promise<T> {
+  const keys = geminiApiKeys();
+  let lastError: unknown;
+  for (let i = 0; i < keys.length; i++) {
+    try {
+      return await fn(liveAi(i), i);
+    } catch (err) {
+      lastError = err;
+      const status = aiErrorStatus(err);
+      const canRotate = isTransientAiError(err) || status === 401 || status === 403;
+      if (!canRotate || i === keys.length - 1) throw err;
+    }
+  }
+  throw lastError;
 }
 
 export interface UsageContext {
@@ -226,30 +251,54 @@ function answerText(res: GenerateContentResponse): string {
 export const clockUtc = (ms: number) =>
   `${new Date(ms).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })} UTC`;
 
-/** "gemini-3.8-flash" -> "Gemini 3.8 Flash", and "vertex:gemini-3.8-flash" -> "Gemini 3.8 Flash on Vertex AI". */
+/** "gemini-3.8-flash" -> "Gemini 3.8 Flash", "key2:gemini-3.8-flash" -> "Gemini 3.8 Flash (API key #2)", and "vertex:gemini-3.8-flash" -> "Gemini 3.8 Flash on Vertex AI". */
 export function modelLabel(key: string): string {
   const [provider, id] = key.includes(':') ? key.split(':') : ['', key];
   const name = id!
     .split('-')
     .map((w) => (/^\d/.test(w) ? w : w.charAt(0).toUpperCase() + w.slice(1)))
     .join(' ');
-  return provider === 'vertex' ? `${name} on Vertex AI` : provider === 'studio' ? `${name} on the Gemini API` : name;
+  if (provider === 'vertex') return `${name} on Vertex AI`;
+  if (provider === 'studio') return `${name} on the Gemini API`;
+  const keyMatch = /^key(\d+)$/.exec(provider ?? '');
+  if (keyMatch) return `${name} (API key #${keyMatch[1]})`;
+  return name;
 }
 
 interface Target {
   provider: Provider;
   model: string;
-  /** Name in the health table and the log: the model id, prefixed when it goes through the second provider. */
+  /** Index into geminiApiKeys() when provider === 'studio'. */
+  keyIndex: number;
+  /** Name in the health table and the log: the model id, prefixed when it goes through a backup API key or second provider. */
   key: string;
 }
 
-/** The models to try, on the main provider first and, when allowed, on the other provider after. */
-function targets(model: string): Target[] {
+/** The models to try, on the main provider first (rotating across all configured Gemini API keys) and, when allowed, on the other provider after. */
+export function targets(model: string): Target[] {
   const chain = modelChain(model);
   const main = mainProvider();
-  const list: Target[] = chain.map((m) => ({ provider: main, model: m, key: m }));
+  const keyCount = geminiApiKeys().length;
+  const list: Target[] = [];
+
+  const pushProvider = (provider: Provider, isSecondProvider: boolean) => {
+    if (provider === 'vertex') {
+      for (const m of chain) {
+        list.push({ provider: 'vertex', model: m, keyIndex: 0, key: isSecondProvider ? `vertex:${m}` : m });
+      }
+      return;
+    }
+    for (let k = 0; k < keyCount; k++) {
+      for (const m of chain) {
+        const prefix = k > 0 ? `key${k + 1}:` : isSecondProvider ? 'studio:' : '';
+        list.push({ provider: 'studio', model: m, keyIndex: k, key: `${prefix}${m}` });
+      }
+    }
+  };
+
+  pushProvider(main, false);
   const other = secondProvider();
-  if (other) list.push(...chain.map((m) => ({ provider: other, model: m, key: `${other}:${m}` })));
+  if (other) pushProvider(other, true);
   return list;
 }
 
@@ -294,7 +343,7 @@ export async function generateJson<S extends z.ZodType>(args: GenerateJsonArgs<S
   // Paused or canceled while waiting for a slot or a backoff: stop before spending a call.
   await activity?.checkpoint?.();
   for (const [index, target] of queue.entries()) {
-    const { provider, model, key } = target;
+    const { provider, model, keyIndex, key } = target;
     if (index > 0) await say('fallback', `${modelLabel(queue[index - 1]!.key)} is busy. Trying ${modelLabel(key)}…`, key);
     const total: TokenUsage = { inputTokens: 0, outputTokens: 0 };
     let malformed = 0;
@@ -309,7 +358,7 @@ export async function generateJson<S extends z.ZodType>(args: GenerateJsonArgs<S
       let res: GenerateContentResponse;
       try {
         res = await limiter.run(() =>
-          aiClient(provider).models.generateContent({
+          aiClient(provider, keyIndex).models.generateContent({
             model,
             contents: [{ role: 'user', parts: args.parts }],
             config: {
@@ -329,10 +378,12 @@ export async function generateJson<S extends z.ZodType>(args: GenerateJsonArgs<S
           details.push(`${key} does not accept the thinking setting; asked again without it.`);
           continue;
         }
-        if (!isTransientAiError(err)) throw err;
         const status = aiErrorStatus(err);
+        // When multiple API keys are configured and one key is invalid or permission-denied (401/403), rest that key's target and rotate to the next key.
+        const canRotateAuth = (status === 401 || status === 403) && queue.some((t, i) => i > index && (t.keyIndex !== keyIndex || t.provider !== provider));
+        if (!isTransientAiError(err) && !canRotateAuth) throw err;
         details.push(`${key}: ${status ?? 'error'} after ${Math.round((Date.now() - started) / 1000)} s — ${errorText(err).slice(0, 160)}`);
-        const wait = backoffMs(busy, retryHintMs(err));
+        const wait = canRotateAuth ? null : backoffMs(busy, retryHintMs(err));
         if (wait != null) {
           busy++;
           await say('retry', `${modelLabel(key)} is busy. Trying again in ${Math.round(wait / 1000)} s…`, key);
@@ -342,7 +393,7 @@ export async function generateJson<S extends z.ZodType>(args: GenerateJsonArgs<S
         }
         const until = await health.failure(key, `${status ?? 'error'}: ${errorText(err).slice(0, 200)}`);
         details.push(`${key} rests until ${clockUtc(until)}.`);
-        break; // next model
+        break; // next model or next API key
       }
 
       total.inputTokens += res.usageMetadata?.promptTokenCount ?? 0;
