@@ -1,4 +1,4 @@
-import { MODELS, MODEL_FALLBACKS } from '@skillproof/shared';
+import { MODELS, MODEL_FALLBACKS, prioritizeStableModels } from '@skillproof/shared';
 import { env } from '../env.js';
 
 /**
@@ -13,12 +13,13 @@ export const analysisModel = () => env().GEMINI_MODEL_ANALYSIS ?? MODELS.analysi
 /** One-line file summaries: a small, cheap model is enough. */
 export const summariesModel = () => env().GEMINI_MODEL_SUMMARIES ?? MODELS.summaries;
 
-/** The model first, then its backups, without repeats. */
+/** The model first, then its backups, without repeats, always prioritizing stable (GA) models ahead of `-preview` models. */
 export function modelChain(model: string): string[] {
   const e = env();
+  const defaults = MODEL_FALLBACKS[model] ?? (model === analysisModel() ? MODEL_FALLBACKS[MODELS.analysis] : model === summariesModel() ? MODEL_FALLBACKS[MODELS.summaries] : undefined) ?? [];
   const configured =
     model === analysisModel() ? list(e.GEMINI_FALLBACKS_ANALYSIS) : model === summariesModel() ? list(e.GEMINI_FALLBACKS_SUMMARIES) : null;
-  return [...new Set([model, ...(configured ?? MODEL_FALLBACKS[model] ?? [])])];
+  return prioritizeStableModels([model, ...(configured ?? defaults), ...(configured ? defaults : [])]);
 }
 
 /** The main models, so pages can tell a backup apart. */

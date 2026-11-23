@@ -29,6 +29,7 @@ import { SubmissionJudgingControls } from '../../components/JudgingControls';
 import { useToast } from '../../components/toast';
 import { api, errorMessage } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
+import { evidenceLink, evidenceTitle, timestampSeconds } from '../../lib/evidence';
 import { STATUS_LABEL, type EventView, type Feedback, type ScoreView, type VersionView } from '../../lib/types';
 import { useLoad } from '../../lib/useLoad';
 
@@ -89,6 +90,7 @@ export function ScoreCalibrationRow({
   criterion,
   repoUrl,
   sha,
+  videoUrl,
   canOverride,
   onSaved,
   scorePath = '/api/scores',
@@ -98,6 +100,8 @@ export function ScoreCalibrationRow({
   criterion: Rubric[number] | undefined;
   repoUrl: string | null;
   sha: string | null;
+  /** The demo video of the judged version: timestamps in the evidence open it at that moment. */
+  videoUrl: string | null;
   canOverride: boolean;
   onSaved: () => void;
   /** /api/scores for events, /api/assignment-scores for course assignments. */
@@ -187,26 +191,31 @@ export function ScoreCalibrationRow({
       {score.evidence_json.length > 0 && (
         <div className="flex flex-wrap items-center gap-1.5 pt-0.5 text-[11px]">
           <span className="font-mono-code text-[10px] text-muted uppercase">{tr('Evidence:')}</span>
-          {score.evidence_json.map((path) =>
-            repoUrl && sha ? (
+          {score.evidence_json.map((item) => {
+            const ev = evidenceLink(item, { repoUrl, sha, videoUrl });
+            return ev.href ? (
               <a
-                key={path}
-                href={`${repoUrl}/blob/${sha}/${path}`}
+                key={item}
+                href={ev.href}
                 target="_blank"
                 rel="noreferrer"
-                className="font-mono-code rounded-[2px] border border-line bg-surface px-1.5 py-0.5 text-[11px] text-accent hover:underline"
+                title={evidenceTitle(ev)}
+                className="font-mono-code inline-flex items-center gap-1 rounded-[2px] border border-line bg-surface px-1.5 py-0.5 text-[11px] text-accent hover:underline"
               >
-                {path}
+                {ev.kind === 'video' && <span className="material-symbols-outlined text-[13px]" aria-hidden="true">play_circle</span>}
+                {ev.label}
               </a>
             ) : (
               <code
-                key={path}
-                className="font-mono-code rounded-[2px] border border-line bg-surface px-1.5 py-0.5 text-[11px] text-ink"
+                key={item}
+                title={evidenceTitle(ev)}
+                className="font-mono-code inline-flex items-center gap-1 rounded-[2px] border border-line bg-surface px-1.5 py-0.5 text-[11px] text-ink"
               >
-                {path}
+                {ev.kind === 'video' && <span className="material-symbols-outlined text-[13px]" aria-hidden="true">play_circle</span>}
+                {ev.label}
               </code>
-            ),
-          )}
+            );
+          })}
         </div>
       )}
     </li>
@@ -712,7 +721,9 @@ export function SubmissionDetail() {
 
               <div className="font-mono-code flex items-center justify-between bg-dark-inset px-4 py-2 text-[11px] text-white/80">
                 <div className="flex items-center gap-2">
-                  <span className="material-symbols-outlined text-[15px] text-accent-on-dark">code</span>
+                  <span className="material-symbols-outlined text-[15px] text-accent-on-dark">
+                    {activeScore?.evidence_json[0] && timestampSeconds(activeScore.evidence_json[0]) != null ? 'play_circle' : 'code'}
+                  </span>
                   <span className="font-semibold text-white">
                     {activeScore?.evidence_json[0] ?? activeCriterion?.name ?? tr('Criterion Evidence')}
                   </span>
@@ -732,27 +743,30 @@ export function SubmissionDetail() {
                       {tr('Cited Repository Files (Click to inspect at frozen commit):')}
                     </span>
                     <div className="flex flex-wrap gap-1.5">
-                      {activeScore.evidence_json.map((path) =>
-                        repoUrl && sha ? (
+                      {activeScore.evidence_json.map((item) => {
+                        const ev = evidenceLink(item, { repoUrl, sha, videoUrl: current?.video_url ?? null });
+                        return ev.href ? (
                           <a
-                            key={path}
-                            href={`${repoUrl}/blob/${sha}/${path}`}
+                            key={item}
+                            href={ev.href}
                             target="_blank"
                             rel="noreferrer"
+                            title={evidenceTitle(ev)}
                             className="font-mono-code inline-flex items-center gap-1 rounded-[3px] border border-white/15 bg-white/10 px-2 py-1 text-[11px] text-accent-on-dark hover:bg-white/20 hover:underline"
                           >
-                            <span className="material-symbols-outlined text-[13px]">open_in_new</span>
-                            <span>{path}</span>
+                            <span className="material-symbols-outlined text-[13px]" aria-hidden="true">{ev.kind === 'video' ? 'play_circle' : 'open_in_new'}</span>
+                            <span>{ev.label}</span>
                           </a>
                         ) : (
                           <code
-                            key={path}
+                            key={item}
+                            title={evidenceTitle(ev)}
                             className="font-mono-code rounded-[3px] border border-white/15 bg-white/10 px-2 py-1 text-[11px] text-white"
                           >
-                            {path}
+                            {ev.label}
                           </code>
-                        ),
-                      )}
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -940,6 +954,7 @@ export function SubmissionDetail() {
                     criterion={rubric.find((c) => c.key === s.criterion_key)}
                     repoUrl={repoUrl}
                     sha={sha}
+                    videoUrl={current?.video_url ?? null}
                     canOverride={canOverride}
                     onSaved={reload}
                   />

@@ -2,6 +2,7 @@ import { computeAssignmentSimilarity, computeEventSimilarity } from './services/
 import cors from '@fastify/cors';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { env } from './env.js';
+import { AttemptLimiter } from './lib/accessCode.js';
 import { HttpError } from './lib/errors.js';
 import { eventRoutes } from './routes/events.js';
 import { controlRoutes } from './routes/controls.js';
@@ -16,12 +17,58 @@ import { judgeAssignmentSubmission, judgeSubmission } from './services/judge.js'
 import { onVercel, registerJob } from './services/queue.js';
 import { maybeTick } from './services/scheduler.js';
 
-export async function buildApp(): Promise<FastifyInstance> {
-  const app = Fastify({ logger: true, bodyLimit: 1024 * 1024 });
+export const API_SECURITY_HEADERS: Readonly<Record<string, string>> = {
+  'x-content-type-options': 'nosniff',
+  'x-frame-options': 'DENY',
+  'referrer-policy': 'strict-origin-when-cross-origin',
+  'permissions-policy': 'camera=(), geolocation=(), microphone=(self)',
+};
+
+export interface BuildAppOptions {
+  /** Overrides default per-IP API rate limit (useful for testing). */
+  rateLimit?: { max: number; windowMs: number };
+  /** Disables Fastify request logging (useful for quiet tests). */
+  logger?: boolean;
+}
+
+export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyInstance> {
+  const app = Fastify({ logger: options.logger ?? true, bodyLimit: 1024 * 1024 });
 
   await app.register(cors, {
     origin: env().WEB_ORIGIN.split(',').map((o) => o.trim()),
     methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE'],
+  });
+
+  const apiLimiter = new AttemptLimiter(
+    options.rateLimit?.max ?? 120,
+    options.rateLimit?.windowMs ?? 60_000,
+  );
+  const writeLimiter = new AttemptLimiter(25, 60_000);
+
+  app.addHook('onRequest', async (req, reply) => {
+    if (!req.url.startsWith('/api/') || req.url === '/api/healthz') return;
+    const ip = req.ip || 'unknown';
+    const isExpensiveWrite =
+      req.method === 'POST' &&
+      (req.url === '/api/interviews' ||
+        req.url.endsWith('/token') ||
+        req.url.endsWith('/submissions'));
+    if (!apiLimiter.allow(ip) || (isExpensiveWrite && !writeLimiter.allow(`w:${ip}`))) {
+      reply.header('retry-after', '60');
+      return reply.status(429).send({
+        error: { code: 'too_many_requests', message: 'Too many requests. Wait a moment and try again.' },
+      });
+    }
+  });
+
+  app.addHook('onSend', async (req, reply, payload) => {
+    for (const [k, v] of Object.entries(API_SECURITY_HEADERS)) {
+      if (!reply.hasHeader(k)) reply.header(k, v);
+    }
+    if ((req.url.startsWith('/api/') || req.url.startsWith('/internal/')) && req.url !== '/api/healthz') {
+      if (!reply.hasHeader('cache-control')) reply.header('cache-control', 'no-store');
+    }
+    return payload;
   });
 
   app.setErrorHandler((err, req, reply) => {

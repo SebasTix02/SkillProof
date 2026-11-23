@@ -26,7 +26,10 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     <ToastContext.Provider value={value}>
       {children}
       {/* Above everything (floating panels 75, confirmation 80): a toast confirms what was just done in them. */}
-      <div className="pointer-events-none fixed inset-x-0 bottom-4 z-[90] flex flex-col items-center gap-2 px-4 sm:items-end sm:pr-6">
+      <div
+        aria-live="polite"
+        className="pointer-events-none fixed inset-x-0 bottom-4 z-[90] flex flex-col items-center gap-2 px-4 sm:items-end sm:pr-6"
+      >
         {toasts.map((t) => (
           <div
             key={t.id}
@@ -37,11 +40,11 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             }
           >
             <span
-              aria-hidden
+              aria-hidden="true"
               className={'mt-1.5 h-2 w-2 shrink-0 rounded-full ' + (t.tone === 'error' ? 'bg-bad' : t.tone === 'good' ? 'bg-good' : 'bg-accent')}
             />
             <span className="flex-1">{t.text}</span>
-            <button onClick={() => dismiss(t.id)} className="text-muted hover:text-ink" aria-label={tr('Dismiss')}>×</button>
+            <button type="button" onClick={() => dismiss(t.id)} className="cursor-pointer text-muted hover:text-ink" aria-label={tr('Dismiss')}>×</button>
           </div>
         ))}
       </div>

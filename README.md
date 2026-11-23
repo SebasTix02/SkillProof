@@ -215,7 +215,7 @@ switches instead of waiting:
   configured, the same models are tried through the other provider when every model is busy on the main one.
   Vertex AI with billing enabled (where Google Cloud credits apply) usually has more capacity than a free AI
   Studio key. The thinking settings and the backup chain work the same through both.
-- **A queue, not an avalanche:** `JUDGE_CONCURRENCY` submissions (2) are judged at a time across all instances.
+- **A queue, not an avalanche:** `JUDGE_CONCURRENCY` submissions (1 by default) are judged at a time across all instances; two jobs that claim at the same moment do not both run.
 - **Automatic retries:** if judging fails only because every model was busy, it is tried again after about 2 and
   6 minutes, up to 3 attempts, before "Judge again" is needed.
 - **Thinking:** minimal for summaries, medium for the map and the scores.

@@ -30,6 +30,7 @@ import {
 import { useToast } from '../../components/toast';
 import { api, errorMessage } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
+import { evidenceLink, evidenceTitle } from '../../lib/evidence';
 import type { EventView, RepoRef, ScoreView, VersionView } from '../../lib/types';
 import { useLoad } from '../../lib/useLoad';
 
@@ -239,23 +240,27 @@ function SubmissionComparisonPane({
                     </div>
                     {s?.evidence_json && s.evidence_json.length > 0 && (
                       <div className="font-mono-code mt-1.5 flex flex-wrap gap-1 text-[10px]">
-                        {s.evidence_json.map((path) =>
-                          repo && sha ? (
+                        {s.evidence_json.map((item) => {
+                          const ev = evidenceLink(item, { repoUrl: repo?.url ?? null, sha, videoUrl: current?.video_url ?? null });
+                          return ev.href ? (
                             <a
-                              key={path}
-                              href={`${repo.url}/blob/${sha}/${path}`}
+                              key={item}
+                              href={ev.href}
                               target="_blank"
                               rel="noreferrer"
+                              title={evidenceTitle(ev)}
                               className="rounded border border-line bg-surface px-1.5 py-0.5 text-accent hover:underline"
                             >
-                              {path}
+                              {ev.kind === 'video' ? '▶ ' : ''}
+                              {ev.label}
                             </a>
                           ) : (
-                            <code key={path} className="rounded border border-line bg-surface px-1.5 py-0.5 text-ink">
-                              {path}
+                            <code key={item} title={evidenceTitle(ev)} className="rounded border border-line bg-surface px-1.5 py-0.5 text-ink">
+                              {ev.kind === 'video' ? '▶ ' : ''}
+                              {ev.label}
                             </code>
-                          ),
-                        )}
+                          );
+                        })}
                       </div>
                     )}
                   </li>
