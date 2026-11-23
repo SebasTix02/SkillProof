@@ -1,4 +1,5 @@
 import { tr, trn } from '../../i18n';
+import { rich } from '../../i18n/rich';
 import type { ActivityEntry } from '@skillproof/shared';
 import { Fragment, useMemo, useState, type ChangeEvent } from 'react';
 import { Link, useParams } from 'react-router-dom';
@@ -119,7 +120,10 @@ function Allowlist({ eventId }: { eventId: string }) {
           {list.data && (
             <>
               {' '}
-              <strong>{list.data.allowlist.length}</strong>{' '}{tr('invited,')}{' '}<strong>{joined}</strong> joined.
+              {rich(tr('{invited} invited, {joined} joined.'), {
+                invited: <strong>{list.data.allowlist.length}</strong>,
+                joined: <strong>{joined}</strong>,
+              })}
             </>
           )}
         </>
@@ -470,7 +474,10 @@ export function EventConsole() {
               <div className="flex items-center gap-3">
                 <Spinner label={tr('Judging in progress')} />
                 <span className="text-[13px] text-ink">
-                  <strong>{done}</strong> of <strong>{submissions.length}</strong>{' '}{tr('submissions judged. This page updates automatically every 5 seconds.')}
+                  {rich(tr('{done} of {total} submissions judged. This page updates automatically every 5 seconds.'), {
+                    done: <strong>{done}</strong>,
+                    total: <strong>{submissions.length}</strong>,
+                  })}
                 </span>
               </div>
               <span className="font-mono-code text-[12px] font-bold text-accent">{progressPct}{tr('% COMPLETE')}</span>
@@ -516,7 +523,9 @@ export function EventConsole() {
                 {tr('STAGE 03 // ORGANIZER & JUDGE CALIBRATION')}
               </div>
               <h2 className="font-serif-heading text-[22px] font-medium text-ink">
-                {tr('AI judging has finished')}{failed > 0 ? ` (${failed} failed)` : ''}{' '}{tr('— Ready for score review')}
+                {failed > 0
+                  ? trn('AI judging has finished ({count} failed) — Ready for score review', 'AI judging has finished ({count} failed) — Ready for score review', failed)
+                  : tr('AI judging has finished — Ready for score review')}
               </h2>
               <p className="max-w-2xl text-[13px] text-muted">
                 {tr('Click any team below to open the Judge Workspace, inspect the cited files, override any criterion score you disagree with, and then publish the final standings. Participants see nothing until you publish.')}

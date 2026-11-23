@@ -454,7 +454,7 @@ export function OrgSettings() {
                   <tbody className="divide-y divide-line">
                     {filteredMembers.length === 0 && (
                       <tr>
-                        <td colSpan={5} className="px-5 py-6 text-center text-[13px] text-muted">No member matches this search.</td>
+                        <td colSpan={5} className="px-5 py-6 text-center text-[13px] text-muted">{tr('No member matches this search.')}</td>
                       </tr>
                     )}
                     {filteredMembers.map((m) => {

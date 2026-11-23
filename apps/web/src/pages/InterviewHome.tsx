@@ -268,7 +268,7 @@ export function InterviewHome() {
                   </Notice>
                 )}
                 <p className="text-[11px] text-muted">
-                  One interview per commit: once you take it, interviewing again needs new commits in the repository.
+                  {tr('One interview per commit: once you take it, interviewing again needs new commits in the repository.')}
                 </p>
               </form>
             </div>
@@ -390,7 +390,7 @@ export function InterviewHome() {
             tinted
             badge={
               <Badge tone={stats.avgScore != null && stats.avgScore >= 70 ? 'good' : 'neutral'}>
-                {stats.avgScore != null ? (stats.avgScore >= 70 ? tr('VERIFIED HIGH') : 'RECORDED') : tr('NO RUNS YET')}
+                {stats.avgScore != null ? (stats.avgScore >= 70 ? tr('VERIFIED HIGH') : tr('RECORDED')) : tr('NO RUNS YET')}
               </Badge>
             }
             footer={<ScoreBar value={stats.avgScore} max={100} tone="good" />}
@@ -526,7 +526,7 @@ export function InterviewHome() {
                             </Link>
                             <div className="flex items-center gap-1.5">
                               <span className="font-mono-code rounded-[2px] border border-line bg-paper px-1.5 py-0.2 text-[10px] text-muted">
-                                run {i.id.slice(0, 8)}
+                                {tr('run {id}', { id: i.id.slice(0, 8) })}
                               </span>
                             </div>
                           </div>

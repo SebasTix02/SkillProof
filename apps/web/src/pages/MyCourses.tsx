@@ -1,4 +1,5 @@
 import { t, tr, trn, type Locale } from '../i18n';
+import { rich } from '../i18n/rich';
 import { InterviewLanguageField } from '../components/LanguageControl';
 import { LOCALE_NAME } from '@skillproof/shared';
 /**
@@ -140,10 +141,15 @@ export function MyCourses() {
             {invites.map((i) => (
               <li key={i.group_id} className="flex flex-wrap items-center justify-between gap-3 rounded-[4px] bg-surface p-3 text-[13px]">
                 <span>
-                  <strong className="text-ink">{i.invited_by ?? tr('A classmate')}</strong>{' '}{tr('invited you to')}{' '}<strong className="text-ink">{i.group_name}</strong> for{' '}
-                  <Link to={`/courses/${i.course_id}/a/${i.assignment_id}`} className="text-accent-ink hover:underline">
-                    {i.assignment_title}
-                  </Link>
+                  {rich(tr('{person} invited you to {group} for {assignment}'), {
+                    person: <strong className="text-ink">{i.invited_by ?? tr('A classmate')}</strong>,
+                    group: <strong className="text-ink">{i.group_name}</strong>,
+                    assignment: (
+                      <Link to={`/courses/${i.course_id}/a/${i.assignment_id}`} className="text-accent-ink hover:underline">
+                        {i.assignment_title}
+                      </Link>
+                    ),
+                  })}
                   <span className="text-muted">{' '}{tr('· groups close')}{' '}{formatDate(i.closes_at)}</span>
                 </span>
                 <span className="flex gap-2">
@@ -523,7 +529,7 @@ function MyGroupCard({ data: d, reload }: { data: MyAssignmentResponse; reload: 
               {room > 0 && (
                 <div className="space-y-2 border-t border-line pt-3">
                   <p className="text-[12px] text-muted">
-                    {tr('Invite a classmate without a group (')}{room} {room === 1 ? 'place' : 'places'}{' '}{tr('left).')}
+                    {trn('Invite a classmate without a group ({count} place left).', 'Invite a classmate without a group ({count} places left).', room)}
                   </p>
                   {d.classmates.length === 0 ? (
                     <p className="text-[12px] text-muted">{tr('Every classmate already has a group.')}</p>

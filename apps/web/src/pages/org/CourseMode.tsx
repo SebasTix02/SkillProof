@@ -1,4 +1,4 @@
-import { lazy, tr } from '../../i18n';
+import { lazy, tr, trn } from '../../i18n';
 import type { ActivityEntry, CommitProfile, RepoMap, Rubric } from '@skillproof/shared';
 import { useMemo, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
@@ -24,6 +24,7 @@ import {
   linkButtonSecondary,
   scoreTone,
   type SubmissionPipelineStatus,
+  VERDICT_LABEL,
 } from '../../components/shared';
 import { useToast } from '../../components/toast';
 import { api, errorMessage } from '../../lib/api';
@@ -86,11 +87,6 @@ interface DetailResponse {
 
 type CourseTab = 'roster' | 'plagiarism' | 'grading' | 'rubric';
 
-const VERDICT_LABEL: Record<string, string> = lazy(() => ({
-  code_of_conduct: tr('Referred to committee'),
-  live_defense: tr('Live defense required'),
-  clear: tr('Cleared'),
-}));
 type RosterFilter = 'all' | 'flagged' | 'incomplete_defense' | 'scored';
 type SortKey = 'risk' | 'lowest_ownership' | 'highest_grade' | 'name';
 
@@ -381,7 +377,7 @@ export function IntegrityReview() {
             <span>{tr('INTEGRITY')}</span>
           </span>
           <span className="text-line">//</span>
-          <span className="font-semibold text-ink">{org?.name?.toUpperCase() ?? 'DEPARTMENT'}</span>
+          <span className="font-semibold text-ink">{org?.name?.toUpperCase() ?? tr('DEPARTMENT')}</span>
           {event && (
             <>
               <span className="text-line">•</span>
@@ -492,7 +488,7 @@ export function IntegrityReview() {
             <div>
               <span className="block text-[10px] text-muted uppercase">{tr('Participants')}</span>
               <span className="font-semibold text-ink">
-                {consoleData.data?.participant_count ?? 0} participants
+                {trn('{count} participant', '{count} participants', consoleData.data?.participant_count ?? 0)}
               </span>
             </div>
             <div>
@@ -1074,7 +1070,7 @@ export function IntegrityReview() {
                         {history.map((d) => (
                           <li key={d.id}>
                             <span className="font-mono-code font-semibold text-ink">{VERDICT_LABEL[d.verdict] ?? d.verdict}</span>
-                            <span className="text-muted"> · {d.profiles?.display_name || 'reviewer'} · {formatDate(d.created_at)}</span>
+                            <span className="text-muted"> · {d.profiles?.display_name || tr('reviewer')} · {formatDate(d.created_at)}</span>
                             {d.note && <span className="block text-muted">{d.note}</span>}
                           </li>
                         ))}

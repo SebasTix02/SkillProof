@@ -368,7 +368,7 @@ function Join({ event, onJoined }: { event: EventView; onJoined: () => Promise<v
   }
 
   if (!open) {
-    return <Notice tone="warn">This event is not accepting new participants.</Notice>;
+    return <Notice tone="warn">{tr('This event is not accepting new participants.')}</Notice>;
   }
 
   return (
@@ -554,7 +554,7 @@ function Participant({ event }: { event: EventView }) {
               </div>
               <div className="text-[13px] font-semibold text-ink">{tr('Rubric Vector Evaluation')}</div>
               <span className="font-mono-code inline-block rounded-[2px] bg-accent px-2 py-0.5 text-[10px] font-bold text-on-accent">
-                {results.data.status === 'judging' ? 'ACTIVE' : 'SCORED'}
+                {results.data.status === 'judging' ? tr('ACTIVE') : tr('SCORED')}
               </span>
             </div>
 
@@ -562,7 +562,7 @@ function Participant({ event }: { event: EventView }) {
               <div className="flex items-center justify-between">
                 <span className="font-mono-code text-[11px] font-bold text-muted">{tr('STAGE 03')}</span>
                 <span className="font-mono-code text-[10px] text-muted">
-                  {event.interviews_enabled ? 'ENABLED' : 'SKIPPED'}
+                  {event.interviews_enabled ? tr('ENABLED') : tr('SKIPPED')}
                 </span>
               </div>
               <div className="text-[13px] font-semibold text-ink">{tr('3-Min Voice Defense')}</div>
@@ -582,7 +582,7 @@ function Participant({ event }: { event: EventView }) {
               </div>
               <div className="text-[13px] font-semibold text-ink">{tr('Organizer Calibration')}</div>
               <span className="font-mono-code inline-block rounded-[2px] bg-warn-soft px-2 py-0.5 text-[10px] font-bold text-warn-ink">
-                {results.data.status === 'review' ? tr('IN JURY REVIEW') : 'PENDING'}
+                {results.data.status === 'review' ? tr('IN JURY REVIEW') : tr('PENDING')}
               </span>
             </div>
           </div>
@@ -811,7 +811,7 @@ function SubmissionCard({
             <p className="text-[12px] leading-relaxed text-muted">
               {max
                 ? tr('{used} of {max} submission versions used.', { used, max })
-                : `${used} submission version${used === 1 ? '' : 's'} recorded.`}{' '}
+                : trn('{count} submission version recorded.', '{count} submission versions recorded.', used)}{' '}
               {tr('At the deadline, SkillProof freezes the HEAD commit of your current version.')}
             </p>
           </section>
@@ -820,7 +820,7 @@ function SubmissionCard({
             <div className="flex items-center justify-between border-b border-line pb-2.5">
               <h3 className="font-serif-heading text-[18px] font-medium text-ink">{tr('Submission Timeline')}</h3>
               <span className="font-mono-code text-[11px] text-muted">
-                {versions.length} {versions.length === 1 ? 'SNAPSHOT' : 'SNAPSHOTS'}
+                {trn('{count} SNAPSHOT', '{count} SNAPSHOTS', versions.length)}
               </span>
             </div>
 
@@ -987,7 +987,7 @@ function ResultsView({
             {mine.note && <Notice tone="warn">{mine.note}</Notice>}
 
             <div className="font-mono-code flex flex-wrap items-center justify-between border-t border-line pt-3 text-[11px] text-muted">
-              <span>{tr('PUBLISHED BY')}{' '}{event.organization?.name?.toUpperCase() || 'ORGANIZER'}</span>
+              <span>{tr('PUBLISHED BY {name}', { name: event.organization?.name?.toUpperCase() || tr('ORGANIZER') })}</span>
               <span className="font-semibold text-ink">{tr('JUDGED ON THE FROZEN COMMIT')}</span>
             </div>
           </div>

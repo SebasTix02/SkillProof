@@ -1,4 +1,5 @@
 import { tr } from '../../i18n';
+import { rich } from '../../i18n/rich';
 import type { ReactNode } from 'react';
 import { DOSSIER_THEMES, ORG_ROLE_SPECS, normalizeOrgRole, type DossierThemeKey, type OrgRoleKey } from './tokens';
 
@@ -148,11 +149,16 @@ export function VerificationProtocolCard({
           <p className="text-[13px] leading-[21px] text-muted">
             {description ?? (
               <>
-                {tr('SkillProof analyzes your repository structure and prepares an interview plan with expected points that never leave the server (')}
-                <code className="font-mono-code rounded-[3px] border border-line bg-paper px-1.5 py-0.5 text-[11px] text-accent">
-                  publicQuestions
-                </code>
-                {tr('). Your browser receives a single-use token for Gemini Live to conduct the 3-minute voice session.')}
+                {rich(
+                  tr('SkillProof analyzes your repository structure and prepares an interview plan with expected points that never leave the server ({code}). Your browser receives a single-use token for Gemini Live to conduct the 3-minute voice session.'),
+                  {
+                    code: (
+                      <code className="font-mono-code rounded-[3px] border border-line bg-paper px-1.5 py-0.5 text-[11px] text-accent">
+                        publicQuestions
+                      </code>
+                    ),
+                  },
+                )}
               </>
             )}
           </p>

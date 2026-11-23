@@ -100,7 +100,7 @@ export function JudgeReviewCard({ submissionId, rubric, locked }: { submissionId
     <div className="space-y-3 rounded-[6px] border border-line bg-surface p-5">
       <div className="flex items-center justify-between border-b border-line pb-2.5">
         <h3 className="font-serif-heading text-[18px] font-medium text-ink">{tr('Your review')}</h3>
-        <Badge tone={status === 'submitted' ? 'good' : 'neutral'}>{status === 'submitted' ? 'SUBMITTED' : 'DRAFT'}</Badge>
+        <Badge tone={status === 'submitted' ? 'good' : 'neutral'}>{status === 'submitted' ? tr('SUBMITTED') : tr('DRAFT')}</Badge>
       </div>
       {locked && <Notice tone="info">{tr('Results are published, so reviews can no longer change.')}</Notice>}
       <ul className="space-y-2.5">

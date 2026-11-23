@@ -90,7 +90,7 @@ export function CreateEvent() {
               {tr('← ORGANIZER CONSOLE')}
             </Link>
             <span>//</span>
-            <span>{org?.name?.toUpperCase() ?? 'ORGANIZATION'}</span>
+            <span>{org?.name?.toUpperCase() ?? tr('ORGANIZATION')}</span>
           </>
         }
         statusChips={

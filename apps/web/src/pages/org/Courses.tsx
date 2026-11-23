@@ -1,4 +1,5 @@
 import { getLocale, lazy, t, tr, trn, translateMessage, type Locale } from '../../i18n';
+import { rich } from '../../i18n/rich';
 import { ContestLanguageField, StarterRepoField } from '../../components/LanguageControl';
 /**
  * Courses, apart from events. A course has a roster (instructors, TAs, students by section) and assignments that only
@@ -31,6 +32,8 @@ import {
   linkButtonSecondary,
   scoreTone,
   useConfirm,
+  SUBMISSION_STATUS_LABEL,
+  type SubmissionPipelineStatus,
 } from '../../components/shared';
 import { RubricEditor, keyFromName } from '../../components/RubricEditor';
 import { useToast } from '../../components/toast';
@@ -173,7 +176,7 @@ export function CoursesHome() {
                     <strong className="text-ink">{c.member_count}</strong>{' '}{tr('on the roster')}
                   </span>
                   <span>
-                    <strong className="text-ink">{c.assignment_count}</strong> {c.assignment_count === 1 ? 'assignment' : 'assignments'}
+                    {rich(trn('{n} assignment', '{n} assignments', c.assignment_count), { n: <strong className="text-ink">{c.assignment_count}</strong> })}
                   </span>
                 </div>
               </Link>
@@ -310,7 +313,7 @@ function Overview({ detail }: { detail: CourseDetail }) {
                   {a.title}
                 </Link>
                 <span className="text-muted">
-                  {tr('Due')}{' '}{formatDate(a.due_at)} · {a.submission_count}/{a.student_count} submitted
+                  {tr('Due {date} · {done}/{total} submitted', { date: formatDate(a.due_at), done: a.submission_count, total: a.student_count })}
                 </span>
               </li>
             ))}
@@ -374,7 +377,7 @@ function Roster({ detail, onChanged, canManage }: { detail: CourseDetail; onChan
     setBusy(m.user_id);
     try {
       await api(`/api/courses/${course.id}/members/${m.user_id}`, { method: 'DELETE' });
-      toast.success(`${name} removed.`);
+      toast.success(tr('{name} removed.', { name }));
       onChanged();
     } catch (err) {
       toast.error(tr('Could not remove them. {error}', { error: errorMessage(err) }));
@@ -420,7 +423,7 @@ function Roster({ detail, onChanged, canManage }: { detail: CourseDetail; onChan
       <section className="rounded-[6px] border border-line bg-surface">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-3">
           <p className="text-[14px] font-semibold text-ink">
-            {members.length} {members.length === 1 ? 'person' : 'people'}
+            {trn('{count} person', '{count} people', members.length)}
           </p>
           {sections.length > 0 && (
             <div className="w-44">
@@ -583,7 +586,9 @@ function Gradebook({ courseId, canManage }: { courseId: string; canManage: boole
     <section className="rounded-[6px] border border-line bg-surface">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-3">
         <p className="text-[13px] text-muted">
-          {tr('Grade out of 10 per assignment. Group work: each member gets the group grade unless you adjust it (')}<span className="font-mono-code text-accent-ink">adj.</span>{tr('). Empty: no submission.')}
+          {rich(tr('Grade out of 10 per assignment. Group work: each member gets the group grade unless you adjust it ({adj}). Empty: no submission.'), {
+            adj: <span className="font-mono-code text-accent-ink">{tr('adj.')}</span>,
+          })}
         </p>
         <Button type="button" variant="secondary" onClick={exportCsv}>
           <span className="material-symbols-outlined text-[16px]">file_download</span>
@@ -633,10 +638,10 @@ function Gradebook({ courseId, canManage }: { courseId: string; canManage: boole
                             {g.grade != null ? (
                               <Badge tone={scoreTone(g.grade)}>{g.grade.toFixed(1)}</Badge>
                             ) : (
-                              <span className="text-[12px] text-muted">{g.status}</span>
+                              <span className="text-[12px] text-muted">{SUBMISSION_STATUS_LABEL[g.status as SubmissionPipelineStatus] ?? g.status}</span>
                             )}
                           </Link>
-                          {g.adjusted && <span className="font-mono-code text-[10px] text-accent-ink" title={tr('Group grade {grade}', { grade: g.total?.toFixed(1) ?? '—' })}>adj.</span>}
+                          {g.adjusted && <span className="font-mono-code text-[10px] text-accent-ink" title={tr('Group grade {grade}', { grade: g.total?.toFixed(1) ?? '—' })}>{tr('adj.')}</span>}
                           {canManage && a.mode === 'group' && g.total != null && (
                             <button
                               type="button"
@@ -866,7 +871,11 @@ export function NewAssignment() {
           <div className="flex items-start justify-between gap-4 rounded-[4px] border border-line bg-paper p-4">
             <div>
               <p className="text-[13px] font-semibold text-ink">{tr('Unlimited versions until the due date')}</p>
-              <p className="text-[12px] text-muted">{mode === 'group' ? tr('Any member can update the group submission') : tr('Students can update their submission')}; only the latest version is graded.</p>
+              <p className="text-[12px] text-muted">
+                {mode === 'group'
+                  ? tr('Any member can update the group submission; only the latest version is graded.')
+                  : tr('Students can update their submission; only the latest version is graded.')}
+              </p>
             </div>
             <ToggleSwitch checked={unlimited} onChange={setUnlimited} />
           </div>

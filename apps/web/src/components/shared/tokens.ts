@@ -238,6 +238,39 @@ export const SUBMISSION_STATUS_LABEL: Record<SubmissionPipelineStatus, string> =
   canceled: tr('Canceled'),
 }));
 
+/** Integrity verdicts (integrity_decisions.verdict) in words, for events and course assignments. */
+export const VERDICT_LABEL: Record<string, string> = lazy(() => ({
+  clear: tr('Cleared'),
+  live_defense: tr('Live defense required'),
+  code_of_conduct: tr('Referred to committee'),
+  collusion: tr('Collusion'),
+  direct_plagiarism: tr('Direct plagiarism'),
+  independent_invention: tr('Independent work'),
+  starter_template: tr('Shared starter code'),
+}));
+
+export type InterviewStatus = 'preparing' | 'ready' | 'in_progress' | 'evaluating' | 'completed' | 'error' | 'canceled' | 'report_paused' | 'report_canceled';
+
+/** An interview's status in words (never show the raw key, e.g. "report_paused"). */
+export const INTERVIEW_STATUS_LABEL: Record<InterviewStatus, string> = lazy(() => ({
+  preparing: tr('Preparing'),
+  ready: tr('Ready'),
+  in_progress: tr('In progress'),
+  evaluating: tr('Evaluating'),
+  completed: tr('Completed'),
+  error: tr('Failed'),
+  canceled: tr('Canceled'),
+  report_paused: tr('Report paused'),
+  report_canceled: tr('Report canceled'),
+}));
+
+/** How sure the interview report is about ownership. */
+export const CONFIDENCE_LABEL: Record<'low' | 'medium' | 'high', string> = lazy(() => ({
+  low: tr('low confidence'),
+  medium: tr('medium confidence'),
+  high: tr('high confidence'),
+}));
+
 export function formatClock(seconds: number): string {
   const safe = Math.max(0, Math.floor(seconds));
   return `${String(Math.floor(safe / 60)).padStart(2, '0')}:${String(safe % 60).padStart(2, '0')}`;

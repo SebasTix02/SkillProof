@@ -1,4 +1,4 @@
-import { tr } from '../i18n';
+import { tr, trn } from '../i18n';
 import { MODEL_FALLBACKS, type ActivityEntry } from '@skillproof/shared';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Badge } from './ui';
@@ -97,7 +97,7 @@ export function AiActivity({ entries, live = false, maxHeight = '28rem' }: { ent
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap items-center gap-3 text-xs text-muted">
-        <span>{steps} step{steps === 1 ? '' : 's'}</span>
+        <span>{trn('{count} step', '{count} steps', steps)}</span>
         {hasThoughts && (
           <label className="inline-flex cursor-pointer items-center gap-1.5">
             <input type="checkbox" checked={showThoughts} onChange={(e) => setShowThoughts(e.target.checked)} />

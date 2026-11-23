@@ -1,4 +1,5 @@
-import { tr } from '../../i18n';
+import { tr, trn } from '../../i18n';
+import { rich } from '../../i18n/rich';
 import { weightedTotal, type ActivityEntry, type CommitProfile, type RepoMap, type Rubric } from '@skillproof/shared';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
@@ -397,8 +398,10 @@ export function SubmissionDetail() {
               <div className="max-w-xl flex-1 space-y-1.5">
                 <div className="font-mono-code flex items-center justify-between text-[11px]">
                   <span className="text-white/80">
-                    <strong className="text-white">{scoredInQueue}</strong> of{' '}
-                    <strong className="text-white">{queue.length}</strong>{' '}{tr('Cohort Submissions Scored')}
+                    {rich(tr('{done} of {total} Cohort Submissions Scored'), {
+                      done: <strong className="text-white">{scoredInQueue}</strong>,
+                      total: <strong className="text-white">{queue.length}</strong>,
+                    })}
                   </span>
                   <span className="font-semibold text-accent-on-dark">{queueProgressPct}{tr('% Complete')}</span>
                 </div>
@@ -448,7 +451,7 @@ export function SubmissionDetail() {
       )}
       {!sha && (
         <Notice>
-          This submission is judged when the event closes. Until then the participant can still send new versions.
+          {tr('This submission is judged when the event closes. Until then the participant can still send new versions.')}
         </Notice>
       )}
 
@@ -564,8 +567,10 @@ export function SubmissionDetail() {
               <span className="text-good">{tr('J / K Ready')}</span>
             </div>
             <p className="mt-1 text-[11px] leading-snug text-muted">
-              {tr('Press')}{' '}<kbd className="rounded border border-line bg-surface px-1">J</kbd> or{' '}
-              <kbd className="rounded border border-line bg-surface px-1">K</kbd>{' '}{tr('to jump between cohort dossiers.')}
+              {rich(tr('Press {j} or {k} to jump between cohort dossiers.'), {
+                j: <kbd className="rounded border border-line bg-surface px-1">J</kbd>,
+                k: <kbd className="rounded border border-line bg-surface px-1">K</kbd>,
+              })}
             </p>
           </div>
         </aside>
@@ -613,7 +618,7 @@ export function SubmissionDetail() {
                 <span className="block text-[10px] font-semibold text-muted uppercase">{tr('Audited Commit')}</span>
                 <span className="mt-0.5 block font-semibold text-ink">
                   {sha ? sha.slice(0, 12) : tr('Pending freeze')}
-                  {analysis ? ` (${analysis.file_count} files)` : ''}
+                  {analysis ? ` (${trn('{count} file', '{count} files', analysis.file_count)})` : ''}
                 </span>
               </div>
             </div>
@@ -642,15 +647,14 @@ export function SubmissionDetail() {
                     </span>
                     {commits && (
                       <span className="rounded-[2px] border border-good/30 bg-surface px-1.5 py-0.2 text-[10px]">
-                        {commits.total_commits}{' '}{tr('commits ·')}{' '}{commits.authors.length} author
-                        {commits.authors.length === 1 ? '' : 's'}
+                        {trn('{count} commit', '{count} commits', commits.total_commits)} · {trn('{count} author', '{count} authors', commits.authors.length)}
                       </span>
                     )}
                   </div>
                   <p className="text-[12px] leading-relaxed text-ink">{map.summary}</p>
                   {commits?.commits_before_start != null && commits.commits_before_start > 0 && (
                     <p className="font-mono-code text-[11px] font-semibold text-warn">
-                      ⚠ {commits.commits_before_start} commit{commits.commits_before_start === 1 ? '' : 's'}{' '}{tr('authored before the event started.')}
+                      ⚠ {trn('{count} commit authored before the event started.', '{count} commits authored before the event started.', commits.commits_before_start)}
                     </p>
                   )}
                 </div>
@@ -769,7 +773,9 @@ export function SubmissionDetail() {
                 </Badge>
               </div>
               <p className="text-[13px] text-ink">
-                {tr('This participant')}{' '}{data.interview.status === 'completed' ? 'completed' : 'started'}{' '}{tr('a 3-minute voice interview defending this repository.')}
+                {data.interview.status === 'completed'
+                  ? tr('This participant completed a 3-minute voice interview defending this repository.')
+                  : tr('This participant started a 3-minute voice interview defending this repository.')}
               </p>
               <div>
                 <Link to={`/interview/${data.interview.id}`} className={linkButtonSecondary}>

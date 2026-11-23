@@ -1,4 +1,5 @@
-import { tr } from '../i18n';
+import { tr, trn } from '../i18n';
+import { rich } from '../i18n/rich';
 import { GoogleGenAI, Modality, type LiveServerMessage, type Session } from '@google/genai';
 import { MAX_INTERVIEW_PAUSES, MAX_INTERVIEW_PAUSE_MS, type ActivityEntry, type FocusEvent as ExamFocusEvent, type PublicQuestion, type TranscriptEntry } from '@skillproof/shared';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -61,6 +62,23 @@ interface InterviewResponse {
   /** Only once completed. */
   answer_key?: AnswerKeyQuestion[] | null;
   focus_summary?: string | null;
+  focus_events?: ExamFocusEvent[];
+}
+
+/**
+ * The exam-mode signal in the interface language (the API's focus_summary is English: it is written for the
+ * evaluator's prompt). Same rules as describeFocusEvents in packages/shared.
+ */
+function focusSummary(events: ExamFocusEvent[]): string | null {
+  const away = events.filter((e) => e.type !== 'fullscreen_unsupported' && e.type !== 'paused');
+  const pauses = events.filter((e) => e.type === 'paused');
+  const seconds = (list: ExamFocusEvent[]) => Math.round(list.reduce((n, e) => n + e.duration_ms, 0) / 1000);
+  const parts: string[] = [];
+  if (away.length)
+    parts.push(trn('Left the interview window {count} time (total {seconds} s).', 'Left the interview window {count} times (total {seconds} s).', away.length, { seconds: seconds(away) }));
+  if (pauses.length) parts.push(trn('Paused {count} time (total {seconds} s).', 'Paused {count} times (total {seconds} s).', pauses.length, { seconds: seconds(pauses) }));
+  if (events.some((e) => e.type === 'fullscreen_unsupported')) parts.push(tr('Full screen was not available in this browser.'));
+  return parts.length ? parts.join(' ') : null;
 }
 
 interface LiveToken {
@@ -596,7 +614,7 @@ function Room({
                 phase === 'live' ? 'text-bad' : 'text-muted'
               }`}
             >
-              {phase === 'live' ? tr('LIVE AUDIO') : phase === 'connecting' ? 'CONNECTING' : 'STANDBY'}
+              {phase === 'live' ? tr('LIVE AUDIO') : phase === 'connecting' ? tr('CONNECTING') : tr('STANDBY')}
             </span>
             <span className="font-mono-code text-[14px] font-bold tracking-tight text-ink" aria-label={tr('Time left')}>
               {formatClock(left)}
@@ -648,8 +666,10 @@ function Room({
               </div>
               <ScoreBar value={100} max={100} tone="good" heightClass="h-1.5" trackClass="bg-well" />
               <p className="text-[12px] leading-relaxed text-muted">
-                {questions.length}{' '}{tr('code snippets extracted from commit')}{' '}
-                <code className="font-mono-code text-ink">{interview.commit_sha?.slice(0, 7) ?? 'HEAD'}</code>{' '}{tr('for verbal defense.')}
+                {rich(tr('{n} code snippets extracted from commit {sha} for verbal defense.'), {
+                  n: questions.length,
+                  sha: <code className="font-mono-code text-ink">{interview.commit_sha?.slice(0, 7) ?? 'HEAD'}</code>,
+                })}
               </p>
             </div>
 
@@ -673,7 +693,7 @@ function Room({
       {(phase === 'live' || phase === 'connecting') && (
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line bg-accent-soft px-4 py-2">
           <div className="font-mono-code flex items-center gap-3 text-[12px]">
-            <span className="font-bold text-accent uppercase">{tr('Question')}{' '}{activeIdx + 1} of {Math.max(1, questions.length)}</span>
+            <span className="font-bold text-accent uppercase">{tr('Question {n} of {total}', { n: activeIdx + 1, total: Math.max(1, questions.length) })}</span>
             <span className="font-bold text-ink" aria-label={tr('Time left')}>{formatClock(left)}</span>
             {paused && <span className="rounded-[3px] bg-warn px-2 py-0.5 text-[10px] font-bold text-on-warn uppercase">{tr('Paused')}</span>}
             {wrapping && (
@@ -836,15 +856,19 @@ function Room({
                   <li className="flex items-start gap-2">
                     <span className="font-mono-code mt-0.5 text-[11px] font-bold text-accent">01</span>
                     <span>
-                      {tr('Lasts')}{' '}<strong>{Math.round(data.seconds / 60)} minutes</strong> with{' '}
-                      <strong>{questions.length} questions</strong>{' '}{tr('about your own repository (4 or 5, depending on how much each needs). If the clock runs out, the interviewer finishes its sentence and closes.')}
+                      {rich(
+                        tr('Lasts {minutes} with {questions} about your own repository (4 or 5, depending on how much each needs). If the clock runs out, the interviewer finishes its sentence and closes.'),
+                        {
+                          minutes: <strong>{trn('{count} minute', '{count} minutes', Math.round(data.seconds / 60))}</strong>,
+                          questions: <strong>{trn('{count} question', '{count} questions', questions.length)}</strong>,
+                        },
+                      )}
                     </span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="font-mono-code mt-0.5 text-[11px] font-bold text-accent">02</span>
                     <span>
-                      You speak naturally; the AI examiner listens and asks follow-ups. Use headphones in a quiet room
-                      if possible.
+                      {tr('You speak naturally; the AI examiner listens and asks follow-ups. Use headphones in a quiet room if possible.')}
                     </span>
                   </li>
                   <li className="flex items-start gap-2">
@@ -892,7 +916,7 @@ function Room({
                   {tr('QUESTION')}{' '}{activeIdx + 1}{' '}{tr('OF')}{' '}{Math.max(1, questions.length)}{' '}{tr('• ORAL DEFENSE')}
                 </span>
                 <span className="font-mono-code rounded-[3px] border border-accent/30 bg-accent-soft px-2 py-0.5 text-[10px] font-semibold text-accent">
-                  {phase === 'connecting' ? 'HANDSHAKE…' : tr('LIVE AUDIO')}
+                  {phase === 'connecting' ? tr('CONNECTING…') : tr('LIVE AUDIO')}
                 </span>
               </div>
 
@@ -924,7 +948,7 @@ function Room({
               <div className="flex min-h-0 flex-1 flex-col space-y-2">
                 <div className="font-mono-code flex items-center justify-between text-[11px] text-muted">
                   <span className="font-semibold text-ink uppercase">{tr('Conversation')}</span>
-                  <span>{messages.filter((m) => m.role !== 'system').length} messages</span>
+                  <span>{trn('{count} message', '{count} messages', messages.filter((m) => m.role !== 'system').length)}</span>
                 </div>
                 <LiveChat messages={messages} questions={questions} className="interview-chat h-[40vh]" />
               </div>
@@ -1058,7 +1082,7 @@ export function InterviewPage() {
           <div className="flex flex-col items-center justify-center space-y-2 py-4 text-center">
             <Spinner label={tr('Reading the repository and preparing your code-anchored questions')} />
             <p className="text-[13px] text-muted">
-              This takes about a minute. You can leave this page open; it will advance automatically.
+              {tr('This takes about a minute. You can leave this page open; it will advance automatically.')}
             </p>
           </div>
           {interview.is_owner && (
@@ -1078,7 +1102,7 @@ export function InterviewPage() {
 
       {interview.status === 'canceled' && (
         <div className="space-y-4">
-          <Notice>This interview was canceled before it started, so it does not count. You can start a new one.</Notice>
+          <Notice>{tr('This interview was canceled before it started, so it does not count. You can start a new one.')}</Notice>
           <Link to="/interview/new" className={linkButtonSecondary}>{tr('Start another interview')}</Link>
         </div>
       )}
@@ -1189,10 +1213,10 @@ export function InterviewPage() {
             </header>
 
             <div className="p-6 sm:p-8">
-              {data.focus_summary && (
+              {focusSummary(data.focus_events ?? []) && (
                 <div className="print-avoid-break mb-5">
                   <Notice tone="warn">
-                    {data.focus_summary} This is recorded as a signal for reviewers; it is not a finding of misconduct.
+                    {focusSummary(data.focus_events ?? [])}{' '}{tr('This is recorded as a signal for reviewers; it is not a finding of misconduct.')}
                   </Notice>
                 </div>
               )}

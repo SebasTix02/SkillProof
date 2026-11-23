@@ -1,4 +1,5 @@
 import { tr } from '../i18n';
+import { rich } from '../i18n/rich';
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Button, DossierPageHeader, Notice, linkButtonSecondary } from '../components/shared';
@@ -39,7 +40,7 @@ export function AcceptInvite() {
         subtitle={tr('Accept to get the role you were invited with. The invitation only works for the email it was sent to.')}
       />
       <p className="text-[14px] text-muted">
-        {tr('You are signed in as')}{' '}<strong className="text-ink">{me?.email ?? 'unknown'}</strong>.
+        {rich(tr('You are signed in as {email}.'), { email: <strong className="text-ink">{me?.email ?? '…'}</strong> })}
       </p>
       {error && <Notice tone="error">{error}</Notice>}
       <div className="flex flex-wrap gap-3">

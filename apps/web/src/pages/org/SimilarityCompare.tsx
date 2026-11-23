@@ -1,4 +1,5 @@
-import { tr } from '../../i18n';
+import { tr, trn } from '../../i18n';
+import { rich } from '../../i18n/rich';
 import { MatchingCode } from '../../components/MatchingCode';
 import type { CommitProfile, RepoMap, Rubric } from '@skillproof/shared';
 import { useMemo, useState, type FormEvent } from 'react';
@@ -24,6 +25,7 @@ import {
   linkButtonSecondary,
   scoreTone,
   type SimilaritySignal,
+  VERDICT_LABEL,
 } from '../../components/shared';
 import { useToast } from '../../components/toast';
 import { api, errorMessage } from '../../lib/api';
@@ -124,7 +126,7 @@ function SubmissionComparisonPane({
                 isA ? 'bg-good' : 'bg-bad'
               }`}
             >
-              {tr('SUBMISSION')}{' '}{side} ({isA ? 'REFERENCE' : 'COMPARED'})
+              {isA ? tr('SUBMISSION {side} (REFERENCE)', { side }) : tr('SUBMISSION {side} (COMPARED)', { side })}
             </span>
             {sha && (
               <span className="font-mono-code text-[11px] text-muted">
@@ -556,8 +558,10 @@ export function SimilarityCompare() {
           meta={`// ${SIMILARITY_SIGNAL_LABEL[activeFlag.signal].toUpperCase()}`}
           description={
             <>
-              {tr('Overlap signal between')}{' '}<strong>{subA?.team_name ?? tr('Submission A')}</strong> and{' '}
-              <strong>{subB?.team_name ?? tr('Submission B')}</strong>:{' '}
+              {rich(tr('Overlap signal between {a} and {b}:'), {
+                a: <strong>{subA?.team_name ?? tr('Submission A')}</strong>,
+                b: <strong>{subB?.team_name ?? tr('Submission B')}</strong>,
+              })}{' '}
               {activeFlag.explanation || tr('Automated repository and structural similarity check triggered.')}
             </>
           }
@@ -676,14 +680,14 @@ export function SimilarityCompare() {
               <div>
                 <div className="flex justify-between pb-1">
                   <span className="font-semibold text-ink">{subA.team_name}</span>
-                  <span className="font-bold text-good">{commitsA?.total_commits ?? 0} commits</span>
+                  <span className="font-bold text-good">{trn('{count} commit', '{count} commits', commitsA?.total_commits ?? 0)}</span>
                 </div>
                 <ScoreBar value={Math.min(100, (commitsA?.total_commits ?? 0) * 4)} max={100} tone="good" heightClass="h-2" />
               </div>
               <div>
                 <div className="flex justify-between pb-1">
                   <span className="font-semibold text-ink">{subB.team_name}</span>
-                  <span className="font-bold text-bad">{commitsB?.total_commits ?? 0} commits</span>
+                  <span className="font-bold text-bad">{trn('{count} commit', '{count} commits', commitsB?.total_commits ?? 0)}</span>
                 </div>
                 <ScoreBar value={Math.min(100, (commitsB?.total_commits ?? 0) * 4)} max={100} tone="bad" heightClass="h-2" />
               </div>
@@ -724,7 +728,7 @@ export function SimilarityCompare() {
         icon="gavel"
         title={tr('Auditor Decision & Sanction Protocol')}
         subtitle={tr('Record your evidentiary determination after inspecting both repositories and oral defense transcripts.')}
-        sectionTag={latestDecision ? tr('LAST: {verdict}', { verdict: latestDecision.verdict.toUpperCase() }) : tr('FORMAL ADJUDICATION')}
+        sectionTag={latestDecision ? tr('LAST: {verdict}', { verdict: (VERDICT_LABEL[latestDecision.verdict] ?? latestDecision.verdict).toUpperCase() }) : tr('FORMAL ADJUDICATION')}
         theme="warn"
       >
         <form onSubmit={submitVerdict} className="grid grid-cols-1 gap-6 lg:grid-cols-12">
@@ -830,8 +834,10 @@ export function SimilarityCompare() {
               {flagDecisions.map((d) => (
                 <li key={d.id} className="space-y-0.5 px-3 py-2 text-[12px]">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-mono-code font-semibold text-ink">{d.verdict.replace(/_/g, ' ')}</span>
-                    <span className="text-muted">by {d.profiles?.display_name || tr('a reviewer')} · {formatDate(d.created_at)}</span>
+                    <span className="font-mono-code font-semibold text-ink">{VERDICT_LABEL[d.verdict] ?? d.verdict}</span>
+                    <span className="text-muted">
+                      {tr('by {name} · {date}', { name: d.profiles?.display_name || tr('a reviewer'), date: formatDate(d.created_at) })}
+                    </span>
                   </div>
                   {d.note && <p className="text-muted">{d.note}</p>}
                 </li>
@@ -852,7 +858,9 @@ export function SimilarityCompare() {
       >
         {flagMatches.length === 0 ? (
           <p className="text-[13px] text-muted">
-            {tr('File comparison is not available yet. This flag comes from the')}{' '}{activeFlag ? SIMILARITY_SIGNAL_LABEL[activeFlag.signal].toLowerCase() : 'similarity'}{' '}{tr('signal, not from comparing file contents.')}
+            {tr('File comparison is not available yet. This flag comes from the signal "{signal}", not from comparing file contents.', {
+              signal: activeFlag ? SIMILARITY_SIGNAL_LABEL[activeFlag.signal] : tr('Similarity'),
+            })}
           </p>
         ) : (
           <MatchingCode matches={flagMatches} scope="event" labelA={tr('Submission A')} labelB={tr('Submission B')} />

@@ -1,4 +1,5 @@
-import { getLocale, t, tr } from '../i18n';
+import { getLocale, t, tr, trn } from '../i18n';
+import { rich } from '../i18n/rich';
 import { LanguageChoice } from '../components/LanguageControl';
 import { ThemeChoice } from '../components/ThemeControl';
 import { useEffect, useState, type FormEvent, type ReactNode, useCallback } from 'react';
@@ -542,14 +543,16 @@ export function ResetPassword() {
         title={tr('Reset your passphrase')}
         subtitle={tr('Recovery token expired or invalid')}
         statusText={tr('Token Invalid')}
-        badgeLabel="EXPIRED"
+        badgeLabel={tr('EXPIRED')}
       >
         <Notice tone="error">
-          {tr('This reset link is no longer valid.')}{' '}
-          <Link to="/forgot-password" className="font-semibold underline">
-            Request a new recovery link
-          </Link>
-          .
+          {rich(tr('This reset link is no longer valid. {link}.'), {
+            link: (
+              <Link to="/forgot-password" className="font-semibold underline">
+                {tr('Request a new recovery link')}
+              </Link>
+            ),
+          })}
         </Notice>
       </AuthPortalShell>
     );
@@ -599,7 +602,7 @@ export function AuthCallback() {
         title={tr('Email Confirmed')}
         subtitle={tr('Your account is ready')}
         statusText={tr('Email Verified')}
-        badgeLabel="VERIFIED"
+        badgeLabel={tr('VERIFIED')}
       >
         <div className="space-y-4">
           <Notice tone="good">{tr('Your email address is confirmed.')}</Notice>
@@ -799,7 +802,7 @@ export function MyAccount() {
               <span className="font-semibold text-ink">{tr('PROFILE STATUS')}</span>
               <span className={`inline-flex items-center gap-1.5 rounded-[3px] border px-2 py-0.5 font-semibold ${TONE_CLASS[dirty ? 'warn' : 'good'].chip}`}>
                 <span className={`h-1.5 w-1.5 rounded-full ${TONE_CLASS[dirty ? 'warn' : 'good'].dot}`} />
-                {dirty ? 'UNSAVED' : 'SAVED'}
+                {dirty ? tr('UNSAVED') : tr('SAVED')}
               </span>
             </div>
             <p className="leading-[19px] text-muted">
@@ -1034,7 +1037,7 @@ export function MyAccount() {
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="text-[14px] font-semibold text-ink">{tr('Organization Memberships')}</span>
                       <span className="font-mono-code rounded-[2px] border border-line bg-paper px-1.5 py-0.5 text-[10px] font-semibold text-ink">
-                        {me.organizations.length} {me.organizations.length === 1 ? 'ORG' : 'ORGS'}
+                        {trn('{count} ORG', '{count} ORGS', me.organizations.length)}
                       </span>
                     </div>
                     <p className="text-[12px] text-muted">
@@ -1171,8 +1174,7 @@ export function MyAccount() {
                     </span>
                   </div>
                   <p className="text-[12px] leading-relaxed text-muted">
-                    Only completed interviews with a finalized ownership report are returned on `/p/{slug}`. Failed or
-                    in-progress sessions remain strictly private to your account.
+                    {tr('Only completed interviews with a finalized ownership report are shown on {path}. Failed or in-progress sessions remain strictly private to your account.', { path: `/p/${slug}` })}
                   </p>
                 </div>
               </div>
@@ -1196,8 +1198,9 @@ export function MyAccount() {
                     <span>{tr('Revoke Public Dossier Link')}</span>
                   </div>
                   <p className="text-[12px] leading-relaxed text-muted">
-                    Moves your dossier from `/p/{slug}` to a new address, so every link you shared before stops
-                    working. Your profile stays {isPublic ? 'public' : 'private'}.
+                    {isPublic
+                      ? tr('Moves your dossier from {path} to a new address, so every link you shared before stops working. Your profile stays public.', { path: `/p/${slug}` })
+                      : tr('Moves your dossier from {path} to a new address, so every link you shared before stops working. Your profile stays private.', { path: `/p/${slug}` })}
                   </p>
                   {rotatedUrl && (
                     <p className="font-mono-code break-all rounded-[3px] border border-line bg-paper px-2 py-1 text-[11px] text-ink">

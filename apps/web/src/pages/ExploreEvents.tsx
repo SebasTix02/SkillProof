@@ -1,4 +1,4 @@
-import { tr } from '../i18n';
+import { tr, trn } from '../i18n';
 import { useMemo, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
@@ -103,7 +103,7 @@ export function ExploreEvents() {
               <span className="text-line">•</span>
               <span className="flex items-center gap-1.5 font-medium text-good">
                 <LiveDot tone="good" />
-                {openEvents.length}{' '}{tr('PUBLIC')}{' '}{openEvents.length === 1 ? 'ARENA' : 'ARENAS'}{' '}{tr('LIVE')}
+                {trn('{count} PUBLIC ARENA LIVE', '{count} PUBLIC ARENAS LIVE', openEvents.length)}
               </span>
             </>
           }
@@ -155,7 +155,7 @@ export function ExploreEvents() {
                 {tr('COMMIT-LOCKED EVALUATION // GEMINI RUBRIC ENGINE')}
               </span>
               <span className="font-mono-code rounded-[3px] border border-white/15 bg-black/70 px-2 py-0.5 text-[11px] text-white/90">
-                {featured ? `SLUG: /e/${featured.slug}` : tr('SELECTIVE REPO INGESTION')}
+                {featured ? tr('LINK: {path}', { path: `/e/${featured.slug}` }) : tr('SELECTIVE REPO INGESTION')}
               </span>
             </div>
 

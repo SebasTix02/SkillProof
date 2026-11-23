@@ -1,4 +1,4 @@
-import { tr } from '../../i18n';
+import { tr, trn } from '../../i18n';
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
@@ -109,7 +109,7 @@ export function OrgEvents() {
           <>
             <span className="font-semibold tracking-wider text-accent-on-dark">{tr('EVENT CONSOLE')}</span>
             <span>//</span>
-            <span className="font-semibold text-white">{org?.name?.toUpperCase() ?? 'ORGANIZATION'}</span>
+            <span className="font-semibold text-white">{org?.name?.toUpperCase() ?? tr('ORGANIZATION')}</span>
           </>
         }
         statusChips={
@@ -120,7 +120,7 @@ export function OrgEvents() {
             </span>
             <span className="inline-flex items-center gap-1.5 rounded-[3px] border border-white/10 bg-white/5 px-2.5 py-0.5 text-good-on-dark">
               <LiveDot tone="mint" pulse={stats.inAdjudication > 0} />
-              <span>{tr('IN JUDGING:')}{' '}{stats.inAdjudication} {stats.inAdjudication === 1 ? 'EVENT' : 'EVENTS'}</span>
+              <span>{trn('IN JUDGING: {count} EVENT', 'IN JUDGING: {count} EVENTS', stats.inAdjudication)}</span>
             </span>
             {org?.slug && (
               <span className="rounded-[3px] border border-white/10 bg-white/5 px-2.5 py-0.5 text-white/70">

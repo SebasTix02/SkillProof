@@ -1,4 +1,4 @@
-import { lazy, t, tr } from '../../i18n';
+import { lazy, t, tr, trn } from '../../i18n';
 import { ContestLanguageField, StarterRepoField } from '../../components/LanguageControl';
 /**
  * The console of one course assignment (its own screen, not the event console):
@@ -31,6 +31,10 @@ import {
   linkButtonSecondary,
   scoreTone,
   useConfirm,
+  CONFIDENCE_LABEL,
+  INTERVIEW_STATUS_LABEL,
+  VERDICT_LABEL,
+  type InterviewStatus,
 } from '../../components/shared';
 import { useToast } from '../../components/toast';
 import { api, errorMessage } from '../../lib/api';
@@ -119,9 +123,9 @@ export function AssignmentConsole() {
         title={a.title}
         subtitle={
           <>
-            {tr('Opens')}{' '}{formatDate(a.opens_at)}{' '}{tr('· due')}{' '}{formatDate(a.due_at)}
+            {tr('Opens {opens} · due {due}', { opens: formatDate(a.opens_at), due: formatDate(a.due_at) })}
             {isGroup && a.groups_close_at && ` · ${tr('groups close {date}', { date: formatDate(a.groups_close_at) })}`}
-            {a.interviews_enabled && ' · voice interview after grading'}
+            {a.interviews_enabled && ` · ${tr('voice interview after grading')}`}
           </>
         }
         rightSlot={
@@ -297,8 +301,8 @@ function SubmissionsTable({
                   </Link>
                   {s.members && <p className="text-[12px] text-muted">{s.members.map((m) => m.display_name).join(', ')}</p>}
                   <p className="text-[11px] text-muted">
-                    {s.versions_used} {s.versions_used === 1 ? 'version' : 'versions'}
-                    {s.submitted_by_name && s.members && ` · last by ${s.submitted_by_name}`}
+                    {trn('{count} version', '{count} versions', s.versions_used)}
+                    {s.submitted_by_name && s.members && ` · ${tr('last by {name}', { name: s.submitted_by_name })}`}
                   </p>
                 </td>
                 <td className="font-mono-code px-3 py-3 text-[12px]">
@@ -326,7 +330,7 @@ function SubmissionsTable({
                     {s.ownership ? (
                       <span className={s.ownership.score >= 70 ? 'text-good-ink' : 'text-bad-ink'}>{s.ownership.score}/100</span>
                     ) : (
-                      <span className="text-muted">{s.interviews.length ? `${s.interviews.length} started` : '—'}</span>
+                      <span className="text-muted">{s.interviews.length ? trn('{count} started', '{count} started', s.interviews.length) : '—'}</span>
                     )}
                   </td>
                 )}
@@ -359,7 +363,12 @@ function SubmissionsTable({
 }
 
 function MissingList({ people, isGroup }: { people: Person[]; isGroup: boolean }) {
-  if (people.length === 0) return <Notice tone="good">{tr('Every student on the roster has')}{' '}{isGroup ? tr('a submission through their group') : 'submitted'}.</Notice>;
+  if (people.length === 0)
+    return (
+      <Notice tone="good">
+        {isGroup ? tr('Every student on the roster has a submission through their group.') : tr('Every student on the roster has submitted.')}
+      </Notice>
+    );
   return (
     <section className="rounded-[6px] border border-line bg-surface">
       <p className="border-b border-line px-5 py-3 text-[13px] text-muted">
@@ -420,8 +429,10 @@ function GroupsPanel({ assignment: a, groups, ungrouped, canManage, reload }: { 
   return (
     <div className="space-y-6">
       <Notice tone="info">
-        {groupSizeLabel(a)}{tr('. Students form groups by inviting classmates until')}{' '}{a.groups_close_at ? formatDate(a.groups_close_at) : tr('the due date')}; a group also closes when it first
-        submits. You can move or place students at any time.
+        {tr('{size}. Students form groups by inviting classmates until {date}; a group also closes when it first submits. You can move or place students at any time.', {
+          size: groupSizeLabel(a),
+          date: a.groups_close_at ? formatDate(a.groups_close_at) : tr('the due date'),
+        })}
       </Notice>
 
       {ungrouped.length > 0 && (
@@ -671,16 +682,6 @@ interface SubmissionDetailResponse {
   adjustments: { user_id: string; adjusted_total: number; note: string; adjusted_at: string }[];
 }
 
-export const VERDICT_LABEL: Record<string, string> = lazy(() => ({
-  clear: tr('Cleared'),
-  live_defense: tr('Live defense required'),
-  code_of_conduct: tr('Referred to committee'),
-  collusion: tr('Collusion'),
-  direct_plagiarism: tr('Direct plagiarism'),
-  independent_invention: tr('Independent work'),
-  starter_template: tr('Shared starter code'),
-}));
-
 export function AssignmentSubmissionPage() {
   const { courseId = '', id = '', sid = '' } = useParams();
   const { org } = useAuth();
@@ -853,7 +854,7 @@ export function AssignmentSubmissionPage() {
                       {grade != null && (
                         <span className="flex items-center gap-1">
                           <Badge tone={scoreTone(grade)}>{grade.toFixed(1)}</Badge>
-                          {adj && <span className="font-mono-code text-[10px] text-accent-ink">adj.</span>}
+                          {adj && <span className="font-mono-code text-[10px] text-accent-ink" title={tr('Adjusted grade')}>{tr('adj.')}</span>}
                         </span>
                       )}
                     </div>
@@ -863,7 +864,12 @@ export function AssignmentSubmissionPage() {
                         {tr('Interview:')}{' '}
                         {interview ? (
                           <Link to={`/interview/${interview.id}`} className="text-accent-ink hover:underline">
-                            {report ? `ownership ${report.ownership_score}/100 (${report.confidence})` : interview.status.replace(/_/g, ' ')}
+                            {report
+                              ? tr('ownership {score}/100 ({confidence})', {
+                                  score: report.ownership_score,
+                                  confidence: CONFIDENCE_LABEL[report.confidence as keyof typeof CONFIDENCE_LABEL] ?? report.confidence,
+                                })
+                              : (INTERVIEW_STATUS_LABEL[interview.status as InterviewStatus] ?? interview.status)}
                           </Link>
                         ) : (
                           tr('not taken')
@@ -939,7 +945,7 @@ export function AssignmentSubmissionPage() {
                 {decisions.map((d) => (
                   <li key={d.id}>
                     <span className="font-semibold text-ink">{VERDICT_LABEL[d.verdict] ?? d.verdict}</span>
-                    <span className="text-muted"> · {d.profiles?.display_name ?? 'reviewer'} · {formatDate(d.created_at)}</span>
+                    <span className="text-muted"> · {d.profiles?.display_name ?? tr('reviewer')} · {formatDate(d.created_at)}</span>
                     {d.note && <p className="text-muted">{d.note}</p>}
                   </li>
                 ))}

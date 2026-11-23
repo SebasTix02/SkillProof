@@ -50,7 +50,7 @@ export function LiveChat({ messages, questions, className = '' }: { messages: Tr
               {showSeparator && (
                 <div className="font-mono-code flex items-center gap-2 py-1 text-[10px] font-semibold tracking-wider text-muted uppercase">
                   <span className="h-px flex-1 bg-line" />
-                  {tr('Question')}{' '}{n} of {questions.length}
+                  {tr('Question {n} of {total}', { n, total: questions.length })}
                   <span className="h-px flex-1 bg-line" />
                 </div>
               )}

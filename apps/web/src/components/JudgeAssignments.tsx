@@ -1,4 +1,4 @@
-import { tr } from '../i18n';
+import { tr, trn } from '../i18n';
 import { useMemo, useState } from 'react';
 import { Button, Notice, NumberedSectionCard, Select, SkeletonTable } from './shared';
 import { useToast } from './toast';
@@ -92,9 +92,9 @@ export function JudgeAssignments({ eventId, submissions }: { eventId: string; su
             <Button
               type="button"
               disabled={!judgeId || picked.size === 0 || busy} loading={busy}
-              onClick={() => void change('POST', judgeId, [...picked], `${picked.size} submission${picked.size === 1 ? '' : 's'} assigned.`)}
+              onClick={() => void change('POST', judgeId, [...picked], trn('{count} submission assigned.', '{count} submissions assigned.', picked.size))}
             >
-              {tr('Assign')}{' '}{picked.size || ''} selected
+              {picked.size ? trn('Assign {count} selected', 'Assign {count} selected', picked.size) : tr('Assign selected')}
             </Button>
             <button type="button" className="text-[12px] font-semibold text-accent hover:underline" onClick={() => setPicked(new Set(submissions.map((s) => s.id)))}>
               {tr('Select all')}
@@ -108,7 +108,7 @@ export function JudgeAssignments({ eventId, submissions }: { eventId: string; su
                   <input type="checkbox" checked={picked.has(s.id)} onChange={() => toggle(s.id)} />
                   <span className="truncate text-ink">{s.team_name}</span>
                   <span className="font-mono-code ml-auto text-[10px] text-muted">
-                    {(assigned.data?.assignments ?? []).filter((a) => a.submission_id === s.id).length} judges
+                    {trn('{count} judge', '{count} judges', (assigned.data?.assignments ?? []).filter((a) => a.submission_id === s.id).length)}
                   </span>
                 </label>
               </li>
@@ -120,7 +120,7 @@ export function JudgeAssignments({ eventId, submissions }: { eventId: string; su
               {[...byJudge.entries()].map(([jid, list]) => (
                 <div key={jid} className="text-[12px]">
                   <span className="font-semibold text-ink">{list[0]?.profiles?.display_name || judgeList.find((j) => j.user_id === jid)?.display_name || tr('Judge')}</span>
-                  <span className="text-muted"> · {list.length} assigned</span>
+                  <span className="text-muted"> · {trn('{count} assigned', '{count} assigned', list.length)}</span>
                   <div className="mt-1 flex flex-wrap gap-1.5">
                     {list.map((a) => (
                       <span key={a.submission_id} className="font-mono-code inline-flex items-center gap-1 rounded-[3px] border border-line bg-surface px-1.5 py-0.5 text-[11px]">

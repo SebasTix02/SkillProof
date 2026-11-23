@@ -13,7 +13,7 @@ import { api, errorMessage } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
 import type { AssignmentConsoleResponse, SimilarityFlag } from '../../lib/courses';
 import { useLoad } from '../../lib/useLoad';
-import { VERDICT_LABEL } from './AssignmentConsole';
+import { VERDICT_LABEL } from '../../components/shared';
 
 interface IntegrityResponse {
   flags: SimilarityFlag[];
