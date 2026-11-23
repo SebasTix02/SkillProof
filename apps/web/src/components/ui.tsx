@@ -190,6 +190,12 @@ export function Layout({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen bg-paper text-ink">
       <TopProgress />
+      <a
+        href="#main"
+        className="sr-only z-[60] rounded-[4px] bg-accent px-3 py-2 text-[13px] font-medium text-on-accent focus:not-sr-only focus:fixed focus:top-2 focus:left-2"
+      >
+        {tr('Skip to content')}
+      </a>
       <header className="no-print sticky top-0 z-50 h-14 border-b border-line bg-surface">
         <div className="mx-auto flex h-full max-w-[1240px] items-center justify-between gap-4 px-4 sm:px-6">
           <div className="flex items-center gap-3 sm:gap-4">
@@ -250,7 +256,7 @@ export function Layout({ children }: { children: ReactNode }) {
           </div>
         </div>
       </header>
-      <main className="mx-auto max-w-[1240px] px-4 py-8 sm:px-6 lg:py-10">{children}</main>
+      <main id="main" tabIndex={-1} className="mx-auto max-w-[1240px] px-4 py-8 focus:outline-none sm:px-6 lg:py-10">{children}</main>
     </div>
   );
 }

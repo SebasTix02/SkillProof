@@ -31,14 +31,17 @@ export function ScoreBar({
   tone = 'good',
   heightClass = 'h-1.5',
   trackClass = 'bg-line',
+  label,
 }: {
   value: number | null | undefined;
   max?: number;
   tone?: 'good' | 'accent' | 'warn' | 'bad' | 'ink';
   heightClass?: string;
   trackClass?: string;
+  label?: string;
 }) {
-  const ratio = value != null && max > 0 ? Math.max(0, Math.min(1, value / max)) : 0;
+  const safeValue = value != null && Number.isFinite(value) ? Math.max(0, Math.min(max, value)) : 0;
+  const ratio = max > 0 ? safeValue / max : 0;
   const fillClass =
     tone === 'good'
       ? 'bg-good'
@@ -51,7 +54,14 @@ export function ScoreBar({
             : 'bg-ink';
 
   return (
-    <div className={`w-full overflow-hidden rounded-full ${heightClass} ${trackClass}`}>
+    <div
+      role="progressbar"
+      aria-valuenow={Math.round(safeValue)}
+      aria-valuemin={0}
+      aria-valuemax={max}
+      aria-label={label}
+      className={`w-full overflow-hidden rounded-full ${heightClass} ${trackClass}`}
+    >
       <div className={`score-bar-fill h-full w-full ${fillClass}`} style={{ transform: `scaleX(${ratio})` }} />
     </div>
   );
@@ -177,7 +187,7 @@ export function TopAccentKpiCard({
         <span className={`font-mono-code text-[11px] font-semibold tracking-wider uppercase ${palette.label}`}>
           {eyebrow}
         </span>
-        <span className={`material-symbols-outlined rounded-[4px] p-1.5 text-[17px] ${palette.iconPill}`}>{icon}</span>
+        <span aria-hidden="true" className={`material-symbols-outlined rounded-[4px] p-1.5 text-[17px] ${palette.iconPill}`}>{icon}</span>
       </div>
 
       <div>
@@ -191,7 +201,7 @@ export function TopAccentKpiCard({
       </div>
 
       {typeof progress === 'number' && (
-        <ScoreBar value={progress} max={100} tone={palette.scoreTone} heightClass="h-1.5" />
+        <ScoreBar value={progress} max={100} tone={palette.scoreTone} heightClass="h-1.5" label={eyebrow} />
       )}
 
       {(footerLeft || footerRight) && (

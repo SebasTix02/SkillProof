@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  checks:
+    name: Typecheck, Unit Tests & Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build -w @skillproof/shared
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+
+  database-rls:
+    name: PostgreSQL Migrations & RLS Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Ensure PostgreSQL 16 binaries
+        run: |
+          if ! command -v initdb >/dev/null 2>&1 && [ ! -d /usr/lib/postgresql ]; then
+            sudo apt-get update && sudo apt-get install -y postgresql-16
+          fi
+      - name: Run migrations and RLS verification suite
+        run: bash scripts/test-db.sh
