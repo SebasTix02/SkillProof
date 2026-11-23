@@ -7,9 +7,9 @@ SkillProof reads a GitHub repository with Google Gemini and does two things with
 - **Hackathon judging.** Organizers create an event with a rubric. Participants join and submit their
   repository and demo video. At the deadline every repository is frozen at its last commit and scored against
   the rubric, with the reason and the files behind each score. The organizer reviews, overrides any score, and
-  publishes.
+  publishes
 - **Voice interview.** A three-minute spoken interview about the author's own code, with follow-up questions.
-  The result is a skills report with the candidate's own quotes, shown on a public profile.
+  The result is a skills report with the candidate's own quotes, shown on a public profile
 
 Both use the same repository analysis.
 
