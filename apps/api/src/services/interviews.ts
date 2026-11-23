@@ -2,7 +2,7 @@ import type { Locale } from '@skillproof/shared';
 import { inLanguage, languageNote } from './language.js';
 import { Modality, Type, type FunctionDeclaration } from '@google/genai';
 import {
-  INTERVIEW_SECONDS, InterviewReportSchema, MAX_INTERVIEW_PAUSE_MS, MAX_QUESTIONS, MIN_QUESTIONS, MODELS, QuestionPlanDraftSchema, QuestionPlanSchema, describeFocusEvents, type FocusEvent,
+  INTERVIEW_SECONDS, InterviewReportSchema, MAX_INTERVIEW_PAUSE_MS, MAX_QUESTIONS, MIN_QUESTIONS, MODELS, QuestionPlanDraftSchema, QuestionPlanSchema, clampQuestionText, describeFocusEvents, type FocusEvent,
   type ActivityEntry, type PlannedQuestion, type PublicQuestion, type QuestionPlan, type TranscriptEntry,
 } from '@skillproof/shared';
 import { analyzeRepo, type AnalysisRow, type HookSnippet, type RepoRow } from '../engine/analyze.js';
@@ -47,13 +47,12 @@ export const PLAN_SYSTEM = `You prepare a ${INTERVIEW_SECONDS / 60}-minute spoke
 The goal is to tell someone who wrote and understands this code from someone who only generated or copied it.
 
 Rules:
-- Write 4 or 5 questions, each about exactly one of the snippets you are given; use its path and line range unchanged.
-  The interview lasts ${INTERVIEW_SECONDS / 60} minutes, so a question gets 35 to 45 seconds. Write 5 when the questions
-  are short and there are 5 distinct choices worth asking about; write 4 when some need a longer explanation.
+- Write 4 questions, each about exactly one of the snippets you are given; use its path and line range unchanged.
+  The interview lasts ${INTERVIEW_SECONDS / 60} minutes, so a question gets about 45 seconds.
   Order them from most to least revealing: if time runs out, the last one is dropped.
 - Mix the kinds: "why" (why this choice over an alternative), "explain" (walk through what this code does),
   "extend" (how would you add or change something here), "failure" (what happens when this goes wrong).
-- Questions are spoken aloud: one or two short sentences, no code, no line numbers. Refer to the code by what it does.
+- Questions are spoken aloud: one short sentence (at most 20 words, under 140 characters), no code, no line numbers. Refer to the code by what it does.
 - A question must be impossible to answer well from the README alone.
 - expected_points: 2 to 4 concrete points a real author would mention. They are the answer key.
 - skill: the specific skill the question verifies.
@@ -202,14 +201,16 @@ export async function hooksByAuthor(owner: string, name: string, sha: string, ho
   return filtered.length ? filtered : hooks;
 }
 
-/** Keeps only questions that point at a snippet we really have, and gives them stable ids. */
+/** Keeps only questions that point at a snippet we really have, clamps their length, and gives them stable ids. */
 export function alignPlan(plan: QuestionPlan, hooks: HookSnippet[], max = MAX_QUESTIONS): QuestionPlan {
   const questions: PlannedQuestion[] = [];
   for (const q of plan.questions) {
     const hook = hooks.find((h) => h.path === q.path && h.start_line <= q.end_line && q.start_line <= h.end_line)
       ?? hooks.find((h) => h.path === q.path);
     if (!hook) continue;
-    questions.push({ ...q, id: `q${questions.length + 1}`, path: hook.path, start_line: hook.start_line, end_line: hook.end_line });
+    const question = clampQuestionText(q.question);
+    if (!question) continue;
+    questions.push({ ...q, question, id: `q${questions.length + 1}`, path: hook.path, start_line: hook.start_line, end_line: hook.end_line });
   }
   // The model orders questions from most to least revealing: extra ones are trimmed from the end.
   return { questions: questions.slice(0, max) };
@@ -283,7 +284,7 @@ export function interviewerInstruction(plan: QuestionPlan, repoName: string, spe
 How to run it:
 - Start with one short sentence of welcome, then go straight to the first question.
 - Before each planned question, call show_question with its id. The candidate then sees that code on their screen.
-- Ask one question at a time and keep your own turns under 15 seconds. The candidate should do most of the talking.
+- Ask one question at a time and keep your own turns under 15 seconds (one short sentence under 20 words). Output only the spoken sentence — never output bullet points, markdown, or internal reasoning. The candidate should do most of the talking.
 - Follow up. If an answer is vague, generic, or does not match what the code does, ask one specific follow-up
   ("which line does that?", "why not the simpler way?", "what would break if you removed it?").
   If the answer is clearly solid, acknowledge it in a few words and move on.

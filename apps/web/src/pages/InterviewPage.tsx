@@ -1,7 +1,7 @@
 import { tr, trn } from '../i18n';
 import { rich } from '../i18n/rich';
 import { GoogleGenAI, Modality, type LiveServerMessage, type Session } from '@google/genai';
-import { MAX_INTERVIEW_PAUSES, MAX_INTERVIEW_PAUSE_MS, type ActivityEntry, type FocusEvent as ExamFocusEvent, type PublicQuestion, type TranscriptEntry } from '@skillproof/shared';
+import { MAX_INTERVIEW_PAUSES, MAX_INTERVIEW_PAUSE_MS, sanitizeInterviewerTurn, type ActivityEntry, type FocusEvent as ExamFocusEvent, type PublicQuestion, type TranscriptEntry } from '@skillproof/shared';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { AiActivity, ModelsUsed } from '../components/AiActivity';
@@ -434,26 +434,49 @@ function Room({
     };
     cleanup.current = dispose;
 
+    let turnCut = false;
     const say = (role: TranscriptEntry['role'], text: string) => {
       if (!text) return;
+      if (role === 'interviewer' && turnCut) return;
       const list = transcript.current;
       const last = list[list.length - 1];
-      if (last && last.role === role) last.text += text;
-      else list.push({ role, text, at_ms: Date.now() - startedAt.current, question_id: questionId.current });
+      if (last && last.role === role) {
+        const needsSpace = /[.!?]$/.test(last.text) && /^[^\s]/.test(text);
+        last.text += (needsSpace ? ' ' : '') + text;
+      } else {
+        list.push({ role, text, at_ms: Date.now() - startedAt.current, question_id: questionId.current });
+      }
+      const entry = list[list.length - 1];
+      if (entry && role === 'interviewer') {
+        const cleaned = sanitizeInterviewerTurn(entry.text);
+        entry.text = cleaned.text;
+        if (cleaned.cut) {
+          turnCut = true;
+          speaker.flush();
+        }
+      }
       setMessages([...list]);
     };
 
     const onMessage = (msg: LiveServerMessage) => {
       const content = msg.serverContent;
-      if (content?.interrupted) speaker.flush();
+      if (content?.interrupted) {
+        turnCut = false;
+        speaker.flush();
+      }
       for (const part of content?.modelTurn?.parts ?? []) {
-        if (part.inlineData?.data) {
+        if (part.thought) continue;
+        if (part.inlineData?.data && !turnCut) {
           wrap.current.modelTurnStarted();
           if (!pausedRef.current) speaker.play(part.inlineData.data);
         }
       }
-      if (content?.turnComplete || content?.generationComplete) wrap.current.modelTurnEnded();
+      if (content?.turnComplete || content?.generationComplete) {
+        turnCut = false;
+        wrap.current.modelTurnEnded();
+      }
       if (content?.inputTranscription?.text) {
+        turnCut = false;
         wrap.current.candidateSpoke(Date.now());
         say('candidate', content.inputTranscription.text);
       }
@@ -464,6 +487,7 @@ function Room({
       let ended = false;
       for (const call of calls) {
         if (call.name === 'show_question') {
+          turnCut = false;
           const id = String((call.args as { question_id?: unknown } | undefined)?.question_id ?? '');
           const found = questions.find((q) => q.id === id) ?? null;
           if (found) {

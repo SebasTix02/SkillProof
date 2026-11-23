@@ -80,7 +80,7 @@ describe('course interviews', () => {
 
   it('give a group member a short interview of at most 2 questions', () => {
     expect(INTERVIEW_SPECS.course_group).toMatchObject({ maxQuestions: 2, seconds: 90 });
-    expect(INTERVIEW_SPECS.course).toMatchObject({ minQuestions: 4, maxQuestions: 5, seconds: 180 });
+    expect(INTERVIEW_SPECS.course).toMatchObject({ minQuestions: 4, maxQuestions: 4, seconds: 180 });
     const plan: QuestionPlan = alignPlan({ questions: [0, 1, 2, 3].map(q) }, hooks, INTERVIEW_SPECS.course_group.maxQuestions);
     expect(plan.questions).toHaveLength(2);
     expect(GroupQuestionPlanDraftSchema.safeParse({ questions: [q(0)] }).success).toBe(true);

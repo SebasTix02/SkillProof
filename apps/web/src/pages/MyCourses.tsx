@@ -754,7 +754,7 @@ function InterviewCard({ data: d }: { data: MyAssignmentResponse }) {
       number="03"
       icon="mic"
       title={tr('Voice interview')}
-      subtitle={isGroup ? tr('About 90 seconds, up to 2 questions on the files you wrote. Each member takes their own.') : tr('About 3 minutes, 4 or 5 questions about your own code.')}
+      subtitle={isGroup ? tr('About 90 seconds, up to 2 questions on the files you wrote. Each member takes their own.') : tr('About 3 minutes, up to 4 questions about your own code.')}
       theme="accent"
     >
       {d.interview ? (

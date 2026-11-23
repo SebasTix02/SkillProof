@@ -87,20 +87,38 @@ describe('one interview per commit', async () => {
   });
 });
 
-describe('4 or 5 questions', async () => {
-  const { QuestionPlanDraftSchema } = await import('@skillproof/shared');
+describe('up to 4 concise questions', async () => {
+  const { QuestionPlanDraftSchema, clampQuestionText, sanitizeInterviewerTurn } = await import('@skillproof/shared');
   const { alignPlan } = await import('./services/interviews.js');
   const q = (i: number) => ({ id: `x${i}`, kind: 'why' as const, question: `Q${i}?`, path: `src/f${i}.ts`, start_line: 1, end_line: 5, expected_points: ['p'], skill: 's' });
   const hooks = Array.from({ length: 7 }, (_, i) => ({ path: `src/f${i}.ts`, start_line: 1, end_line: 5, why: '', text: 'x' }));
 
-  it('asks the model for at least 4', () => {
+  it('asks the model for 4 questions', () => {
     expect(QuestionPlanDraftSchema.safeParse({ questions: [q(0), q(1), q(2)] }).success).toBe(false);
     expect(QuestionPlanDraftSchema.safeParse({ questions: [q(0), q(1), q(2), q(3)] }).success).toBe(true);
   });
 
-  it('keeps the 5 most revealing when the model writes more', () => {
+  it('keeps the 4 most revealing when the model writes more', () => {
     const plan = alignPlan({ questions: [0, 1, 2, 3, 4, 5, 6].map(q) }, hooks);
-    expect(plan.questions.map((x) => x.question)).toEqual(['Q0?', 'Q1?', 'Q2?', 'Q3?', 'Q4?']);
+    expect(plan.questions.map((x) => x.question)).toEqual(['Q0?', 'Q1?', 'Q2?', 'Q3?']);
+  });
+
+  it('clamps overly long questions and strips leaked reasoning from live turns', () => {
+    const longQ =
+      'In this module you parse the authentication cookies carefully. When scoping imported storage state for an authenticated context, why do you check cookies strictly against the target host while discarding port or cross-origin state during the verification step?';
+    const clamped = clampQuestionText(longQ);
+    expect(clamped.length).toBeLessThanOrEqual(140);
+    expect(clamped.endsWith('?')).toBe(true);
+
+    const leakedTurn =
+      'Welcome to your technical interview for the faultline repository.When scoping imported storage state for an authenticated context, why do you check cookies strictly against the target host while discarding port or cross-origin state? - `current_node_id`: **104**\n  - `next_node_id`: **104** (The flow ends here).\n\n2. **Analyze Output:**\n  - The user has reached node 104.';
+    const sanitized = sanitizeInterviewerTurn(leakedTurn);
+    expect(sanitized.cut).toBe(true);
+    expect(sanitized.text).toBe(
+      'Welcome to your technical interview for the faultline repository. When scoping imported storage state for an authenticated context, why do you check cookies strictly against the target host while discarding port or cross-origin state?',
+    );
+    expect(sanitized.text).not.toContain('current_node_id');
+    expect(sanitized.text).not.toContain('Analyze Output');
   });
 
   it('tells the interviewer how long each question gets and how to close when time is up', () => {

@@ -890,7 +890,7 @@ export function NewAssignment() {
               <p className="text-[12px] text-muted">
                 {mode === 'group'
                   ? tr('After grading, each member answers up to 2 questions (about 90 seconds) on the files they wrote.')
-                  : tr('After grading, each student answers 4 or 5 questions about their own code.')}
+                  : tr('After grading, each student answers up to 4 questions about their own code.')}
               </p>
             </div>
             <ToggleSwitch checked={interviews} onChange={setInterviews} />

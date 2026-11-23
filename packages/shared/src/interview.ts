@@ -1,9 +1,14 @@
 import { z } from 'zod';
 
+/** Hard character cap for a single planned interview question (~18-20 words, 1 short spoken sentence). */
+export const MAX_QUESTION_CHARS = 140;
+/** Hard character cap for a single live interviewer turn (welcome/acknowledgment + 1 short question). */
+export const MAX_INTERVIEWER_TURN_CHARS = 240;
+
 export const PlannedQuestionSchema = z.object({
   id: z.string(),
   kind: z.enum(['why', 'explain', 'extend', 'failure']),
-  question: z.string().describe('The question, as the interviewer would say it aloud'),
+  question: z.string().describe('One short spoken question sentence (at most 20 words, under 140 characters), no code or line numbers'),
   path: z.string(),
   start_line: z.number().int().min(1),
   end_line: z.number().int().min(1),
@@ -11,20 +16,100 @@ export const PlannedQuestionSchema = z.object({
   skill: z.string().describe('The skill this question verifies, e.g. "React state management"'),
 });
 
-/** A stored plan: 1 question (a short group interview) up to 6. */
+/** A stored plan: 1 question (a short group interview) up to 6 (legacy rows; new plans cap at MAX_QUESTIONS = 4). */
 export const QuestionPlanSchema = z.object({
   questions: z.array(PlannedQuestionSchema).min(1).max(6),
 });
 export type QuestionPlan = z.infer<typeof QuestionPlanSchema>;
 
-/** Questions per interview: 5 when they are short and the code has enough worth asking, 4 when some need more time. */
+/** Questions per interview: at most 4 concise questions for a 3-minute interview (~45s each). */
 export const MIN_QUESTIONS = 4;
-export const MAX_QUESTIONS = 5;
+export const MAX_QUESTIONS = 4;
 
-/** What the planning model must return: 4 to 5 questions, a few more tolerated and trimmed to the best 5. */
+/** What the planning model must return: 4 questions, a few more tolerated and trimmed to the best 4. */
 export const QuestionPlanDraftSchema = z.object({
-  questions: z.array(PlannedQuestionSchema).min(MIN_QUESTIONS).max(8),
+  questions: z.array(PlannedQuestionSchema).min(MIN_QUESTIONS).max(6),
 });
+
+const LEAKED_REASONING_RE =
+  /(?:\s*-\s*`?(?:current_node_id|next_node_id)`?|\s*\b\d+\.\s*\*\*(?:Analyze|Formulate|Evaluate|Determine|Reasoning|Thought|Output|Response|Step)\b|\s*\*\*(?:Analyze Output|Formulate Response|Internal Reasoning|Thought Process)\b|\n\s*(?:[-*]|\d+\.)\s+)/i;
+
+function normalizeSpokenSpacing(text: string): string {
+  return text
+    .replace(/([.!?])([A-ZÁÉÍÓÚÑ¿])/g, '$1 $2')
+    .replace(/`+/g, '')
+    .replace(/\*\*+/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
+ * Trims a planned question to a single short spoken sentence of at most `maxChars` characters,
+ * stripping any markdown or leaked reasoning.
+ */
+export function clampQuestionText(raw: string, maxChars = MAX_QUESTION_CHARS): string {
+  const leakMatch = LEAKED_REASONING_RE.exec(raw);
+  const withoutLeak = leakMatch ? raw.slice(0, leakMatch.index) : raw;
+  let clean = normalizeSpokenSpacing(withoutLeak);
+  if (!clean) return '';
+
+  // If the model wrote a preamble sentence before the actual question, or multiple questions, keep one question sentence.
+  const qIdx = clean.indexOf('?');
+  if (qIdx !== -1) {
+    const upToQ = clean.slice(0, qIdx + 1);
+    const sentences = upToQ.split(/(?<=[.!])\s+/);
+    clean = (sentences.at(-1) ?? upToQ).trim();
+  }
+
+  if (clean.length <= maxChars) {
+    return /[?]$/.test(clean) ? clean : `${clean.replace(/[.!,:;]+$/, '')}?`;
+  }
+
+  const slice = clean.slice(0, maxChars - 1);
+  const lastSpace = slice.lastIndexOf(' ');
+  const cut = (lastSpace > 40 ? slice.slice(0, lastSpace) : slice).replace(/[,:;.\s]+$/, '');
+  return `${cut}?`;
+}
+
+/**
+ * Sanitizes a streaming live interviewer turn:
+ * - Strips leaked chain-of-thought / dialog-node / markdown artifacts (`current_node_id`, `**Analyze Output:**`, etc.)
+ * - Stops the turn immediately after the first question mark `?` so the interviewer never asks multiple questions or rambles after a question
+ * - Enforces a hard `maxChars` ceiling
+ */
+export function sanitizeInterviewerTurn(raw: string, maxChars = MAX_INTERVIEWER_TURN_CHARS): { text: string; cut: boolean } {
+  let cut = false;
+  let working = raw;
+
+  const leakMatch = LEAKED_REASONING_RE.exec(working);
+  if (leakMatch) {
+    working = working.slice(0, leakMatch.index);
+    cut = true;
+  }
+
+  working = working
+    .replace(/([.!?])([A-ZÁÉÍÓÚÑ¿])/g, '$1 $2')
+    .replace(/`+/g, '')
+    .replace(/\*\*+/g, '')
+    .replace(/\s+/g, ' ');
+
+  // Once the interviewer has asked a question ("?"), cut anything that trails after it in the same turn.
+  const qIdx = working.indexOf('?');
+  if (qIdx !== -1) {
+    if (working.slice(qIdx + 1).trim().length > 0) cut = true;
+    working = working.slice(0, qIdx + 1);
+  }
+
+  if (working.length > maxChars) {
+    cut = true;
+    const slice = working.slice(0, maxChars - 1);
+    const lastSpace = slice.lastIndexOf(' ');
+    const trimmed = (lastSpace > 60 ? slice.slice(0, lastSpace) : slice).replace(/[,:;.\s]+$/, '');
+    working = `${trimmed}?`;
+  }
+
+  return { text: working.trimStart(), cut };
+}
 
 /** Group assignments: one short interview per member, about the code they wrote, with at most 2 questions. */
 export const GROUP_MAX_QUESTIONS = 2;

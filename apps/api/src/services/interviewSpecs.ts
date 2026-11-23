@@ -35,7 +35,7 @@ export interface CourseInterviewContext {
 
 const COMMON_RULES = `- Mix the kinds: "why" (why this choice over an alternative), "explain" (walk through what this code does),
   "extend" (how would you add or change something here), "failure" (what happens when this goes wrong).
-- Questions are spoken aloud: one or two short sentences, no code, no line numbers. Refer to the code by what it does.
+- Questions are spoken aloud: one short sentence (at most 20 words, under 140 characters), no code, no line numbers. Refer to the code by what it does.
 - A question must be impossible to answer well from the README alone.
 - expected_points: 2 to 4 concrete points a real author would mention. They are the answer key.
 - skill: the specific skill the question verifies.
@@ -47,8 +47,8 @@ export const COURSE_PLAN_SYSTEM = `You prepare a ${INTERVIEW_SECONDS / 60}-minut
 assignment. The goal is to check that the student wrote this code and understands the concepts the assignment teaches.
 
 Rules:
-- Write 4 or 5 questions, each about exactly one of the snippets you are given; use its path and line range unchanged.
-  A question gets 35 to 45 seconds. Prefer the snippets where the assignment's learning goals show up.
+- Write 4 questions, each about exactly one of the snippets you are given; use its path and line range unchanged.
+  A question gets about 45 seconds. Prefer the snippets where the assignment's learning goals show up.
   Order them from most to least revealing: if time runs out, the last one is dropped.
 ${COMMON_RULES}`;
 

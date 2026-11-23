@@ -338,7 +338,7 @@ export function InterviewHome() {
           </h2>
           <ol className="mt-5 grid gap-4 md:grid-cols-3">
             {[
-              ['1', tr('Pick a public repository you wrote'), tr('Paste its GitHub link above. SkillProof reads the code and prepares 4 or 5 questions about it.')],
+              ['1', tr('Pick a public repository you wrote'), tr('Paste its GitHub link above. SkillProof reads the code and prepares up to 4 questions about it.')],
               ['2', tr('Talk for 3 minutes'), tr('Answer out loud in a full-screen room. You can pause twice and skip a question.')],
               ['3', tr('Get your report'), tr('A score with quotes from what you said, which you can share on your public profile.')],
             ].map(([n, title, text]) => (
