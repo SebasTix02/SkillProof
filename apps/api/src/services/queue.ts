@@ -40,19 +40,23 @@ export function publicBaseUrl(): string | null {
 
 // ---- in-process (local development, or a fallback on Vercel) ----
 
-let running = 0;
-const waiting: (() => void)[] = [];
+// Two lanes, so an interview never waits behind a judging that can take minutes: judging jobs share
+// JUDGE_CONCURRENCY slots, everything else (interviews, similarity) has its own.
+const OTHER_JOBS = 2;
+const lanes = { judge: { running: 0, waiting: [] as (() => void)[] }, other: { running: 0, waiting: [] as (() => void)[] } };
 
 async function runLocal(kind: string, id: string): Promise<void> {
-  if (running >= env().JUDGE_CONCURRENCY) await new Promise<void>((resolve) => waiting.push(resolve));
-  running++;
+  const lane = kind.startsWith('judge') ? lanes.judge : lanes.other;
+  const limit = lane === lanes.judge ? env().JUDGE_CONCURRENCY : OTHER_JOBS;
+  if (lane.running >= limit) await new Promise<void>((resolve) => lane.waiting.push(resolve));
+  lane.running++;
   try {
     await handlers.get(kind)?.(id);
   } catch (err) {
     console.error(`Job ${kind}/${id} failed:`, err);
   } finally {
-    running--;
-    waiting.shift()?.();
+    lane.running--;
+    lane.waiting.shift()?.();
   }
 }
 

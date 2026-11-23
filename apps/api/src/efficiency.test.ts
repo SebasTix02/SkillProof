@@ -156,6 +156,26 @@ describe('judging queue', () => {
     expect(nextAttemptAt(5, now, () => 0).getTime()).toBe(RETRY_DELAYS_MIN.at(-1)! * 60_000);
     // The first import of the queue module can be slow on a cold start.
   }, 30_000);
+
+  it('keeps the slot for the submission claimed first when two claim at once', async () => {
+    vi.stubEnv('SUPABASE_URL', 'https://example.supabase.co');
+    const { keepsSlot } = await import('./services/judgeQueue.js');
+    const rows = [
+      { id: 'b', updated_at: '2026-11-22T10:00:01.000Z' },
+      { id: 'a', updated_at: '2026-11-22T10:00:01.000Z' },
+      { id: 'c', updated_at: '2026-11-22T10:00:00.000Z' },
+    ];
+    expect(keepsSlot(rows, 'c', 1)).toBe(true);
+    expect(keepsSlot(rows, 'a', 1)).toBe(false);
+    expect(keepsSlot(rows, 'a', 2)).toBe(true);
+    expect(keepsSlot(rows, 'b', 2)).toBe(false);
+    expect(keepsSlot(rows, 'missing', 1)).toBe(true);
+  }, 30_000);
+
+  it('judges one submission at a time by default', async () => {
+    const { EnvSchema } = await import('./env.js');
+    expect(EnvSchema.shape.JUDGE_CONCURRENCY.parse(undefined)).toBe(1);
+  });
 });
 
 describe('what is never read', () => {

@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 const bool = z.enum(['true', 'false', '1', '0']).transform((v) => v === 'true' || v === '1');
 
-const EnvSchema = z.object({
+export const EnvSchema = z.object({
   PORT: z.coerce.number().default(8080),
   WEB_ORIGIN: z.string().default('http://localhost:5173'),
   SUPABASE_URL: z.url(),
@@ -39,8 +39,8 @@ const EnvSchema = z.object({
   INTERNAL_SECRET: z.string().min(16).optional(),
   /** Set by Vercel for its cron jobs, which send it as a Bearer token. */
   CRON_SECRET: z.string().min(16).optional(),
-  /** Submissions judged at the same time, across all server instances. The rest wait in the queue. */
-  JUDGE_CONCURRENCY: z.coerce.number().int().min(1).max(10).default(2),
+  /** Submissions judged at the same time, across all server instances (one by default, so a project gets every Gemini call). The rest wait in the queue. */
+  JUDGE_CONCURRENCY: z.coerce.number().int().min(1).max(10).default(1),
   /** Gemini calls at the same time in one server instance. */
   GEMINI_CONCURRENCY: z.coerce.number().int().min(1).max(10).default(2),
   /** Minimum time between the start of two Gemini calls in one instance. */
