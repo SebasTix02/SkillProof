@@ -3,7 +3,8 @@ import { describe, expect, it } from 'vitest';
 import { API_SECURITY_HEADERS } from './app.js';
 import { batchByTokens, extractFiles, isIgnoredPath, priority, renderFile, sliceLines, splitByBudget } from './engine/files.js';
 import { AttemptLimiter, hashAccessCode, verifyAccessCode } from './lib/accessCode.js';
-import { AiUnavailableError, aiErrorStatus, isTransientAiError } from './lib/gemini.js';
+import { parseApiKeyList } from './env.js';
+import { AiUnavailableError, aiErrorStatus, isTransientAiError, modelLabel } from './lib/gemini.js';
 import { friendlyJobError } from './lib/jobErrors.js';
 import { can, isOrgMember, type RoleGrant } from './lib/permissions.js';
 import { slugify } from './lib/slug.js';
@@ -127,7 +128,7 @@ describe('Gemini errors', () => {
     expect(isTransientAiError(new Error('The answer does not match the schema'))).toBe(false);
   });
 
-  it('never shows raw JSON to people', () => {
+  it('never shows raw JSON to people and distinguishes 429 quota limits from 503 overload', () => {
     const all = new AiUnavailableError(['gemini-3.8-flash', 'gemini-3.6-flash', 'gemini-3.5-flash-lite'], overloaded);
     const text = friendlyJobError(all, 'judge');
     expect(text).toContain('tried 3 models');
@@ -135,6 +136,21 @@ describe('Gemini errors', () => {
     expect(text).not.toContain('{');
     expect(friendlyJobError(overloaded, 'prepare')).not.toContain('{');
     expect(friendlyJobError(Object.assign(new Error('x'), { status: 403 }), 'evaluate')).toContain('API key');
+
+    const rateLimited = Object.assign(new Error('{"error":{"code":429,"status":"RESOURCE_EXHAUSTED"}}'), { status: 429 });
+    const quotaAll = new AiUnavailableError(['gemini-3.8-flash', 'key2:gemini-3.8-flash'], rateLimited);
+    expect(friendlyJobError(quotaAll, 'prepare')).toContain('rate limit or quota was reached');
+    expect(friendlyJobError(quotaAll, 'prepare')).toContain('GEMINI_API_KEYS');
+  });
+
+  it('parses and deduplicates comma- and newline-separated Gemini API key pools', () => {
+    expect(parseApiKeyList('AIzaSyKeyOne12345, AIzaSyKeyTwo67890 ; "AIzaSyKeyOne12345"', 'AIzaSyKeyThree99999\nshort')).toEqual([
+      'AIzaSyKeyOne12345',
+      'AIzaSyKeyTwo67890',
+      'AIzaSyKeyThree99999',
+    ]);
+    expect(modelLabel('key2:gemini-3.8-flash')).toBe('Gemini 3.8 Flash (API key #2)');
+    expect(modelLabel('vertex:gemini-3.6-flash')).toBe('Gemini 3.6 Flash on Vertex AI');
   });
 });
 

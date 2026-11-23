@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import {
   CreateEventSchema, DEFAULT_RUBRIC, RepoMapSchema, RubricSchema, SubmitSchema, parseGithubUrl,
-  MODELS, modelChain, pruneUnknownPaths, submissionsLeft, weightedTotal, type RepoMap,
+  MODELS, isPreviewModel, modelChain, prioritizeStableModels, pruneUnknownPaths, submissionsLeft, weightedTotal, type RepoMap,
 } from './index.js';
 
 describe('rubric', () => {
@@ -79,12 +79,40 @@ describe('repo map', () => {
 });
 
 describe('model fallbacks', () => {
-  it('tries the main model first, then its backups, never twice', () => {
+  it('tries the main model first, then its 3 stable GA backups, never twice', () => {
     const chain = modelChain(MODELS.analysis);
-    expect(chain[0]).toBe(MODELS.analysis);
-    expect(chain.length).toBeGreaterThan(1);
+    expect(chain).toEqual([
+      'gemini-3.8-flash',
+      'gemini-3.6-flash',
+      'gemini-3.5-flash-lite',
+      'gemini-3.1-flash-lite',
+    ]);
     expect(new Set(chain).size).toBe(chain.length);
     expect(modelChain('unknown-model')).toEqual(['unknown-model']);
+  });
+
+  it('prioritizes stable (GA) models ahead of experimental or -preview models', () => {
+    expect(isPreviewModel('gemini-3.8-flash')).toBe(false);
+    expect(isPreviewModel('gemini-3.5-flash-lite')).toBe(false);
+    expect(isPreviewModel('gemini-3.8-pro-preview')).toBe(true);
+    expect(isPreviewModel('gemini-2.5-pro-preview-05-06')).toBe(true);
+    expect(isPreviewModel('gemini-2.0-flash-exp')).toBe(true);
+
+    expect(
+      prioritizeStableModels([
+        'gemini-3.8-pro-preview',
+        'gemini-3.8-flash',
+        'gemini-2.0-flash-exp',
+        'gemini-3.6-flash',
+        'gemini-3.5-flash-lite',
+      ]),
+    ).toEqual([
+      'gemini-3.8-flash',
+      'gemini-3.6-flash',
+      'gemini-3.5-flash-lite',
+      'gemini-3.8-pro-preview',
+      'gemini-2.0-flash-exp',
+    ]);
   });
 });
 

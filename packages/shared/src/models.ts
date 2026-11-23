@@ -8,16 +8,32 @@ export const MODELS = {
 
 /**
  * Backup models, tried in order when a model is overloaded or rate limited (HTTP 429, 500, 503, 504).
- * Verified against the model list on 2026-11-17. Each backup is a stable model of the previous generation.
+ * Verified against the model list on 2026-11-17. Each backup is a stable (GA) model of the previous generation.
  */
 export const MODEL_FALLBACKS: Record<string, readonly string[]> = {
-  'gemini-3.8-flash': ['gemini-3.6-flash', 'gemini-3.5-flash-lite'],
+  'gemini-3.8-flash': ['gemini-3.6-flash', 'gemini-3.5-flash-lite', 'gemini-3.1-flash-lite'],
   'gemini-3.5-flash-lite': ['gemini-3.1-flash-lite'],
 };
 
-/** The model to try first, then its backups. */
+/** True when a model ID points at an experimental or `-preview` tier with smaller capacity quotas. */
+export function isPreviewModel(model: string): boolean {
+  return /-(?:preview|exp|experimental)(?:\b|-)/i.test(model);
+}
+
+/**
+ * Deduplicates a model list and places every stable (GA) model ahead of any `-preview` or experimental model,
+ * while preserving the relative preference order within each group.
+ */
+export function prioritizeStableModels(models: readonly string[]): string[] {
+  const unique = [...new Set(models.map((m) => m.trim()).filter(Boolean))];
+  const stable = unique.filter((m) => !isPreviewModel(m));
+  const preview = unique.filter((m) => isPreviewModel(m));
+  return [...stable, ...preview];
+}
+
+/** The model to try first, then its backups, with stable (GA) models prioritized ahead of preview models. */
 export function modelChain(model: string): string[] {
-  return [model, ...(MODEL_FALLBACKS[model] ?? [])];
+  return prioritizeStableModels([model, ...(MODEL_FALLBACKS[model] ?? [])]);
 }
 
 /** USD per 1M tokens (standard paid tier, 2026-11). Used only for usage_log estimates. */
