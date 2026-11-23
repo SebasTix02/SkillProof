@@ -32,8 +32,7 @@ import { MIC_MIME, Speaker, startMic } from '../lib/liveAudio';
 import { useLoad } from '../lib/useLoad';
 import { WrapUp } from '../lib/wrapUp';
 
-const SPECTROGRAM_ASSET =
-  'https://lh3.googleusercontent.com/aida/ALJJyrCoegBM7lcY0q0DQ28N-jVRexrVR2oFEc93h_uF6SRADyZPBxlq6_MfcPv5z-OonkUHI4590rx0C9380oaQAj9acapo1HgaFxTxvnzFompyX-nwrCNuwg035w_yMkKW8AnBslMqo2qWM173UbZ8AppajZ0IfbHA5sH4XIx1PIjVrcDn0JtXBKgonMDDDQxzEKszxuojU2Y-gJBNsIwD4bEeUSLY5EWY82q-OGzcabYq';
+const SPECTROGRAM_ASSET = '/images/interview-spectrogram.svg';
 
 const BAR_HEIGHTS = [35, 50, 70, 85, 60, 40, 65, 90, 100, 75, 55, 30, 60, 45, 25, 18];
 
