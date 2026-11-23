@@ -27,6 +27,30 @@ export async function activeJudgings(): Promise<number> {
   return total;
 }
 
+/**
+ * True when this submission, already claimed, went past the limit: two jobs can both see a free slot and claim at
+ * the same moment. The ones claimed first (updated_at is set only by the claim, then the id breaks ties) keep the
+ * slots, so exactly one of the racing jobs runs and the other goes back to the queue.
+ */
+export async function overLimit(submissionId: string): Promise<boolean> {
+  const rows: { id: string; updated_at: string }[] = [];
+  for (const store of STORES) {
+    rows.push(
+      ...(must(
+        await db().from(store.submissions).select('id, updated_at').eq('status', 'analyzing').gt('updated_at', minutesAgo(ACTIVE_WINDOW_MIN)),
+      ) as { id: string; updated_at: string }[]),
+    );
+  }
+  return keepsSlot(rows, submissionId, env().JUDGE_CONCURRENCY) === false;
+}
+
+/** Whether this submission is among the first `limit` claimed. Pure, for tests. */
+export function keepsSlot(rows: { id: string; updated_at: string }[], submissionId: string, limit: number): boolean {
+  const order = [...rows].sort((a, b) => Date.parse(a.updated_at) - Date.parse(b.updated_at) || a.id.localeCompare(b.id));
+  const index = order.findIndex((r) => r.id === submissionId);
+  return index === -1 || index < limit;
+}
+
 /** How many more submissions may start now: JUDGE_CONCURRENCY minus the ones running. */
 export async function freeSlots(): Promise<number> {
   return Math.max(0, env().JUDGE_CONCURRENCY - (await activeJudgings()));

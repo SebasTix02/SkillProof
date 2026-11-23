@@ -776,6 +776,7 @@ export function AssignmentSubmissionPage() {
                       criterion={c}
                       repoUrl={repoUrl}
                       sha={sub.locked_commit_sha}
+                      videoUrl={latest?.video_url ?? null}
                       canOverride={canOverride}
                       onSaved={() => void data.reload()}
                       scorePath="/api/assignment-scores"

@@ -8,7 +8,7 @@ import { JobStopped, submissionCheckpoint } from '../lib/control.js';
 import { friendlyJobError, technicalDetail } from '../lib/jobErrors.js';
 import { db, must } from '../lib/supabase.js';
 import { ASSIGNMENT_STORE, EVENT_STORE, scoringSpecFor, type ContestStore } from './contest.js';
-import { MAX_AUTO_ATTEMPTS, dispatchJudging, freeSlots, nextAttemptAt } from './judgeQueue.js';
+import { MAX_AUTO_ATTEMPTS, dispatchJudging, freeSlots, nextAttemptAt, overLimit } from './judgeQueue.js';
 import { scoreSubmission } from './scoring.js';
 import type { CourseContext } from './scoringSpecs.js';
 
@@ -212,6 +212,12 @@ export async function judgeContestSubmission(store: ContestStore, submissionId: 
       .select('id'),
   ) as { id: string }[];
   if (claimed.length === 0) return;
+  // Another job claimed in the same instant and got the slot first: give this one back to the queue untouched. The
+  // job that keeps the slot starts it when it finishes.
+  if (await overLimit(sub.id)) {
+    must(await db().from(store.submissions).update({ status: 'queued' }).eq('id', sub.id).eq('status', 'analyzing'));
+    return;
+  }
 
   const activity = new Activity(store.submissions, sub.id, true, sub.activity_json ?? [], sub.models_used ?? []);
   activity.checkpoint = submissionCheckpoint(sub.id, store);

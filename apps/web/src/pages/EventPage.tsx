@@ -20,6 +20,7 @@ import {
   scoreTone,
 } from '../components/shared';
 import { api, errorMessage, existingInterviewId } from '../lib/api';
+import { evidenceLink, evidenceTitle } from '../lib/evidence';
 import {
   STATUS_LABEL,
   VISIBILITY_LABEL,
@@ -590,7 +591,7 @@ function Participant({ event }: { event: EventView }) {
       )}
 
       {/* State 4: Published Results Dossier & Leaderboard */}
-      {results.data?.published && <ResultsView event={event} results={results.data} lockedSha={sub?.locked_commit_sha ?? null} />}
+      {results.data?.published && <ResultsView event={event} results={results.data} lockedSha={sub?.locked_commit_sha ?? null} version={sub?.submission_versions.find((v) => v.id === sub.current_version_id) ?? null} />}
 
       {/* State 2 (and History): Submission Dossier Formulation & Timeline */}
       <SubmissionCard event={event} mine={mine.data} onSubmitted={mine.reload} />
@@ -861,10 +862,13 @@ function ResultsView({
   event,
   results,
   lockedSha,
+  version,
 }: {
   event: EventView;
   results: Results;
   lockedSha: string | null;
+  /** The judged version: its repository and demo video are what the evidence points to. */
+  version: VersionView | null;
 }) {
   const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
@@ -1127,14 +1131,25 @@ function ResultsView({
                         {tr('Audited Evidence Files:')}
                       </span>
                       <div className="font-mono-code flex flex-wrap gap-1.5 text-[11px]">
-                        {s.evidence_json.map((ev, idx) => (
-                          <span
-                            key={idx}
-                            className="rounded-[3px] border border-line bg-surface px-2 py-0.5 text-accent"
-                          >
-                            {ev}
-                          </span>
-                        ))}
+                        {s.evidence_json.map((item, idx) => {
+                          const ev = evidenceLink(item, { repoUrl: version?.repos.url ?? null, sha: lockedSha, videoUrl: version?.video_url ?? null });
+                          const body = (
+                            <>
+                              {ev.kind === 'video' && <span className="material-symbols-outlined text-[13px]" aria-hidden="true">play_circle</span>}
+                              {ev.label}
+                            </>
+                          );
+                          const cls = 'inline-flex items-center gap-1 rounded-[3px] border border-line bg-surface px-2 py-0.5 text-accent';
+                          return ev.href ? (
+                            <a key={idx} href={ev.href} target="_blank" rel="noreferrer" title={evidenceTitle(ev)} className={`${cls} hover:underline`}>
+                              {body}
+                            </a>
+                          ) : (
+                            <span key={idx} title={evidenceTitle(ev)} className={cls}>
+                              {body}
+                            </span>
+                          );
+                        })}
                       </div>
                     </div>
                   )}
