@@ -17,10 +17,21 @@ export class ApiError extends Error {
   }
 }
 
+const DEFAULT_TIMEOUT_MS = 30_000;
+
 /** Calls the SkillProof API with the current Supabase session. */
 export async function api<T = unknown>(
   path: string,
-  options: { method?: string; body?: unknown; /** Polling: no progress bar. */ quiet?: boolean } = {},
+  options: {
+    method?: string;
+    body?: unknown;
+    /** Polling: no progress bar. */
+    quiet?: boolean;
+    /** Optional abort signal from the caller. */
+    signal?: AbortSignal;
+    /** Request timeout in milliseconds (default 30 s). */
+    timeoutMs?: number;
+  } = {},
 ): Promise<T> {
   const done = options.quiet ? () => {} : startRequest();
   try {
@@ -30,20 +41,33 @@ export async function api<T = unknown>(
   }
 }
 
-async function request<T>(path: string, options: { method?: string; body?: unknown }): Promise<T> {
+async function request<T>(
+  path: string,
+  options: { method?: string; body?: unknown; signal?: AbortSignal; timeoutMs?: number },
+): Promise<T> {
   const { data } = await supabase.auth.getSession();
   const headers: Record<string, string> = {};
   if (data.session) headers.Authorization = `Bearer ${data.session.access_token}`;
   if (options.body !== undefined) headers['Content-Type'] = 'application/json';
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), options.timeoutMs ?? DEFAULT_TIMEOUT_MS);
+  const onAbort = () => controller.abort();
+  options.signal?.addEventListener('abort', onAbort, { once: true });
+
   let res: Response;
   try {
     res = await fetch(BASE + path, {
       method: options.method ?? (options.body !== undefined ? 'POST' : 'GET'),
       headers,
       body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
+      signal: controller.signal,
     });
   } catch {
     throw new ApiError(0, 'network', t('errors.network'));
+  } finally {
+    clearTimeout(timeout);
+    options.signal?.removeEventListener('abort', onAbort);
   }
   const json = (await res.json().catch(() => null)) as { error?: { code: string; message: string; details?: Record<string, unknown> } } | null;
   if (!res.ok) throw new ApiError(res.status, json?.error?.code ?? 'error', json?.error?.message ?? `Request failed (${res.status})`, json?.error?.details ?? {});

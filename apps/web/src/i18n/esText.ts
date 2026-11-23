@@ -2185,4 +2185,9 @@ export const esText: Record<string, string> = {
   "← ORGANIZER CONSOLE": "← CONSOLA DEL ORGANIZADOR",
   "← Organizer Console": "← Consola del organizador",
   "← Return to Sign In": "← Volver a iniciar sesión",
+  "Unexpected error": "Error inesperado",
+  "Something went wrong on this page": "Algo salió mal en esta página",
+  "Your saved data is safe. Try reloading this view or returning to the home page.": "Tus datos guardados están a salvo. Prueba a recargar esta vista o volver al inicio.",
+  "Try again": "Intentar de nuevo",
+  "Go to home": "Ir al inicio",
 };

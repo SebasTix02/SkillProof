@@ -1,5 +1,6 @@
 import { zipSync, strToU8 } from 'fflate';
 import { describe, expect, it } from 'vitest';
+import { API_SECURITY_HEADERS } from './app.js';
 import { batchByTokens, extractFiles, isIgnoredPath, priority, renderFile, sliceLines, splitByBudget } from './engine/files.js';
 import { AttemptLimiter, hashAccessCode, verifyAccessCode } from './lib/accessCode.js';
 import { AiUnavailableError, aiErrorStatus, isTransientAiError } from './lib/gemini.js';
@@ -134,5 +135,14 @@ describe('Gemini errors', () => {
     expect(text).not.toContain('{');
     expect(friendlyJobError(overloaded, 'prepare')).not.toContain('{');
     expect(friendlyJobError(Object.assign(new Error('x'), { status: 403 }), 'evaluate')).toContain('API key');
+  });
+});
+
+describe('HTTP security headers', () => {
+  it('defines defensive headers without breaking microphone access for live interviews', () => {
+    expect(API_SECURITY_HEADERS['x-content-type-options']).toBe('nosniff');
+    expect(API_SECURITY_HEADERS['x-frame-options']).toBe('DENY');
+    expect(API_SECURITY_HEADERS['referrer-policy']).toBe('strict-origin-when-cross-origin');
+    expect(API_SECURITY_HEADERS['permissions-policy']).toContain('microphone=(self)');
   });
 });

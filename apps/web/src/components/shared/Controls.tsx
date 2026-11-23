@@ -6,23 +6,28 @@ export function ToggleSwitch({
   onChange,
   activeColorClass = 'peer-checked:bg-accent',
   id,
+  ariaLabel,
 }: {
   checked: boolean;
   onChange: (next: boolean) => void;
   activeColorClass?: string;
   id?: string;
+  ariaLabel?: string;
 }) {
   return (
     <label className="relative mt-0.5 inline-flex shrink-0 cursor-pointer items-center">
       <input
         id={id}
         type="checkbox"
+        role="switch"
+        aria-checked={checked}
+        aria-label={ariaLabel}
         className="peer sr-only"
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
       />
       <div
-        className={`h-6 w-11 rounded-full bg-line after:absolute after:top-[2px] after:left-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-line after:bg-white after:transition-all peer-checked:after:translate-x-full peer-checked:after:border-white ${activeColorClass}`}
+        className={`h-6 w-11 rounded-full bg-line peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent-ui after:absolute after:top-[2px] after:left-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-line after:bg-white after:transition-all peer-checked:after:translate-x-full peer-checked:after:border-white ${activeColorClass}`}
       />
     </label>
   );
@@ -68,7 +73,7 @@ export function CopyLinkButton({
 
   return (
     <button type="button" onClick={() => void handleCopy()} className={`${base} ${variantClass} ${className}`}>
-      <span className="material-symbols-outlined text-[15px]">{copied ? 'check' : icon}</span>
+      <span aria-hidden="true" className="material-symbols-outlined text-[15px]">{copied ? 'check' : icon}</span>
       <span>{copied ? copiedLabel : label}</span>
     </button>
   );
