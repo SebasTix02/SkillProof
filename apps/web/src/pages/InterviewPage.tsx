@@ -203,6 +203,9 @@ function Room({
   const focusEvents = useRef<ExamFocusEvent[]>([]);
   const awaySince = useRef<{ type: ExamFocusEvent['type']; at: number } | null>(null);
   const [away, setAway] = useState<ExamFocusEvent['type'] | null>(null);
+  // The browser did not open full screen on Start (or closed it while connecting, as Firefox does for the
+  // microphone prompt): ask for it once the room is live. Not recorded as leaving, since the candidate never left.
+  const [needsFullscreen, setNeedsFullscreen] = useState(false);
   const [skipLocked, setSkipLocked] = useState(false);
   // Pause: microphone and audio stop, the clock stops, the question and code are hidden.
   const [paused, setPaused] = useState(false);
@@ -289,6 +292,7 @@ function Room({
       setAway(type);
     };
     const onFullscreen = () => {
+      if (document.fullscreenElement === stageRef.current) setNeedsFullscreen(false);
       if (document.fullscreenElement !== stageRef.current) leave('fullscreen_exit');
       else if (awaySince.current?.type === 'fullscreen_exit') endAway();
     };
@@ -304,6 +308,7 @@ function Room({
     document.addEventListener('visibilitychange', onVisibility);
     window.addEventListener('blur', onBlur);
     window.addEventListener('focus', onFocus);
+    if (document.fullscreenEnabled && document.fullscreenElement !== stageRef.current) setNeedsFullscreen(true);
     return () => {
       document.removeEventListener('fullscreenchange', onFullscreen);
       document.removeEventListener('visibilitychange', onVisibility);
@@ -311,6 +316,16 @@ function Room({
       window.removeEventListener('focus', onFocus);
     };
   }, [phase, endAway]);
+
+  async function enterFullscreen() {
+    try {
+      if (stageRef.current && document.fullscreenElement !== stageRef.current) await stageRef.current.requestFullscreen();
+    } catch {
+      // Refused even after a click (an embedded or locked-down browser): carry on, and the report says so.
+      if (!focusEvents.current.some((e) => e.type === 'fullscreen_unsupported')) focusEvents.current.push({ type: 'fullscreen_unsupported', at_ms: 0, duration_ms: 0 });
+    }
+    setNeedsFullscreen(false);
+  }
 
   async function returnToFullscreen() {
     try {
@@ -748,10 +763,21 @@ function Room({
           )}
         </div>
       )}
-      {phase === 'live' && (away || paused) && (
-        <div className="absolute inset-0 z-30 flex items-center justify-center bg-[rgba(20,22,26,0.92)] p-6" role="alertdialog" aria-label={paused ? tr('Interview paused') : tr('You left the interview')}>
+      {phase === 'live' && (away || paused || needsFullscreen) && (
+        <div className="absolute inset-0 z-30 flex items-center justify-center bg-[rgba(20,22,26,0.92)] p-6" role="alertdialog" aria-label={paused ? tr('Interview paused') : away ? tr('You left the interview') : tr('Open the interview in full screen')}>
           <div className="max-w-md space-y-3 rounded-[6px] border border-line bg-surface p-6 text-center">
-            {paused ? (
+            {!paused && !away ? (
+              <>
+                <h3 className="font-serif-heading text-[20px] font-medium text-ink">{tr('Open the interview in full screen')}</h3>
+                <p className="text-[13px] text-muted">
+                  {tr('Your browser did not open full screen on its own. Press the button to continue; this is not recorded as leaving.')}
+                </p>
+                <Button onClick={() => void enterFullscreen()} className="w-full">
+                  <span className="material-symbols-outlined text-[17px]">fullscreen</span>
+                  <span>{tr('Enter full screen')}</span>
+                </Button>
+              </>
+            ) : paused ? (
               <>
                 <h3 className="font-serif-heading text-[20px] font-medium text-ink">{tr('Interview paused')}</h3>
                 <p className="text-[13px] text-muted">
@@ -960,7 +986,7 @@ function Room({
                     {tr('Gemini Live Audio')}
                   </span>
                 </div>
-                <h2 className={`font-serif-heading text-[18px] leading-[25px] font-medium break-words whitespace-pre-wrap text-ink ${away || paused ? 'blur-sm select-none' : ''}`}>
+                <h2 className={`font-serif-heading text-[18px] leading-[25px] font-medium break-words whitespace-pre-wrap text-ink ${away || paused || needsFullscreen ? 'blur-sm select-none' : ''}`}>
                   {activeQuestion
                     ? `“${activeQuestion.question}”`
                     : tr('The interviewer is about to ask the first question. The code it refers to will appear on the left.')}
