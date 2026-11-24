@@ -163,17 +163,19 @@ export function applyLocale(l: Locale): void {
  */
 export function I18nProvider({ children, accountLocale, onChange }: { children: ReactNode; accountLocale?: Locale | null; onChange?: (l: Locale) => void }) {
   const [locale, setLocaleState] = useState<Locale>(current);
+  const [prevAccount, setPrevAccount] = useState(accountLocale);
 
-  useEffect(() => {
-    document.documentElement.lang = locale;
-  }, [locale]);
-
-  useEffect(() => {
-    if (accountLocale && accountLocale !== current) {
-      applyLocale(accountLocale);
+  if (accountLocale !== prevAccount) {
+    setPrevAccount(accountLocale);
+    if (accountLocale && accountLocale !== locale) {
       setLocaleState(accountLocale);
     }
-  }, [accountLocale]);
+  }
+
+  useEffect(() => {
+    if (locale !== current) applyLocale(locale);
+    document.documentElement.lang = locale;
+  }, [locale]);
 
   const setLocale = useCallback(
     (l: Locale) => {

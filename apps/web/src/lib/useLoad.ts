@@ -6,8 +6,18 @@ export function useLoad<T>(path: string | null, pollWhile?: (data: T) => boolean
   const [data, setData] = useState<T | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(!!path);
+  const [prevPath, setPrevPath] = useState(path);
   const pollRef = useRef(pollWhile);
-  pollRef.current = pollWhile;
+
+  if (path !== prevPath) {
+    setPrevPath(path);
+    setData(null);
+    setLoading(!!path);
+  }
+
+  useEffect(() => {
+    pollRef.current = pollWhile;
+  });
 
   // `quiet`: a polling refresh keeps what is on screen and shows no progress bar.
   const reload = useCallback(async (quiet = false) => {
@@ -24,10 +34,24 @@ export function useLoad<T>(path: string | null, pollWhile?: (data: T) => boolean
   }, [path]);
 
   useEffect(() => {
-    setData(null);
-    setLoading(!!path);
-    void reload();
-  }, [path, reload]);
+    if (!path) return;
+    let cancelled = false;
+    api<T>(path)
+      .then((next) => {
+        if (cancelled) return;
+        setData(next);
+        setError(null);
+      })
+      .catch((err) => {
+        if (!cancelled) setError(errorMessage(err));
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [path]);
 
   useEffect(() => {
     if (!data || !pollRef.current?.(data)) return;

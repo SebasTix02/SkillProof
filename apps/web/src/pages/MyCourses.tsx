@@ -349,8 +349,9 @@ function SubmitCard({ data: d, groupReady, onSubmitted }: { data: MyAssignmentRe
   const [videoUrl, setVideoUrl] = useState(current?.video_url ?? '');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [now] = useState(() => Date.now());
   const outOfVersions = d.submissions_left === 0;
-  const notOpenYet = a.status === 'open' && Date.parse(a.opens_at) > Date.now();
+  const notOpenYet = a.status === 'open' && Date.parse(a.opens_at) > now;
 
   async function submit(e: FormEvent) {
     e.preventDefault();

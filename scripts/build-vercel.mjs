@@ -5,7 +5,8 @@
 //                                   (the crons stay in vercel.json: Vercel reads them from there, and listing them
 //                                   here too is rejected as a duplicate)
 import { execSync } from 'node:child_process';
-import { cpSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
@@ -53,6 +54,11 @@ writeFileSync(
   ),
 );
 
+const builtHtml = readFileSync(join(out, 'static', 'index.html'), 'utf8');
+const scriptHashes = [...builtHtml.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g)].map(
+  (m) => `'sha256-${createHash('sha256').update(m[1].replace(/\r\n?/g, '\n'), 'utf8').digest('base64')}'`,
+);
+
 writeFileSync(
   join(out, 'config.json'),
   JSON.stringify(
@@ -67,8 +73,21 @@ writeFileSync(
             'Referrer-Policy': 'strict-origin-when-cross-origin',
             'Permissions-Policy': 'camera=(), geolocation=(), microphone=(self)',
             'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
-            'Content-Security-Policy':
-              "default-src 'self'; script-src 'self' 'unsafe-inline' blob:; worker-src 'self' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://generativelanguage.googleapis.com wss://generativelanguage.googleapis.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'",
+            'Cross-Origin-Opener-Policy': 'same-origin',
+            'Content-Security-Policy': [
+              "default-src 'self'",
+              `script-src 'self' ${scriptHashes.join(' ')}`.trim(),
+              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+              "font-src 'self' https://fonts.gstatic.com",
+              "img-src 'self' data: blob:",
+              "media-src 'self' blob:",
+              "worker-src 'self' blob:",
+              "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://generativelanguage.googleapis.com wss://generativelanguage.googleapis.com",
+              "object-src 'none'",
+              "base-uri 'self'",
+              "form-action 'self'",
+              "frame-ancestors 'none'",
+            ].join('; '),
           },
           continue: true,
         },

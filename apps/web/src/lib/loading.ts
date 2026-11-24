@@ -35,13 +35,15 @@ export function usePendingRequests(): number {
 /** True once `active` has stayed true for `delayMs`: short loads show nothing, so nothing flickers. */
 export function useDelayed(active: boolean, delayMs = 150): boolean {
   const [shown, setShown] = useState(false);
+  const [prevActive, setPrevActive] = useState(active);
+  if (active !== prevActive) {
+    setPrevActive(active);
+    if (!active) setShown(false);
+  }
   useEffect(() => {
-    if (!active) {
-      setShown(false);
-      return;
-    }
+    if (!active) return;
     const t = setTimeout(() => setShown(true), delayMs);
     return () => clearTimeout(t);
   }, [active, delayMs]);
-  return shown;
+  return active && shown;
 }

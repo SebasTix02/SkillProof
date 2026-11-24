@@ -261,9 +261,9 @@ function Overview({ detail }: { detail: CourseDetail }) {
   const confirm = useConfirm();
   const navigate = useNavigate();
   const { org } = useAuth();
+  const [now] = useState(() => Date.now());
   const students = members.filter((m) => m.role === 'student').length;
   const staff = members.length - students;
-  const now = Date.now();
   const upcoming = assignments.filter((a) => a.status === 'open' && Date.parse(a.due_at) > now);
   const toGrade = assignments.filter((a) => a.status === 'judging' || a.status === 'review');
 

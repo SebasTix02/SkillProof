@@ -70,11 +70,18 @@ describe('access codes', () => {
     expect(verifyAccessCode('echo-2026', 'garbage')).toBe(false);
   });
 
-  it('limits attempts inside a time window', () => {
-    const limiter = new AttemptLimiter(2, 1000);
+  it('limits attempts inside a time window and bounds memory via LRU pruning', () => {
+    const limiter = new AttemptLimiter(2, 1000, 3);
     expect([limiter.allow('k', 0), limiter.allow('k', 10), limiter.allow('k', 20)]).toEqual([true, true, false]);
     expect(limiter.allow('other', 20)).toBe(true);
     expect(limiter.allow('k', 1500)).toBe(true);
+
+    // Expired entries are pruned before evicting active keys, and maxKeys caps map growth.
+    expect(limiter.allow('ip-1', 3000)).toBe(true);
+    expect(limiter.allow('ip-2', 3010)).toBe(true);
+    expect(limiter.allow('ip-3', 3020)).toBe(true);
+    expect(limiter.allow('ip-4', 3030)).toBe(true);
+    expect(limiter.size).toBeLessThanOrEqual(3);
   });
 });
 

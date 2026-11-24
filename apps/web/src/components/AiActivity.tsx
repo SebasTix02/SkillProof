@@ -1,6 +1,6 @@
 import { tr, trn } from '../i18n';
 import { MODEL_FALLBACKS, type ActivityEntry } from '@skillproof/shared';
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { Badge } from './ui';
 
 const DEFAULT_PRIMARY = Object.keys(MODEL_FALLBACKS);
@@ -66,7 +66,12 @@ export function latestStep(entries: ActivityEntry[] | undefined): ActivityEntry 
 export function AiActivity({ entries, live = false, maxHeight = '28rem' }: { entries: ActivityEntry[]; live?: boolean; maxHeight?: string }) {
   const box = useRef<HTMLDivElement>(null);
   const [follow, setFollow] = useState(true);
+  const [prevLive, setPrevLive] = useState(live);
   const [showThoughts, setShowThoughts] = useState(true);
+  if (live !== prevLive) {
+    setPrevLive(live);
+    if (live) setFollow(true);
+  }
   const hasThoughts = entries.some((e) => e.kind === 'thought');
   const shown = showThoughts ? entries : entries.filter((e) => e.kind !== 'thought');
   const steps = entries.filter((e) => e.kind !== 'thought').length;
@@ -78,11 +83,6 @@ export function AiActivity({ entries, live = false, maxHeight = '28rem' }: { ent
     if (el && follow) el.scrollTop = el.scrollHeight;
   }, [shown.length, follow]);
 
-  // Start following again when a new run starts.
-  useEffect(() => {
-    if (live) setFollow(true);
-  }, [live]);
-
   function onScroll() {
     const el = box.current;
     if (!el) return;
@@ -91,8 +91,6 @@ export function AiActivity({ entries, live = false, maxHeight = '28rem' }: { ent
   }
 
   if (entries.length === 0) return null;
-  let previous: ActivityEntry | undefined;
-  let run = 0;
 
   return (
     <div className="space-y-2">
@@ -118,9 +116,8 @@ export function AiActivity({ entries, live = false, maxHeight = '28rem' }: { ent
         >
           <ol className="relative space-y-3 border-l border-line pl-5">
             {shown.map((e, i) => {
-              const header = startsRun(e) ? ++run : 0;
-              const since = gap(previous, e);
-              previous = e;
+              const header = startsRun(e) ? shown.slice(0, i + 1).filter(startsRun).length : 0;
+              const since = gap(i > 0 ? shown[i - 1] : undefined, e);
               const active = live && i === last && e.kind !== 'done' && e.kind !== 'error';
               return (
                 <li key={`${e.at}-${i}`} className="relative text-sm">
@@ -165,6 +162,7 @@ export function AiActivity({ entries, live = false, maxHeight = '28rem' }: { ent
         </div>
         {!follow && (
           <button
+            type="button"
             onClick={() => setFollow(true)}
             className="absolute bottom-3 right-3 rounded-full border border-line bg-surface px-3 py-1 text-xs font-medium text-ink shadow hover:bg-paper"
           >

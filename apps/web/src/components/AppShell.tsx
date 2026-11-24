@@ -94,6 +94,7 @@ interface Flyout {
   trigger: HTMLElement;
   /** Opened from the keyboard: focus moves to its first link. */
   focus?: boolean;
+  activeKey: string | null;
 }
 
 function SidebarBody({
@@ -117,11 +118,11 @@ function SidebarBody({
   const activePage = activeParent(sections, active);
 
   // A page with sub-items opens by itself when it is the current page; the chevron opens or closes it by hand.
-  const [toggled, setToggled] = useState<Record<string, boolean>>({});
-  const isOpen = (key: string) => toggled[key] ?? key === activePage;
-  useEffect(() => setToggled({}), [activePage]);
+  const [toggled, setToggled] = useState<{ page: string | null; map: Record<string, boolean> }>({ page: activePage, map: {} });
+  const isOpen = (key: string) => (toggled.page === activePage ? toggled.map[key] : undefined) ?? key === activePage;
 
   const [flyout, setFlyout] = useState<Flyout | null>(null);
+  const openFlyout = flyout && collapsed && flyout.activeKey === active ? flyout : null;
   const hideTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const panel = useRef<HTMLDivElement>(null);
   // After Escape, focus goes back to the icon without reopening the panel.
@@ -132,27 +133,26 @@ function SidebarBody({
       quietFocus.current = false;
       return;
     }
-    setFlyout({ item, top: el.getBoundingClientRect().top, trigger: el, focus });
+    setFlyout({ item, top: el.getBoundingClientRect().top, trigger: el, focus, activeKey: active });
   };
   const hideFlyout = () => {
     hideTimer.current = setTimeout(() => setFlyout(null), 120);
   };
   const closeFlyout = (giveFocusBack: boolean) => {
     clearTimeout(hideTimer.current);
-    const trigger = flyout?.trigger;
+    const trigger = openFlyout?.trigger;
     setFlyout(null);
     if (giveFocusBack && trigger) {
       quietFocus.current = true;
       trigger.focus();
     }
   };
-  useEffect(() => setFlyout(null), [active, collapsed]);
   // Opened from the keyboard: focus its first sub-item (or the page link when it has none).
   useEffect(() => {
-    if (!flyout?.focus) return;
+    if (!openFlyout?.focus) return;
     const links = panel.current?.querySelectorAll<HTMLElement>('a');
     (links?.[1] ?? links?.[0])?.focus();
-  }, [flyout]);
+  }, [openFlyout]);
 
   /** Collapsed menu, on an icon: Enter or → opens the panel of a page with sections and moves focus into it. */
   const onIconKey = (item: NavItem) => (e: React.KeyboardEvent<HTMLAnchorElement>) => {
@@ -249,7 +249,7 @@ function SidebarBody({
                         aria-current={isActive ? 'page' : undefined}
                         aria-label={collapsed ? item.label : undefined}
                         aria-haspopup={collapsed && children.length > 0 ? 'menu' : undefined}
-                        aria-expanded={collapsed && children.length > 0 ? flyout?.item.key === item.key : undefined}
+                        aria-expanded={collapsed && children.length > 0 ? openFlyout?.item.key === item.key : undefined}
                         onFocus={collapsed ? (e) => showFlyout(item, e.currentTarget) : undefined}
                         onBlur={collapsed ? hideFlyout : undefined}
                         onKeyDown={onIconKey(item)}
@@ -268,7 +268,12 @@ function SidebarBody({
                           aria-expanded={open}
                           aria-controls={subId}
                           aria-label={open ? tr('Collapse {page}', { page: item.label }) : tr('Expand {page}', { page: item.label })}
-                          onClick={() => setToggled((t) => ({ ...t, [item.key]: !open }))}
+                          onClick={() =>
+                            setToggled((t) => ({
+                              page: activePage,
+                              map: { ...(t.page === activePage ? t.map : {}), [item.key]: !open },
+                            }))
+                          }
                           className={cx('flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-[4px] text-dark-muted hover:bg-dark-surface hover:text-dark-ink', focusRing)}
                         >
                           <Symbol name="expand_more" className={cx('text-[18px] transition-transform', open && 'rotate-180')} />
@@ -301,11 +306,11 @@ function SidebarBody({
         ))}
       </nav>
 
-      {flyout && collapsed && (
+      {openFlyout && (
         <div
           ref={panel}
           role="menu"
-          aria-label={flyout.item.label}
+          aria-label={openFlyout.item.label}
           onMouseEnter={() => clearTimeout(hideTimer.current)}
           onMouseLeave={hideFlyout}
           onFocus={() => clearTimeout(hideTimer.current)}
@@ -314,12 +319,12 @@ function SidebarBody({
           }}
           onKeyDown={onPanelKey}
           className="fixed left-[60px] z-[60] min-w-[200px] rounded-[6px] border border-dark-hairline bg-dark-surface p-1.5 text-[13px] text-dark-ink"
-          style={{ top: flyout.top }}
+          style={{ top: openFlyout.top }}
         >
-          <Link role="menuitem" to={flyout.item.to} className={cx('block rounded-[4px] px-3 py-1.5 font-semibold hover:bg-dark-canvas', focusRing)}>
-            {flyout.item.label}
+          <Link role="menuitem" to={openFlyout.item.to} className={cx('block rounded-[4px] px-3 py-1.5 font-semibold hover:bg-dark-canvas', focusRing)}>
+            {openFlyout.item.label}
           </Link>
-          {(flyout.item.children ?? []).map((c) => (
+          {(openFlyout.item.children ?? []).map((c) => (
             <Link
               key={c.key}
               role="menuitem"
@@ -413,10 +418,7 @@ function useSectionSpy(ids: string[]): string {
   const [current, setCurrent] = useState('');
   const key = ids.join(',');
   useEffect(() => {
-    if (!ids.length) {
-      setCurrent('');
-      return;
-    }
+    if (!ids.length) return;
     let frame = 0;
     const measure = () => {
       frame = 0;
@@ -451,7 +453,7 @@ function useSectionSpy(ids: string[]): string {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
-  return current;
+  return ids.length ? current : '';
 }
 
 /**
@@ -499,7 +501,9 @@ export function AppShell({ children }: { children: ReactNode }) {
   useScrollToHash(location.hash, location.pathname);
 
   const [collapsed, setCollapsed] = useState(readCollapsed);
-  const [open, setOpen] = useState(false);
+  const routeKey = `${location.pathname}${location.hash}`;
+  const [openRoute, setOpenRoute] = useState<string | null>(null);
+  const open = openRoute === routeKey;
   const drawer = useRef<HTMLDivElement>(null);
   const opener = useRef<HTMLButtonElement>(null);
 
@@ -514,9 +518,6 @@ export function AppShell({ children }: { children: ReactNode }) {
     });
   }
 
-  // The drawer closes when the user navigates.
-  useEffect(() => setOpen(false), [location.pathname, location.hash]);
-
   // While the drawer is open: no page scroll, focus stays inside, Escape closes it.
   useEffect(() => {
     if (!open) return;
@@ -526,7 +527,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     drawer.current?.querySelector<HTMLElement>(FOCUSABLE)?.focus();
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        setOpen(false);
+        setOpenRoute(null);
         return;
       }
       if (e.key !== 'Tab' || !drawer.current) return;
@@ -568,7 +569,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <button
           ref={opener}
           type="button"
-          onClick={() => setOpen(true)}
+          onClick={() => setOpenRoute(routeKey)}
           aria-expanded={open}
           aria-controls="app-menu"
           aria-label={tr('Open menu')}
@@ -581,11 +582,11 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       {open && (
         <div className="no-print fixed inset-0 z-50 lg:hidden">
-          <button type="button" aria-label={tr('Close menu')} tabIndex={-1} onClick={() => setOpen(false)} className="absolute inset-0 h-full w-full cursor-default bg-ink/50" />
+          <button type="button" aria-label={tr('Close menu')} tabIndex={-1} onClick={() => setOpenRoute(null)} className="absolute inset-0 h-full w-full cursor-default bg-ink/50" />
           <div ref={drawer} id="app-menu" role="dialog" aria-modal="true" aria-label={tr('Menu')} className="absolute inset-y-0 left-0 w-[288px] max-w-[85vw]">
             <button
               type="button"
-              onClick={() => setOpen(false)}
+              onClick={() => setOpenRoute(null)}
               aria-label={tr('Close menu')}
               className={cx('absolute top-2.5 right-2.5 z-10 flex h-9 w-9 cursor-pointer items-center justify-center rounded-[4px] border border-dark-hairline text-dark-ink hover:bg-dark-surface', focusRing)}
             >

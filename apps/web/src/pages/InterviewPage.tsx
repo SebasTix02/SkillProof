@@ -35,6 +35,7 @@ import { WrapUp } from '../lib/wrapUp';
 const SPECTROGRAM_ASSET = '/images/interview-spectrogram.svg';
 
 const BAR_HEIGHTS = [35, 50, 70, 85, 60, 40, 65, 90, 100, 75, 55, 30, 60, 45, 25, 18];
+const clockNow = () => Date.now();
 
 interface InterviewResponse {
   interview: {
@@ -194,7 +195,8 @@ function Room({
   const [question, setQuestion] = useState<PublicQuestion | null>(questions[0] ?? null);
   // The whole conversation so far, shown as a chat. A copy of `transcript`, updated as it grows.
   const [messages, setMessages] = useState<TranscriptEntry[]>([]);
-  const [bars, setBars] = useState<number[]>(BAR_HEIGHTS);
+  const [liveBars, setLiveBars] = useState<number[]>(BAR_HEIGHTS);
+  const bars = phase === 'live' ? liveBars : BAR_HEIGHTS;
 
   const transcript = useRef<TranscriptEntry[]>([]);
   const questionId = useRef<string | null>(null);
@@ -213,6 +215,7 @@ function Room({
   const pauseStart = useRef(0);
   const pausedMs = useRef(0);
   const [pauseCount, setPauseCount] = useState(0);
+  const [pauseBudgetUsed, setPauseBudgetUsed] = useState(false);
   const speakerRef = useRef<Speaker | null>(null);
   // Only the interview itself goes full screen: the code, the chat, the clock and the controls.
   const stageRef = useRef<HTMLDivElement | null>(null);
@@ -230,12 +233,9 @@ function Room({
   }, [phase, onLiveChange]);
 
   useEffect(() => {
-    if (phase !== 'live') {
-      setBars(BAR_HEIGHTS);
-      return;
-    }
+    if (phase !== 'live') return;
     const timer = setInterval(() => {
-      setBars((prev) => prev.map((_, i) => 18 + ((Date.now() / 90 + i * 29) % 78)));
+      setLiveBars((prev) => prev.map((_, i) => 18 + ((clockNow() / 90 + i * 29) % 78)));
     }, 280);
     return () => clearInterval(timer);
   }, [phase]);
@@ -253,9 +253,19 @@ function Room({
     focusEvents.current.push({
       type: open.type,
       at_ms: Math.max(0, open.at - startedAt.current),
-      duration_ms: Math.max(0, Date.now() - open.at),
+      duration_ms: Math.max(0, clockNow() - open.at),
     });
     setAway(null);
+  }, []);
+
+  const endPause = useCallback(() => {
+    if (!pausedRef.current) return;
+    const duration = clockNow() - pauseStart.current;
+    pausedMs.current += duration;
+    pausedRef.current = false;
+    setPaused(false);
+    setPauseBudgetUsed(pausedMs.current >= MAX_INTERVIEW_PAUSE_MS);
+    focusEvents.current.push({ type: 'paused', at_ms: Math.max(0, pauseStart.current - startedAt.current), duration_ms: duration });
   }, []);
 
   const finish = useCallback(async () => {
@@ -270,7 +280,7 @@ function Room({
       .map((t) => ({ ...t, text: t.text.trim().slice(0, 8000) }))
       .filter((t) => t.text)
       .slice(0, 400);
-    const duration = startedAt.current ? Math.round((Date.now() - startedAt.current) / 1000) : 0;
+    const duration = startedAt.current ? Math.round((clockNow() - startedAt.current) / 1000) : 0;
     try {
       await api(`/api/interviews/${interview.id}/finish`, {
         body: { transcript: entries, duration_s: duration, focus_events: focusEvents.current.slice(0, 200) },
@@ -281,7 +291,7 @@ function Room({
       setError(errorMessage(err));
       setPhase('idle');
     }
-  }, [interview.id, onChanged, teardown, endAway]);
+  }, [interview.id, onChanged, teardown, endAway, endPause]);
 
   // Exam mode watchers: leaving full screen, hiding the tab, or moving to another window.
   useEffect(() => {
@@ -367,15 +377,6 @@ function Room({
 
   /** Time paused so far, including a pause in progress. */
   const pausedSoFar = () => pausedMs.current + (pausedRef.current ? Date.now() - pauseStart.current : 0);
-
-  function endPause() {
-    if (!pausedRef.current) return;
-    const duration = Date.now() - pauseStart.current;
-    pausedMs.current += duration;
-    pausedRef.current = false;
-    setPaused(false);
-    focusEvents.current.push({ type: 'paused', at_ms: Math.max(0, pauseStart.current - startedAt.current), duration_ms: duration });
-  }
 
   function pause() {
     if (pausedRef.current || wrap.current.wrappingUp || pauseCount >= MAX_INTERVIEW_PAUSES || pausedMs.current >= MAX_INTERVIEW_PAUSE_MS) return;
@@ -748,7 +749,7 @@ function Room({
                 <Button
                   variant="secondary"
                   onClick={pause}
-                  disabled={pauseCount >= MAX_INTERVIEW_PAUSES || pausedMs.current >= MAX_INTERVIEW_PAUSE_MS}
+                  disabled={pauseCount >= MAX_INTERVIEW_PAUSES || pauseBudgetUsed}
                   className="py-1.5 text-[12px]"
                   title={tr('Up to {n} pauses, {m} minutes in total', { n: MAX_INTERVIEW_PAUSES, m: MAX_INTERVIEW_PAUSE_MS / 60_000 })}
                 >

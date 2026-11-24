@@ -37,7 +37,8 @@ export interface BuildAppOptions {
 }
 
 export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyInstance> {
-  const app = Fastify({ logger: options.logger ?? true, bodyLimit: 1024 * 1024 });
+  // trustProxy: Cloud Run and Vercel sit behind a reverse proxy, so req.ip comes from X-Forwarded-For per client.
+  const app = Fastify({ logger: options.logger ?? true, bodyLimit: 1024 * 1024, trustProxy: true });
 
   // gzip / brotli for JSON, the page and the web app's files (Cloud Run does not compress on its own).
   await app.register(compress, { global: true, threshold: 1024 });
