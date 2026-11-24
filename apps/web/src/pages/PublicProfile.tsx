@@ -5,6 +5,7 @@ import { one, type ReportView } from '../components/Report';
 import {
   ARTIFACT_THEME_CYCLE,
   Badge,
+  CONFIDENCE_LABEL,
   CopyLinkButton,
   DarkBanner,
   EditorialQuoteBlock,
@@ -381,7 +382,7 @@ export function PublicProfile() {
                   <div className="flex flex-wrap items-center gap-3">
                     <span className="font-mono-code text-[11px] text-muted">{tr('Frozen:')}{' '}{formatDate(i.created_at)}</span>
                     <span className={`font-mono-code rounded-[4px] px-3 py-1 text-[11px] font-bold ${theme.badgeBg}`}>
-                      {report.ownership_score}{' '}{tr('/ 100 OWNERSHIP •')}{' '}{report.confidence.toUpperCase()}{' '}{tr('CONFIDENCE')}
+                      {tr('{score} / 100 OWNERSHIP • {confidence}', { score: report.ownership_score, confidence: (CONFIDENCE_LABEL[report.confidence as keyof typeof CONFIDENCE_LABEL] ?? report.confidence).toUpperCase() })}
                     </span>
                   </div>
                 </div>

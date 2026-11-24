@@ -33,6 +33,7 @@ import { useAuth } from '../../lib/auth';
 import { evidenceLink, evidenceTitle } from '../../lib/evidence';
 import type { EventView, RepoRef, ScoreView, VersionView } from '../../lib/types';
 import { useLoad } from '../../lib/useLoad';
+import { NONE } from '../../lib/empty';
 
 interface ConsoleSubmission {
   id: string;
@@ -321,8 +322,8 @@ export function SimilarityCompare() {
   const canDecide = !!org?.permissions.includes('integrity.decide');
   const integrity = useLoad<IntegrityResponse>(id ? `/api/events/${id}/integrity` : null);
 
-  const flags = data?.similarity_flags ?? [];
-  const submissions = data?.submissions ?? [];
+  const flags = data?.similarity_flags ?? NONE;
+  const submissions = data?.submissions ?? NONE;
 
   const activeFlag = useMemo(() => {
     const flagId = searchParams.get('flag');

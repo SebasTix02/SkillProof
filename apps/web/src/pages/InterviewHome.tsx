@@ -22,6 +22,7 @@ import {
 import { api, errorMessage, existingInterviewId } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { useLoad } from '../lib/useLoad';
+import { NONE } from '../lib/empty';
 
 const COCKPIT_ASSET = '/images/interview-cockpit.webp';
 
@@ -94,7 +95,7 @@ export function InterviewHome() {
     }
   }
 
-  const allInterviews = list.data?.interviews ?? [];
+  const allInterviews = list.data?.interviews ?? NONE;
 
   const stats = useMemo(() => {
     const total = allInterviews.length;
@@ -622,7 +623,7 @@ export function InterviewHome() {
   
           <div className="font-mono-code flex flex-col items-center justify-between border-t border-line bg-paper px-4 py-2.5 text-[11px] text-muted sm:flex-row">
             <div>
-              {tr('SHOWING')}{' '}{filteredInterviews.length}{' '}{tr('OF')}{' '}{allInterviews.length}{' '}{tr('AUDIT RECORDS')}
+              {tr('SHOWING {shown} OF {total} AUDIT RECORDS', { shown: filteredInterviews.length, total: allInterviews.length })}
             </div>
             <div className="mt-1 flex items-center gap-3 sm:mt-0">
               <span className="font-semibold text-ink">{tr('ENGINE: GEMINI SELECTIVE REPO READER + GEMINI LIVE')}</span>

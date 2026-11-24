@@ -4,7 +4,7 @@ import type { Part } from '@google/genai';
 import type { AnalysisRow } from '../engine/analyze.js';
 import { currentActivity } from '../lib/activity.js';
 import { AiUnavailableError, generateJson, isTransientAiError, type UsageContext } from '../lib/gemini.js';
-import { analysisModel, summariesModel } from '../lib/models.js';
+import { analysisModel } from '../lib/models.js';
 import { db, must } from '../lib/supabase.js';
 import { HACKATHON_SYSTEM, scoringSystem, subjectBlock, type CourseContext, type ScoringSpecKey } from './scoringSpecs.js';
 

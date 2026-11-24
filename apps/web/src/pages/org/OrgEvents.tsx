@@ -23,6 +23,7 @@ import { useAuth } from '../../lib/auth';
 import { roleLabel } from '../../lib/nav';
 import { STATUS_LABEL, VISIBILITY_LABEL, type EventView } from '../../lib/types';
 import { useLoad } from '../../lib/useLoad';
+import { NONE } from '../../lib/empty';
 
 type OrgEvent = EventView & { submission_count: number; participant_count: number };
 
@@ -35,7 +36,7 @@ export function OrgEvents() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
 
-  const events = data?.events ?? [];
+  const events = data?.events ?? NONE;
 
   const stats = useMemo(() => {
     const totalEvents = events.length;
@@ -347,7 +348,7 @@ export function OrgEvents() {
                             {tr('Submissions & Cohort')}
                           </span>
                           <span className="block text-[13px] font-medium text-ink">
-                            {e.submission_count}{' '}{tr('Submissions /')}{' '}{e.participant_count}{' '}{tr('Joined')}
+                            {tr('{submissions} Submissions / {joined} Joined', { submissions: e.submission_count, joined: e.participant_count })}
                           </span>
                           <ScoreBar
                             value={subRatio}

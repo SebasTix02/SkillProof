@@ -11,13 +11,15 @@
     "dev:web": "npm run dev -w @skillproof/web",
     "build": "npm run build -w @skillproof/shared && npm run build -w @skillproof/api && npm run build -w @skillproof/web",
     "typecheck": "npm run typecheck --workspaces --if-present",
-    "test": "npm run test --workspaces --if-present"
+    "test": "npm run test --workspaces --if-present",
+    "lint": "oxlint apps packages"
   },
   "engines": {
     "node": ">=22"
   },
   "devDependencies": {
     "esbuild": "^0.28.2",
+    "oxlint": "^1.95.0",
     "typescript": "^7.0.2",
     "vitest": "^5.1.0"
   }

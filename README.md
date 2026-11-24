@@ -69,10 +69,10 @@ Gemini (text, video and Live audio) and the GitHub API.
 
 | Area | Where to look |
 | --- | --- |
-| **Code quality** | npm workspaces with shared zod schemas (`packages/shared`), typed API routes and services, shared UI components and design tokens (`apps/web/src/components/shared`). |
-| **Security** | Row level security on every table, permissions checked in the API, service role key only on the server, per-IP rate limits, security headers, hashed access codes, audit log, interview answer key never sent to the browser. |
-| **Efficiency** | Selective repository download, cache per commit and per file (`repo_analyses`, `file_summaries`), code fingerprints without AI calls, a judging queue (one at a time), model health and backups. About 21 000 input tokens for a 286-file project. |
-| **Testing** | About 190 unit and HTTP tests (Vitest) for the API, the shared rules and the web app, 7 database suites for migrations and row level security, and CI on every push (`.github/workflows`). See [Checks](#checks). |
+| **Code quality** | npm workspaces with shared zod schemas (`packages/shared`), strict TypeScript, typed API routes and services, shared UI components and design tokens (`apps/web/src/components/shared`), a linter with React hooks rules (`npm run lint`, oxlint, zero errors) and `.editorconfig`, all enforced in CI. |
+| **Security** | Row level security on every table, permissions checked in the API, service role key only on the server and secrets in Secret Manager, per-IP rate limits, a strict Content-Security-Policy (inline scripts by hash only, no framing), HSTS, nosniff, COOP and a Permissions-Policy that allows only the microphone, hashed access codes, audit log, interview answer key never sent to the browser, `npm audit` clean for production dependencies. |
+| **Efficiency** | Selective repository download, cache per commit and per file (`repo_analyses`, `file_summaries`), code fingerprints without AI calls, a judging queue (one at a time), model health and backups. About 21 000 input tokens for a 286-file project. In the browser: brotli/gzip responses (the main bundle goes from 193 KB to 56 KB), hashed assets cached for a year, code split per screen, and WebP images. |
+| **Testing** | 193 unit and HTTP tests (Vitest) for the API, the shared rules and the web app, 7 database suites for migrations and row level security, and CI on every push (`.github/workflows`). See [Checks](#checks). |
 | **Accessibility** | WCAG 2.2 contrast checked in light and dark mode, keyboard navigation (tabs, menus, dialogs), ARIA patterns, reduced-motion support, English and Spanish. |
 | **Problem alignment** | AI-generated code is easy to submit and hard to verify; SkillProof checks both the code and its author's understanding. |
 
@@ -207,6 +207,7 @@ SkillProof deals with that like this:
 ## Checks
 
 ```bash
+npm run lint
 npm run typecheck
 npm test                 # unit and HTTP tests for the shared rules, the API and the web app
 ./scripts/test-db.sh     # applies the migrations to a temporary Postgres 16 and checks row level security

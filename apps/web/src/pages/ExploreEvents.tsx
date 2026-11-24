@@ -1,5 +1,5 @@
 import { tr, trn } from '../i18n';
-import { useMemo, useState, type FormEvent } from 'react';
+import { useCallback, useMemo, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   Badge,
@@ -17,6 +17,7 @@ import {
 import { useAuth } from '../lib/auth';
 import { STATUS_LABEL, VISIBILITY_LABEL, type EventView } from '../lib/types';
 import { useLoad } from '../lib/useLoad';
+import { NONE } from '../lib/empty';
 
 const GLOBE_BANNER = '/images/events-globe.webp';
 
@@ -40,8 +41,8 @@ export function ExploreEvents() {
   const [sortBy, setSortBy] = useState<'deadline' | 'recent' | 'name'>('deadline');
   const [privateInput, setPrivateInput] = useState('');
 
-  const myEvents = mine.data?.events ?? [];
-  const openEvents = open.data?.events ?? [];
+  const myEvents = mine.data?.events ?? NONE;
+  const openEvents = open.data?.events ?? NONE;
   const joinedIds = useMemo(() => new Set(myEvents.map((e) => e.id)), [myEvents]);
   const unjoinedOpen = useMemo(() => openEvents.filter((e) => !joinedIds.has(e.id)), [openEvents, joinedIds]);
 
@@ -51,7 +52,7 @@ export function ExploreEvents() {
     return null;
   }, [openEvents, myEvents]);
 
-  function applyFilterAndSort(events: EventView[]): EventView[] {
+  const applyFilterAndSort = useCallback((events: EventView[]): EventView[] => {
     const q = query.trim().toLowerCase();
     const filtered = events.filter((e) => {
       if (filterKind === 'interviews' && !e.interviews_enabled) return false;
@@ -72,10 +73,10 @@ export function ExploreEvents() {
       if (sortBy === 'recent') return Date.parse(b.starts_at) - Date.parse(a.starts_at);
       return Date.parse(a.submission_deadline) - Date.parse(b.submission_deadline);
     });
-  }
+  }, [query, filterKind, sortBy]);
 
-  const filteredMine = useMemo(() => applyFilterAndSort(myEvents), [myEvents, query, filterKind, sortBy]);
-  const filteredOpen = useMemo(() => applyFilterAndSort(unjoinedOpen), [unjoinedOpen, query, filterKind, sortBy]);
+  const filteredMine = useMemo(() => applyFilterAndSort(myEvents), [myEvents, applyFilterAndSort]);
+  const filteredOpen = useMemo(() => applyFilterAndSort(unjoinedOpen), [unjoinedOpen, applyFilterAndSort]);
 
   function handleOpenPrivate(e: FormEvent) {
     e.preventDefault();

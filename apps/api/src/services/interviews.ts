@@ -2,20 +2,20 @@ import type { Locale } from '@skillproof/shared';
 import { inLanguage, languageNote } from './language.js';
 import { Modality, Type, type FunctionDeclaration } from '@google/genai';
 import {
-  INTERVIEW_SECONDS, InterviewReportSchema, MAX_INTERVIEW_PAUSE_MS, MAX_QUESTIONS, MIN_QUESTIONS, MODELS, QuestionPlanDraftSchema, QuestionPlanSchema, clampQuestionText, describeFocusEvents, type FocusEvent,
+  INTERVIEW_SECONDS, InterviewReportSchema, MAX_INTERVIEW_PAUSE_MS, MAX_QUESTIONS, MODELS, clampQuestionText, describeFocusEvents, type FocusEvent,
   type ActivityEntry, type PlannedQuestion, type PublicQuestion, type QuestionPlan, type TranscriptEntry,
 } from '@skillproof/shared';
 import { analyzeRepo, type AnalysisRow, type HookSnippet, type RepoRow } from '../engine/analyze.js';
 import { Activity, withActivity } from '../lib/activity.js';
 import { JobStopped, interviewCheckpoint } from '../lib/control.js';
 import { badRequest } from '../lib/errors.js';
-import { UNTRUSTED_NOTICE, generateJson, isTransientAiError, liveAi, withLiveAiRotation, AiUnavailableError } from '../lib/gemini.js';
+import { UNTRUSTED_NOTICE, generateJson, isTransientAiError, withLiveAiRotation, AiUnavailableError } from '../lib/gemini.js';
 import { getFileAuthors } from '../lib/github.js';
 import {
   COURSE_GROUP_PLAN_SYSTEM, COURSE_PLAN_SYSTEM, INTERVIEW_SPECS, courseBlock, interviewerOpening,
   type CourseInterviewContext, type InterviewSpecKey,
 } from './interviewSpecs.js';
-import { analysisModel, summariesModel } from '../lib/models.js';
+import { analysisModel } from '../lib/models.js';
 import { friendlyJobError, technicalDetail } from '../lib/jobErrors.js';
 import { db, must } from '../lib/supabase.js';
 

@@ -781,7 +781,7 @@ function Room({
               <>
                 <h3 className="font-serif-heading text-[20px] font-medium text-ink">{tr('Interview paused')}</h3>
                 <p className="text-[13px] text-muted">
-                  {tr('The microphone, the interviewer and the clock are stopped, and the question is hidden. The pause is recorded. It ends on its own when your')}{' '}{MAX_INTERVIEW_PAUSE_MS / 60_000}{' '}{tr('minutes of pause run out.')}
+                  {tr('The microphone, the interviewer and the clock are stopped, and the question is hidden. The pause is recorded. It ends on its own when your {minutes} minutes of pause run out.', { minutes: MAX_INTERVIEW_PAUSE_MS / 60_000 })}
                 </p>
                 <Button onClick={resume} className="w-full">{tr('Resume the interview')}</Button>
               </>
@@ -929,8 +929,10 @@ function Room({
                   <li className="flex items-start gap-2">
                     <span className="font-mono-code mt-0.5 text-[11px] font-bold text-accent">04</span>
                     <span>
-                      {tr('The interview room (code and conversation) opens in')}{' '}<strong>{tr('full screen')}</strong>{tr('. Leaving it, switching tabs or windows is not blocked, but each time is recorded and shown to reviewers. You can pause up to')}{' '}
-                      {MAX_INTERVIEW_PAUSES}{' '}{tr('times (')}{MAX_INTERVIEW_PAUSE_MS / 60_000}{' '}{tr('minutes in total) and use “Next question” to move on.')}
+                      {rich(
+                        tr('The interview room (code and conversation) opens in {fullScreen}. Leaving it, switching tabs or windows is not blocked, but each time is recorded and shown to reviewers. You can pause up to {pauses} times ({minutes} minutes in total) and use “Next question” to move on.', { pauses: MAX_INTERVIEW_PAUSES, minutes: MAX_INTERVIEW_PAUSE_MS / 60_000 }),
+                        { fullScreen: <strong>{tr('full screen')}</strong> },
+                      )}
                     </span>
                   </li>
                   {(interview.submission_id || interview.assignment) && (
@@ -962,7 +964,7 @@ function Room({
               {/* Question Stage Header */}
               <div className="flex items-center justify-between border-b border-line pb-2">
                 <span className="font-mono-code text-[11px] font-bold tracking-wider text-accent uppercase">
-                  {tr('QUESTION')}{' '}{activeIdx + 1}{' '}{tr('OF')}{' '}{Math.max(1, questions.length)}{' '}{tr('• ORAL DEFENSE')}
+                  {tr('QUESTION {n} OF {total} • ORAL DEFENSE', { n: activeIdx + 1, total: Math.max(1, questions.length) })}
                 </span>
                 <span className="font-mono-code rounded-[3px] border border-accent/30 bg-accent-soft px-2 py-0.5 text-[10px] font-semibold text-accent">
                   {phase === 'connecting' ? tr('CONNECTING…') : tr('LIVE AUDIO')}

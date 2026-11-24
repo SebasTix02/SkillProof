@@ -1,4 +1,4 @@
-import { lazy, tr, trn } from '../../i18n';
+import { tr, trn } from '../../i18n';
 import type { ActivityEntry, CommitProfile, RepoMap, Rubric } from '@skillproof/shared';
 import { useMemo, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
@@ -9,7 +9,6 @@ import {
   DossierPageHeader,
   Input,
   LedgerAnchorBanner,
-  LiveDot,
   Notice,
   PageState,
   SUBMISSION_STATUS_LABEL,
@@ -32,6 +31,7 @@ import { useAuth } from '../../lib/auth';
 import { STATUS_LABEL, type EventView, type RepoRef, type ScoreView } from '../../lib/types';
 import type { AssignmentConsoleResponse, AssignmentView } from '../../lib/courses';
 import { useLoad } from '../../lib/useLoad';
+import { NONE } from '../../lib/empty';
 
 type OrgEvent = EventView & { submission_count: number; participant_count: number };
 
@@ -147,7 +147,7 @@ export function IntegrityReview() {
   const [source, setSource] = useState<Source>(routeAssignmentId ? 'courses' : 'events');
   const orgEvents = useLoad<{ events: OrgEvent[] }>(org ? `/api/orgs/${org.id}/events` : null);
   const orgAssignments = useLoad<{ assignments: OrgAssignment[] }>(org ? `/api/orgs/${org.id}/assignments` : null);
-  const events = orgEvents.data?.events ?? [];
+  const events = orgEvents.data?.events ?? NONE;
   const assignments = orgAssignments.data?.assignments ?? [];
 
   const [selectedEventId, setSelectedEventId] = useState<string | null>(routeEventId ?? null);
@@ -180,8 +180,8 @@ export function IntegrityReview() {
         : null,
   );
 
-  const submissions = consoleData.data?.submissions ?? [];
-  const flags = consoleData.data?.similarity_flags ?? [];
+  const submissions = consoleData.data?.submissions ?? NONE;
+  const flags = consoleData.data?.similarity_flags ?? NONE;
   const flaggedSet = useMemo(
     () => new Set(flags.flatMap((f) => [f.submission_a, f.submission_b])),
     [flags],

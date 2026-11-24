@@ -1,4 +1,5 @@
 import { tr } from '../../i18n';
+import { rich } from '../../i18n/rich';
 import { useCallback, useMemo, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import {
@@ -33,6 +34,7 @@ import { useAuth } from '../../lib/auth';
 import { roleLabel } from '../../lib/nav';
 import { isDirty, useUnsavedChanges } from '../../lib/dirty';
 import { useLoad } from '../../lib/useLoad';
+import { NONE } from '../../lib/empty';
 
 /** Role keys as the API names them. The screen shows "owner" for org_owner. */
 type ApiRole = 'org_owner' | 'organizer' | 'judge' | 'auditor';
@@ -133,7 +135,7 @@ export function OrgSettings() {
   const [newLink, setNewLink] = useState<{ email: string; url: string; expires_at: string } | null>(null);
   const [policyDraft, setPolicyDraft] = useState<OrgSettingsJson | null>(null);
 
-  const memberList = members.data?.members ?? [];
+  const memberList = members.data?.members ?? NONE;
   const invitations = invites.data?.invitations ?? [];
   const orgInfo = members.data?.organization;
   const seatLimit = usage.data?.seat_limit ?? orgInfo?.seat_limit ?? null;
@@ -279,7 +281,7 @@ export function OrgSettings() {
       />
 
       {!canManage && !canSeeUsage && !canAudit && (
-        <Notice tone="info">{tr('Your role in')}{' '}{org.name}{' '}{tr('cannot see its settings. Ask an owner of the organization.')}</Notice>
+        <Notice tone="info">{tr('Your role in {org} cannot see its settings. Ask an owner of the organization.', { org: org.name })}</Notice>
       )}
 
       {/* KPI strip */}
@@ -381,7 +383,7 @@ export function OrgSettings() {
             {newLink && (
               <div className="space-y-2 rounded-[4px] border border-accent/30 bg-accent-soft p-4">
                 <p className="text-[13px] text-ink">
-                  {tr('Send this link to')}{' '}<strong>{newLink.email}</strong>{tr('. It is shown only once and expires')}{' '}{formatDate(newLink.expires_at)}.
+                  {rich(tr('Send this link to {email}. It is shown only once and expires {date}.', { date: formatDate(newLink.expires_at) }), { email: <strong>{newLink.email}</strong> })}
                 </p>
                 <div className="flex flex-wrap items-center gap-2">
                   <code className="font-mono-code min-w-0 flex-1 truncate rounded-[3px] border border-line bg-surface px-2 py-1.5 text-[12px]">{newLink.url}</code>

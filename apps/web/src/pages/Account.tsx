@@ -220,7 +220,7 @@ export function SignUp() {
       >
         <div className="space-y-4">
           <Notice tone="good">
-            {tr('We sent a confirmation link to')}{' '}<strong className="font-mono-code">{email}</strong>{tr('. Open it to finish creating your SkillProof account.')}
+            {rich(tr('We sent a confirmation link to {email}. Open it to finish creating your SkillProof account.'), { email: <strong className="font-mono-code">{email}</strong> })}
           </Notice>
           <p className="text-[13px] text-muted">
             {tr('Once confirmed, you will be redirected automatically to your workspace. Already confirmed?')}{' '}
@@ -480,7 +480,7 @@ export function ForgotPassword() {
       {sent ? (
         <div className="space-y-4">
           <Notice tone="good">
-            {tr('If an account exists for')}{' '}<strong className="font-mono-code">{email}</strong>{tr(', a password reset link is on its way.')}
+            {rich(tr('If an account exists for {email}, a password reset link is on its way.'), { email: <strong className="font-mono-code">{email}</strong> })}
           </Notice>
           <p className="text-[13px] text-muted">
             <Link to="/login" className="font-semibold text-accent hover:underline">
