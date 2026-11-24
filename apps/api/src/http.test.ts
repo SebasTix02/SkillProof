@@ -64,4 +64,15 @@ describe('Fastify HTTP integration', () => {
     expect(lastStatus).toBe(429);
     expect(retryAfter).toBe('60');
   });
+
+  it('isolates rate limits per client IP via X-Forwarded-For behind Cloud Run / Vercel proxies', async () => {
+    for (let i = 0; i < 5; i++) {
+      await app.inject({ method: 'GET', url: '/api/me', headers: { 'x-forwarded-for': '203.0.113.10' } });
+    }
+    const blocked = await app.inject({ method: 'GET', url: '/api/me', headers: { 'x-forwarded-for': '203.0.113.10' } });
+    expect(blocked.statusCode).toBe(429);
+
+    const otherClient = await app.inject({ method: 'GET', url: '/api/me', headers: { 'x-forwarded-for': '198.51.100.22' } });
+    expect(otherClient.statusCode).toBe(401);
+  });
 });

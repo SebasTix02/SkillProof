@@ -28,8 +28,6 @@ export function LiveChat({ messages, questions, className = '' }: { messages: Tr
     return i >= 0 ? i + 1 : null;
   };
 
-  let lastQuestion: string | null | undefined;
-
   return (
     <div className={`relative flex min-h-0 flex-col ${className}`}>
       <div
@@ -43,8 +41,8 @@ export function LiveChat({ messages, questions, className = '' }: { messages: Tr
         {messages.length === 0 && <p className="font-mono-code text-[11px] text-muted">{tr('The conversation appears here as you talk.')}</p>}
         {messages.map((m, i) => {
           const n = questionNumber(m.question_id);
-          const showSeparator = m.question_id && m.question_id !== lastQuestion && n !== null;
-          lastQuestion = m.question_id ?? lastQuestion;
+          const prevQuestion = messages.slice(0, i).reverse().find((p) => p.question_id)?.question_id;
+          const showSeparator = Boolean(m.question_id && m.question_id !== prevQuestion && n !== null);
           return (
             <Fragment key={i}>
               {showSeparator && (

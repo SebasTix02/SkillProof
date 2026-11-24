@@ -349,8 +349,9 @@ function Join({ event, onJoined }: { event: EventView; onJoined: () => Promise<v
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [now] = useState(() => Date.now());
   const toast = useToast();
-  const open = event.status === 'open' && Date.parse(event.submission_deadline) > Date.now();
+  const open = event.status === 'open' && Date.parse(event.submission_deadline) > now;
 
   async function join(e: FormEvent) {
     e.preventDefault();

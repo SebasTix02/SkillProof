@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useSyncExternalStore } from 'react';
 import { api } from './api';
 
 /** An invitation to a group of a course assignment that can still be answered (GET /api/me/notifications). */
@@ -28,12 +28,13 @@ const POLL_MS = 60_000;
  * requests. Loaded quietly (no progress bar), every minute while the tab is visible and when it comes back.
  */
 let state: { items: AppNotification[]; loaded: boolean } = { items: [], loaded: false };
-const listeners = new Set<(s: typeof state) => void>();
+const EMPTY_STATE: { items: AppNotification[]; loaded: boolean } = { items: [], loaded: false };
+const listeners = new Set<() => void>();
 let inflight: Promise<void> | null = null;
 
 function set(next: typeof state) {
   state = next;
-  listeners.forEach((l) => l(state));
+  listeners.forEach((l) => l());
 }
 
 function refresh(): Promise<void> {
@@ -81,26 +82,27 @@ function start() {
 }
 
 export function useNotifications(enabled: boolean): { items: AppNotification[]; loaded: boolean; refresh: () => Promise<void> } {
-  const [s, setS] = useState(state);
-
-  useEffect(() => {
-    if (!enabled) return;
-    listeners.add(setS);
-    setS(state);
-    if (listeners.size === 1) {
-      start();
-      void refresh();
-    }
-    return () => {
-      listeners.delete(setS);
-      if (listeners.size === 0) {
-        stop?.();
-        stop = null;
+  const subscribe = useCallback(
+    (onStoreChange: () => void) => {
+      if (!enabled) return () => {};
+      listeners.add(onStoreChange);
+      if (listeners.size === 1) {
+        start();
+        void refresh();
       }
-    };
-  }, [enabled]);
+      return () => {
+        listeners.delete(onStoreChange);
+        if (listeners.size === 0) {
+          stop?.();
+          stop = null;
+        }
+      };
+    },
+    [enabled],
+  );
 
-  return { items: enabled ? s.items : [], loaded: s.loaded, refresh: useCallback(() => refresh(), []) };
+  const s = useSyncExternalStore(subscribe, () => (enabled ? state : EMPTY_STATE), () => EMPTY_STATE);
+  return { items: s.items, loaded: s.loaded, refresh: useCallback(() => refresh(), []) };
 }
 
 /** "5 min ago", "in 2 days" in the interface language. */

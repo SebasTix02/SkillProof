@@ -633,17 +633,20 @@ export function MyAccount() {
   const [showQuotes, setShowQuotes] = useState(true);
   const [notifyResults, setNotifyResults] = useState(true);
   const [rotatedUrl, setRotatedUrl] = useState<string | null>(null);
+  const [syncedMe, setSyncedMe] = useState(me);
   const toast = useToast();
   const confirm = useConfirm();
 
-  useEffect(() => {
-    if (!me) return;
-    setName(me.profile.display_name);
-    setHeadline(me.public_profile?.headline ?? '');
-    setIsPublic(me.public_profile?.is_public ?? false);
-    setShowQuotes(me.public_profile?.show_quotes ?? true);
-    setNotifyResults(me.profile.notify_results ?? true);
-  }, [me]);
+  if (me !== syncedMe) {
+    setSyncedMe(me);
+    if (me) {
+      setName(me.profile.display_name);
+      setHeadline(me.public_profile?.headline ?? '');
+      setIsPublic(me.public_profile?.is_public ?? false);
+      setShowQuotes(me.public_profile?.show_quotes ?? true);
+      setNotifyResults(me.profile.notify_results ?? true);
+    }
+  }
 
   // Save and Discard only do something when the form differs from what was loaded; leaving asks first.
   const loaded = me ? { name: me.profile.display_name, headline: me.public_profile?.headline ?? '', isPublic: me.public_profile?.is_public ?? false } : null;

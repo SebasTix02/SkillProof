@@ -49,16 +49,21 @@ export function JudgeReviewCard({ submissionId, rubric, locked }: { submissionId
   const [status, setStatus] = useState<'draft' | 'submitted'>('draft');
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [syncedData, setSyncedData] = useState(data);
   const dirty = useRef(false);
 
-  useEffect(() => {
+  if (data !== syncedData) {
+    setSyncedData(data);
     const r = data?.review;
-    dirty.current = false;
     setScores(Object.fromEntries((r?.scores_json ?? []).map((s) => [s.criterion_key, s.score])));
     setNotes(Object.fromEntries((r?.scores_json ?? []).map((s) => [s.criterion_key, s.note])));
     setNote(r?.note ?? '');
     setStatus(r?.status ?? 'draft');
     setSavedAt(r?.updated_at ?? null);
+  }
+
+  useEffect(() => {
+    dirty.current = false;
   }, [data]);
 
   async function save(nextStatus: 'draft' | 'submitted') {

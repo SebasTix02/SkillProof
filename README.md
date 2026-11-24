@@ -69,10 +69,10 @@ Gemini (text, video and Live audio) and the GitHub API.
 
 | Area | Where to look |
 | --- | --- |
-| **Code quality** | npm workspaces with shared zod schemas (`packages/shared`), strict TypeScript, typed API routes and services, shared UI components and design tokens (`apps/web/src/components/shared`), a linter with React hooks rules (`npm run lint`, oxlint, zero errors) and `.editorconfig`, all enforced in CI. |
-| **Security** | Row level security on every table, permissions checked in the API, service role key only on the server and secrets in Secret Manager, per-IP rate limits, a strict Content-Security-Policy (inline scripts by hash only, no framing), HSTS, nosniff, COOP and a Permissions-Policy that allows only the microphone, hashed access codes, audit log, interview answer key never sent to the browser, `npm audit` clean for production dependencies. |
-| **Efficiency** | Selective repository download, cache per commit and per file (`repo_analyses`, `file_summaries`), code fingerprints without AI calls, a judging queue (one at a time), model health and backups. About 21 000 input tokens for a 286-file project. In the browser: brotli/gzip responses (the main bundle goes from 193 KB to 56 KB), hashed assets cached for a year, code split per screen, and WebP images. |
-| **Testing** | 193 unit and HTTP tests (Vitest) for the API, the shared rules and the web app, 7 database suites for migrations and row level security, and CI on every push (`.github/workflows`). See [Checks](#checks). |
+| **Code quality** | npm workspaces with shared zod schemas (`packages/shared`), strict TypeScript, typed API routes and services, shared UI components and design tokens (`apps/web/src/components/shared`), a linter with React hooks and React Compiler purity rules (`npm run lint`, oxlint, zero errors and zero warnings) and `.editorconfig`, all enforced in CI. |
+| **Security** | Row level security on every table, permissions checked in the API, service role key only on the server and secrets in Secret Manager, proxy-aware per-IP rate limits (`trustProxy` + bounded LRU memory), a strict Content-Security-Policy (inline scripts by `sha256` hash only on both Cloud Run and Vercel, no framing), HSTS, nosniff, COOP and a Permissions-Policy that allows only the microphone, hashed access codes (`scrypt` + `timingSafeEqual`), prompt-injection isolation (`UNTRUSTED_NOTICE`), audit log, interview answer key never sent to the browser, `npm audit` clean for production dependencies. |
+| **Efficiency** | Selective repository download, cache per commit and per file (`repo_analyses`, `file_summaries`), code fingerprints without AI calls, a judging queue (one at a time), multi-key API pool rotation (`GEMINI_API_KEYS`), stable GA model prioritization and health-based backups. About 21 000 input tokens for a 286-file project. In the browser: brotli/gzip responses (the main bundle goes from 193 KB to 56 KB), hashed assets cached for a year, code split per screen, and WebP images. |
+| **Testing** | 194 unit and HTTP tests (Vitest) for the API, the shared rules and the web app, 7 database suites for migrations and row level security, Docker image verification, and CI on every push (`.github/workflows`). See [Checks](#checks). |
 | **Accessibility** | WCAG 2.2 contrast checked in light and dark mode, keyboard navigation (tabs, menus, dialogs), ARIA patterns, reduced-motion support, English and Spanish. |
 | **Problem alignment** | AI-generated code is easy to submit and hard to verify; SkillProof checks both the code and its author's understanding. |
 
@@ -301,9 +301,11 @@ switches instead of waiting:
   over, one probe call tests it (half-open); the others keep using the backup until it answers. Models that failed
   more than half of their recent calls are tried after their backups. The state is in `ai_model_health`, shared by
   every Vercel instance.
-- **Configurable models:** `GEMINI_MODEL_ANALYSIS`, `GEMINI_MODEL_SUMMARIES`, `GEMINI_FALLBACKS_ANALYSIS` and
-  `GEMINI_FALLBACKS_SUMMARIES` change the main models and their backups without a code change. The defaults are in
-  `packages/shared/src/models.ts`.
+- **Configurable models and API key rotation:** `GEMINI_MODEL_ANALYSIS`, `GEMINI_MODEL_SUMMARIES`, `GEMINI_FALLBACKS_ANALYSIS` and
+  `GEMINI_FALLBACKS_SUMMARIES` change the main models and their backups without a code change; stable (GA) models are
+  always prioritized ahead of `-preview` or experimental models. Multiple comma-separated keys in `GEMINI_API_KEY` or
+  `GEMINI_API_KEYS` are rotated automatically on quota (`429`) or capacity (`503`) errors, including when minting Live
+  interview tokens. The defaults are in `packages/shared/src/models.ts`.
 - **A second provider:** with `GEMINI_CROSS_PROVIDER=true` and both the Gemini API key and a Google Cloud project
   configured, the same models are tried through the other provider when every model is busy on the main one.
   Vertex AI with billing enabled (where Google Cloud credits apply) usually has more capacity than a free AI
@@ -347,7 +349,7 @@ instructions, opens a live audio session with Gemini, and sends the transcript b
 A second model call compares the transcript with the plan and writes the report. Audio is not stored.
 
 
-During the interview only the interview room (code, conversation, clock and controls) goes full screen, not the rest of the app. The whole conversation stays visible as a chat, grouped by question. The candidate can pause up to 2 times, 2 minutes in total: microphone, interviewer and clock stop and the question is hidden; each pause is recorded like a time away. Each interview has 4 or 5 questions, depending on how long each needs, and the interviewer paces itself to the
+During the interview only the interview room (code, conversation, clock and controls) goes full screen, not the rest of the app. The whole conversation stays visible as a chat, grouped by question. The candidate can pause up to 2 times, 2 minutes in total: microphone, interviewer and clock stop and the question is hidden; each pause is recorded like a time away. Each interview has 4 concise questions (capped at one short spoken sentence each), and the interviewer paces itself to the
 3 minutes. When the clock reaches 0 the interviewer is not cut off: it finishes its sentence (and the candidate theirs),
 then it is told time is up, says goodbye, and the interview ends once that has been heard. "End" and "Finish" also let
 the current sentence finish. A 45-second safety cap ends it if the model stops answering. Browsers do not let a page stop someone from leaving full
@@ -378,7 +380,7 @@ Courses are their own product, apart from events (`20261120000001_courses_domain
   submission page). Students see it once results are published.
 - Grading and voice interviews use the same engines as events with their own prompts: the grader works against the
   assignment's instructions and learning goals and adds next steps, never a ranking; a group submission also lists
-  the members and their commits. Interviews: 4 or 5 questions for an individual assignment, and for group work one
+  the members and their commits. Interviews: 4 concise questions for an individual assignment, and for group work one
   short interview per member (up to 2 questions, about 90 seconds) about the files they committed to.
 - Every group and submission rule runs inside database functions called by the API (`submit_assignment_version`,
   `create_assignment_group`, `invite_to_group`, `respond_to_group_invite`, `leave_group`, `staff_place_in_group`);

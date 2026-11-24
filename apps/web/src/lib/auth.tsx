@@ -79,14 +79,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [userId]);
 
+  const [prevUserId, setPrevUserId] = useState(userId);
+  if (userId !== prevUserId) {
+    setPrevUserId(userId);
+    if (!userId) setMe(null);
+    else setLoading(true);
+  }
+
   useEffect(() => {
-    if (!userId) {
-      setMe(null);
-      return;
-    }
-    setLoading(true);
-    refresh().finally(() => setLoading(false));
-  }, [userId, refresh]);
+    if (!userId) return;
+    let cancelled = false;
+    api<Me>('/api/me')
+      .then((next) => {
+        if (!cancelled) setMe(next);
+      })
+      .catch(() => {
+        if (!cancelled) setMe(null);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
 
   const value = useMemo<AuthState>(
     () => ({

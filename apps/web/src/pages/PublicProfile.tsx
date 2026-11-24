@@ -49,6 +49,7 @@ export function PublicProfile() {
   const toast = useToast();
   const { data, error, loading } = useLoad<ProfileResponse>(`/api/profiles/${slug}`);
   const [sortBy, setSortBy] = useState<'recent' | 'score'>('recent');
+  const [printedAt] = useState(() => new Date().toISOString());
 
   const verified = useMemo(
     () => (data?.interviews ?? []).filter((i) => one(i.interview_reports) !== null),
@@ -115,7 +116,7 @@ export function PublicProfile() {
         kind={tr('Public candidate dossier')}
         name={profile.display_name || profile.slug}
         repo={profile.github_login ? `github.com/${profile.github_login}` : null}
-        date={new Date().toISOString()}
+        date={printedAt}
         url={`${window.location.origin}/p/${profile.slug}`}
       />
       {/* 1. Recruiter Access Header Bar */}

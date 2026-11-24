@@ -16,20 +16,41 @@ export function verifyAccessCode(code: string, stored: string | null): boolean {
   return timingSafeEqual(actual, expected);
 }
 
-/** Small in-memory limiter: enough to stop code guessing from one account on one instance. */
+/** Bounded in-memory sliding-window limiter: prunes expired keys so long-lived Cloud Run instances never leak memory. */
 export class AttemptLimiter {
   private readonly hits = new Map<string, number[]>();
 
   constructor(
     private readonly max: number,
     private readonly windowMs: number,
+    private readonly maxKeys = 4096,
   ) {}
 
+  get size(): number {
+    return this.hits.size;
+  }
+
+  private prune(now: number): void {
+    for (const [k, times] of this.hits) {
+      const active = times.filter((t) => now - t < this.windowMs);
+      if (active.length === 0) this.hits.delete(k);
+      else if (active.length !== times.length) this.hits.set(k, active);
+    }
+    while (this.hits.size >= this.maxKeys) {
+      const oldest = this.hits.keys().next().value;
+      if (oldest === undefined) break;
+      this.hits.delete(oldest);
+    }
+  }
+
   allow(key: string, now = Date.now()): boolean {
+    if (!this.hits.has(key) && this.hits.size >= this.maxKeys) this.prune(now);
     const recent = (this.hits.get(key) ?? []).filter((t) => now - t < this.windowMs);
     const ok = recent.length < this.max;
     if (ok) recent.push(now);
-    this.hits.set(key, recent);
+    // Move active key to the end of Map insertion order (LRU) so eviction drops the stalest key first.
+    this.hits.delete(key);
+    if (recent.length > 0) this.hits.set(key, recent);
     return ok;
   }
 }

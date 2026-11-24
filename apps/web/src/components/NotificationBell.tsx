@@ -40,7 +40,8 @@ function InviteItem({ n, onNavigate }: { n: GroupInviteNotification; onNavigate:
   const toast = useToast();
   const { locale } = useI18n();
   const [busy, setBusy] = useState<'accept' | 'decline' | null>(null);
-  const urgent = Date.parse(n.closes_at) - Date.now() < URGENT_MS;
+  const [now] = useState(() => Date.now());
+  const urgent = Date.parse(n.closes_at) - now < URGENT_MS;
 
   async function answer(accept: boolean) {
     setBusy(accept ? 'accept' : 'decline');
@@ -111,12 +112,13 @@ export function NotificationBell({
   showMyCourses?: boolean;
 }) {
   const { items, loaded } = useNotifications(true);
-  const [open, setOpen] = useState(false);
+  const location = useLocation();
+  const [openPath, setOpenPath] = useState<string | null>(null);
+  const open = openPath === location.pathname;
   const [style, setStyle] = useState<CSSProperties>({});
   const button = useRef<HTMLButtonElement>(null);
   const panel = useRef<HTMLDivElement>(null);
   const titleId = useId();
-  const location = useLocation();
   const count = items.length;
   const label = count
     ? trn('{count} notification waiting for your answer', '{count} notifications waiting for your answer', count)
@@ -126,19 +128,16 @@ export function NotificationBell({
     if (open && button.current) setStyle(panelPosition(button.current, placement));
   }, [open, placement]);
 
-  // Leaving the page closes it.
-  useEffect(() => setOpen(false), [location.pathname]);
-
   useEffect(() => {
     if (!open) return;
     panel.current?.querySelector<HTMLElement>('[data-autofocus]')?.focus();
     const onPointer = (e: PointerEvent) => {
       const t = e.target as Node;
-      if (!panel.current?.contains(t) && !button.current?.contains(t)) setOpen(false);
+      if (!panel.current?.contains(t) && !button.current?.contains(t)) setOpenPath(null);
     };
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        setOpen(false);
+        setOpenPath(null);
         button.current?.focus();
       }
     };
@@ -153,7 +152,7 @@ export function NotificationBell({
     };
   }, [open, placement]);
 
-  const close = () => setOpen(false);
+  const close = () => setOpenPath(null);
 
   return (
     <>
@@ -164,7 +163,7 @@ export function NotificationBell({
         aria-expanded={open}
         aria-label={label}
         title={label}
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => setOpenPath((p) => (p === location.pathname ? null : location.pathname))}
         className={cx(
           'relative flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-[4px] transition-colors',
           onDark

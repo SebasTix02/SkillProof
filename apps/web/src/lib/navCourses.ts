@@ -17,12 +17,16 @@ export function notifyCoursesChanged(): void {
 
 export function useNavCourses(orgId: string | null, enabled: boolean): NavCourse[] {
   const [courses, setCourses] = useState<NavCourse[]>(() => (enabled && orgId && cache?.orgId === orgId ? cache.courses : []));
+  const [prevKey, setPrevKey] = useState(`${orgId ?? ''}:${enabled}`);
+  const key = `${orgId ?? ''}:${enabled}`;
+
+  if (key !== prevKey) {
+    setPrevKey(key);
+    setCourses(enabled && orgId && cache?.orgId === orgId ? cache.courses : []);
+  }
 
   useEffect(() => {
-    if (!orgId || !enabled) {
-      setCourses([]);
-      return;
-    }
+    if (!orgId || !enabled) return;
     let alive = true;
     const load = () =>
       api<{ courses: NavCourse[] }>(`/api/orgs/${orgId}/courses`, { quiet: true })
@@ -33,8 +37,7 @@ export function useNavCourses(orgId: string | null, enabled: boolean): NavCourse
         })
         // The menu is a shortcut: if the list cannot load, Courses simply shows no sub-items.
         .catch(() => {});
-    if (cache?.orgId === orgId) setCourses(cache.courses);
-    else void load();
+    if (cache?.orgId !== orgId) void load();
     const onChange = () => void load();
     window.addEventListener(EVENT, onChange);
     return () => {
@@ -43,5 +46,5 @@ export function useNavCourses(orgId: string | null, enabled: boolean): NavCourse
     };
   }, [orgId, enabled]);
 
-  return courses;
+  return orgId && enabled ? courses : [];
 }
