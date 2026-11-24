@@ -4,6 +4,7 @@ import Fastify, { type FastifyInstance } from 'fastify';
 import { env } from './env.js';
 import { AttemptLimiter } from './lib/accessCode.js';
 import { HttpError } from './lib/errors.js';
+import { registerWebApp } from './lib/webApp.js';
 import { eventRoutes } from './routes/events.js';
 import { controlRoutes } from './routes/controls.js';
 import { courseRoutes } from './routes/courses.js';
@@ -107,5 +108,11 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   await app.register(reviewRoutes);
   await app.register(courseRoutes);
   await app.register(controlRoutes);
+
+  // One container (Cloud Run): this server also serves the built web app on the same domain.
+  const e = env();
+  if (e.WEB_DIST) {
+    await registerWebApp(app, e.WEB_DIST, e.SUPABASE_ANON_KEY ? { supabaseUrl: e.SUPABASE_URL, supabaseAnonKey: e.SUPABASE_ANON_KEY } : null);
+  }
   return app;
 }

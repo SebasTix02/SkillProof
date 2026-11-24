@@ -31,8 +31,7 @@ import {
 } from '../lib/types';
 import { useLoad } from '../lib/useLoad';
 
-const COCKPIT_PREVIEW =
-  'https://lh3.googleusercontent.com/aida-public/AB6AXuB1qCdMiODOPX_hcBYNzrZYzeTHZou43yS5giPBdc_KbF4saKLRCFfh68ECha75Yc2drihgPnnoyckUrlPs6n6rPHvh1lJWnZvu7reDBEgT7I2ERM6539VhHu9nL6Y6UwCZT7KwGqzYS-bWTFo0mDqMDn09EnWqzhCIUm4cusdEqbi8qd6fQ-imEbnaZa_nTwcAZCxXKXPf5g0DBnEKANb91yEzH4DCMuuK1ImtTvY';
+const COCKPIT_PREVIEW = '/images/event-cockpit.webp';
 
 interface EventResponse {
   event: EventView;

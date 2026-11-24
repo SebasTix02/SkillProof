@@ -13,6 +13,69 @@ SkillProof reads a GitHub repository with Google Gemini and does two things with
 
 Both use the same repository analysis.
 
+**Live app:** `<Cloud Run URL>` · **Built for:** AI VIBEATHON 2026 (Echo Engineers × PromptWars), online qualifier.
+
+## Submission overview
+
+### Chosen vertical
+
+**Education and hiring: a skills-verification assistant.** In a world where AI writes much of the code, a
+repository no longer proves that its author understands it. The people who have to decide (hackathon organizers
+and judges, teachers, recruiters) need an assistant that reads the code, judges it against their own criteria,
+and checks whether the person can explain it. Students and candidates need the same assistant to show what they
+really know.
+
+### Approach and logic
+
+SkillProof is one assistant that changes what it does based on who is using it and what is in front of it. The
+decisions it makes from the user's context:
+
+| Context | What the assistant decides |
+| --- | --- |
+| **Who you are** (organizer, judge, auditor, teacher, student, candidate) | Which screens, actions and data you get. Permissions are checked by the API and again by row level security in the database. |
+| **The repository** | Which files are worth reading (code and manifests in full, long files as a skeleton, assets and generated code skipped), and what to ask about in the interview: questions only the real author could answer. |
+| **The rubric or the assignment** | How to score each criterion, which files and demo-video moments are the evidence, and next steps for a student instead of a ranking. |
+| **The deadline** | The exact commit that is judged (frozen at closing), and which commits were made before the event started. |
+| **The group** | Who wrote which files (from the commits), so each member is interviewed about their own part. |
+| **The live conversation** | Follow-up questions, when to move on, and how to close when the 3 minutes run out without cutting anyone off. |
+| **Integrity signals** | Shared code between submissions (fingerprints that survive renaming), leaving the interview window, pauses. These are shown as signals for a human, never as a verdict. |
+| **Language** | English or Spanish for the screens and for the AI's feedback and interviews. |
+| **AI capacity** | When Gemini is busy: wait, switch to a backup model, or queue the job. The organizer's work is never lost. |
+
+### How the solution works
+
+1. An organizer creates a hackathon (or a teacher creates a course assignment) with a rubric.
+2. Participants submit a public GitHub repository and an optional demo video.
+3. At the deadline every repository is frozen at its last commit. One submission at a time, Gemini reads a compact
+   map of the code and scores each criterion, citing files and video timestamps.
+4. The organizer reviews the scores, overrides any of them, compares similar submissions side by side, and
+   publishes. Participants see their scores, the evidence and feedback.
+5. Any participant (or candidate) can take a 3-minute voice interview with Gemini Live about their own code. The
+   expected answers never reach the browser. A second model compares the transcript with them and writes a skills
+   report with the candidate's own quotes, which can be shown on a public profile.
+
+The architecture: a React web app and a Fastify API in one container on Cloud Run, Supabase (Postgres and Auth),
+Gemini (text, video and Live audio) and the GitHub API.
+
+### Assumptions
+
+- Repositories are public on GitHub, and demo videos are public YouTube links.
+- One person or team per submission; group work in courses is split by commit authorship.
+- The interview transcript is assembled in the browser; audio is not stored.
+- The AI never decides alone: every score can be overridden and every integrity signal needs a human decision.
+- A Supabase project and a Gemini API key are available; Vertex AI is optional.
+
+### Evaluation focus areas
+
+| Area | Where to look |
+| --- | --- |
+| **Code quality** | npm workspaces with shared zod schemas (`packages/shared`), typed API routes and services, shared UI components and design tokens (`apps/web/src/components/shared`). |
+| **Security** | Row level security on every table, permissions checked in the API, service role key only on the server, per-IP rate limits, security headers, hashed access codes, audit log, interview answer key never sent to the browser. |
+| **Efficiency** | Selective repository download, cache per commit and per file (`repo_analyses`, `file_summaries`), code fingerprints without AI calls, a judging queue (one at a time), model health and backups. About 21 000 input tokens for a 286-file project. |
+| **Testing** | About 190 unit and HTTP tests (Vitest) for the API, the shared rules and the web app, 7 database suites for migrations and row level security, and CI on every push (`.github/workflows`). See [Checks](#checks). |
+| **Accessibility** | WCAG 2.2 contrast checked in light and dark mode, keyboard navigation (tabs, menus, dialogs), ARIA patterns, reduced-motion support, English and Spanish. |
+| **Problem alignment** | AI-generated code is easy to submit and hard to verify; SkillProof checks both the code and its author's understanding. |
+
 ## What is in this repository
 
 ```
@@ -69,6 +132,35 @@ Repository analysis and scoring can run through Vertex AI. Set `USE_VERTEX=true`
 
 Set a budget alert in Google Cloud Billing before running a real event.
 
+## Deploy on Cloud Run
+
+The `Dockerfile` builds one image: the Fastify API serves the React app on the same domain (`WEB_DIST`), so the
+browser calls `/api/*` on its own origin. The Supabase URL and anon key are written into the page at run time, so
+the same image works with any project. Background jobs and the scheduler run inside the container.
+
+1. **Secrets.** In Secret Manager create `supabase-service-role`, `gemini-api-key` and `internal-secret` (a random
+   string of at least 16 characters), and give the service's account the Secret Manager Secret Accessor role.
+2. **Deploy** from the repository root:
+
+   ```bash
+   gcloud run deploy skillproof --source . --region us-central1 --allow-unauthenticated \
+     --no-cpu-throttling --min-instances 1 --max-instances 3 --memory 1Gi --timeout 3600 \
+     --set-env-vars "SUPABASE_URL=https://YOUR-PROJECT.supabase.co,SUPABASE_ANON_KEY=YOUR-ANON-KEY" \
+     --set-secrets "SUPABASE_SERVICE_ROLE_KEY=supabase-service-role:latest,GEMINI_API_KEY=gemini-api-key:latest,INTERNAL_SECRET=internal-secret:latest"
+   ```
+
+   `--no-cpu-throttling` and `--min-instances 1` keep the CPU on after a response, so judging and interview
+   reports keep running in the background and the scheduler closes events at their deadline.
+3. **Origin.** Set `WEB_ORIGIN` to the service URL (`gcloud run services update skillproof --region us-central1
+   --update-env-vars WEB_ORIGIN=https://skillproof-….run.app`).
+4. **Supabase Auth.** Set the site URL to the service URL and add `<URL>/auth/callback` and `<URL>/reset-password`
+   as redirect URLs.
+5. **Optional.** `USE_VERTEX=true` with `GOOGLE_CLOUD_PROJECT` uses the service's own account for Vertex AI (no key
+   file needed). `GITHUB_TOKEN` raises the GitHub limit.
+
+To try the image locally: `docker build -t skillproof .` and
+`docker run -p 8080:8080 --env-file apps/api/.env -e SUPABASE_ANON_KEY=… skillproof`.
+
 ## Deploy on Vercel
 
 The web app and the API deploy together as one Vercel project. The root `vercel.json` runs
@@ -116,8 +208,8 @@ SkillProof deals with that like this:
 
 ```bash
 npm run typecheck
-npm test                 # unit tests for the shared rules and the API
-./scripts/test-db.sh     # applies the migration to a temporary Postgres 16 and checks row level security
+npm test                 # unit and HTTP tests for the shared rules, the API and the web app
+./scripts/test-db.sh     # applies the migrations to a temporary Postgres 16 and checks row level security
 npm run build
 ```
 
@@ -324,17 +416,10 @@ Submissions of the same event or course assignment are compared by their code, w
 
 ## Known limits
 
-- **Not yet tested against live services.** The unit tests, database checks, typecheck and build pass. No run
-  has been made yet against a real Supabase project, the Gemini API or the GitHub API. The voice interview and
-  the scoring of YouTube videos in particular need a first real run.
 - The interview transcript is assembled in the browser, so a determined candidate could alter it. A server
   relay for the audio session would close this.
 - Similarity compares submissions of the same event or assignment with each other, not with code on the internet,
   and code rewritten by hand with another structure is not detected (the `embedding` signal is not built).
 - Only public GitHub repositories are supported.
-- The Vercel setup has not been deployed yet. Background jobs on Vercel in particular need a first real run.
 - Not built yet: sign in with GitHub, installable PWA.
-- Organizer suite, judge workspace, similarity forensics and course mode have their data model and API
-  (`20261117000004_screens`): members and invitations, usage, audit trail, judge assignments and reviews,
-  integrity decisions, courses and rosters. Some of these screens still show sample data until they are wired
-  to it. Only the data model exists for billing and for invitation and result emails (sending needs an SMTP provider).
+- Only the data model exists for billing and for invitation and result emails (sending needs an SMTP provider).

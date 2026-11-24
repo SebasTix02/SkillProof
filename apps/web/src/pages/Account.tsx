@@ -24,8 +24,7 @@ import { useAuth } from '../lib/auth';
 import { isDirty, useUnsavedChanges } from '../lib/dirty';
 import { supabase } from '../lib/supabase';
 
-const AUTH_IMAGE =
-  'https://lh3.googleusercontent.com/aida-public/AB6AXuDK9J9aTWLySdYxV9_OQKTnAmfB807sEiNDUiEIR97gcAGCkdWaC1DP5JN21rgnzoLoNjlWupv80tV1R0xRdmQsxMbLfZAbefEievTfjbR6IUbaQ2qZANuYXChss3CMAtf5ld4H5OWdaEkTPHwW9kkgTaOpuiax5YWQx4Y7_VxF15diaekYtEOwGqktgRf6dH8c5Nb8G8yGkKUbL7z5ZcbktnAwcHEbV1WGwLBki4A';
+const AUTH_IMAGE = '/images/auth.webp';
 
 function AuthPortalShell({
   mode,

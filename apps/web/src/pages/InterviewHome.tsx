@@ -23,8 +23,7 @@ import { api, errorMessage, existingInterviewId } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { useLoad } from '../lib/useLoad';
 
-const COCKPIT_ASSET =
-  'https://lh3.googleusercontent.com/aida-public/AB6AXuBqJnGOyiBHVW_bbib3DvG81PbBrsKyejlOvyZRUn54Ot9eLjHr4P5QAv8GEi_zBOJEthddi9OR9P9tCEIFWLA1F4WML7fTeyOC7_G4d6089vYN7LdOEWZXshvCguk1n8ZPur_7kXoskpPQ2-3azoSJJiQxIscZ22WwIY3hcdJSOGILQioroONVNpGOh6E1IuRCM5_fhb8WQjxF1ceKKIq08YATyJSVVOLnjwBIiiM';
+const COCKPIT_ASSET = '/images/interview-cockpit.webp';
 
 interface InterviewReportSummary {
   ownership_score: number;

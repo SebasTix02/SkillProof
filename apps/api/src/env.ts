@@ -7,6 +7,10 @@ export const EnvSchema = z.object({
   WEB_ORIGIN: z.string().default('http://localhost:5173'),
   SUPABASE_URL: z.url(),
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(20),
+  /** Public anon key, handed to the browser when this server also serves the web app (WEB_DIST). */
+  SUPABASE_ANON_KEY: z.string().min(20).optional(),
+  /** Folder with the built web app (apps/web/dist). Set in the Docker image, so one Cloud Run service serves both. */
+  WEB_DIST: z.string().optional(),
   /** Gemini Developer API key (or multiple comma-separated keys for automatic rotation). Always needed for the Live interview. */
   GEMINI_API_KEY: z.string().min(10),
   /** Optional pool of additional comma-separated Gemini Developer API keys rotated on 429/503/403. */

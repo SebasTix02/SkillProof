@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@fastify/cors": "^11.4.3",
+    "@fastify/static": "^9.3.0",
     "@google-cloud/tasks": "^7.3.1",
     "@google/genai": "^3.3.0",
     "@skillproof/shared": "^0.1.0",

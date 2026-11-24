@@ -18,11 +18,9 @@ import { useAuth } from '../lib/auth';
 import { STATUS_LABEL, VISIBILITY_LABEL, type EventView } from '../lib/types';
 import { useLoad } from '../lib/useLoad';
 
-const GLOBE_BANNER =
-  'https://lh3.googleusercontent.com/aida-public/AB6AXuCpJ6344r24Shk5x3mkB9WDc2u3hzf27rGVCZmdx7lU3pZ2RBdayWQyid_bYcScPW6tUuBWrNQQKC_cipvzrP8D5bRCIo0noKkdKgga2nYPa_EXqX97XfEUUmkpXR84lBdruiqBdkdYJoUItDWweQAaG2AtcRc35nYmRSYjNQkqQO7_jSwQQ2a4OZS2jxQzVbbYVfJeLs7y_P4XnKFsiPjf-B4XujCBxxg9Lv-L_NY';
+const GLOBE_BANNER = '/images/events-globe.webp';
 
-const ARENA_THUMB =
-  'https://lh3.googleusercontent.com/aida-public/AB6AXuANPkqvOBPYAuUNeL9Zm_HESu2w_Nd2DoC6EFGyMR96vx9VzX7ehrdIp4tT8avVj_WI02OmQOUg-PzboXTrcLVE2a5MlmITx1RLs_YAL1SiJEF08e55Mg7ykiKbK8zzBTWAygVcG8pANnsZV2kI2Kw1L27uMscYjT1_c-EQ04NhvWIv3DRNq74eiL-8J3M2DgrxqM3-b8gOtI2lJcVAhP5TW0e43hL3924LDwbTjf8';
+const ARENA_THUMB = '/images/arena-thumb.webp';
 
 function statusTone(status: EventView['status']): 'good' | 'warn' | 'accent' | 'neutral' {
   if (status === 'open') return 'good';

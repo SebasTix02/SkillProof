@@ -14,11 +14,9 @@ import {
 } from '../components/shared';
 import { useAuth } from '../lib/auth';
 
-const HERO_IMAGE =
-  'https://lh3.googleusercontent.com/aida-public/AB6AXuB4U8SNgCJnrunqXunwpUU2HbAa9S73rvUby5ZKUjdXijbjv81xo3rpsenWd1C_R3yCK2wLY3zPJiav8-76Y0lqA9TfZQjLxaMWU0LOuh9saQBwIJwRfz3IzdOzeUPm28uYlcUqC4KOfWhyMBBB-AVDKLVPJDT0xfRItjtKKiwsZgHQVXdel83ir0qMjmv06rkGsqP8r-X82HwZuQBtt_9O346bVqcoASNeltfULhE';
+const HERO_IMAGE = '/images/landing-hero.webp';
 
-const COCKPIT_IMAGE =
-  'https://lh3.googleusercontent.com/aida-public/AB6AXuAplfeNc-7XLyqy-WiJBKm5ihAJ3iVV4lO2PRFwyAqwQjp7JoJ45gtEVIrPeCe1jKxmJhuWoOcGcM4UUgJ-JLF26VIZOw5hOlSObHBcpOyTT9Ryp-6jtwxsKre_KUk_k5ST10nPYwjzzqu3I1QMNeonv3dN6tgLUiqrfxF1iBthTg0fZ2i6YFvGPNtK7_Jmq9i4nXWjyfcisnw6oZATFySwmc-IaZDFVEoC_RwHDlg';
+const COCKPIT_IMAGE = '/images/landing-cockpit.webp';
 
 interface DossierSpecimen {
   hash: string;
