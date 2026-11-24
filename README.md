@@ -13,7 +13,7 @@ SkillProof reads a GitHub repository with Google Gemini and does two things with
 
 Both use the same repository analysis.
 
-**Live app:** `<Cloud Run URL>` · **Built for:** AI VIBEATHON 2026 (Echo Engineers × PromptWars), online qualifier.
+**Live app:** [skillproof-267888479615.us-east1.run.app](https://skillproof-267888479615.us-east1.run.app/) · **Built for:** AI VIBEATHON 2026 (Echo Engineers × PromptWars), online qualifier.
 
 ## Submission overview
 
