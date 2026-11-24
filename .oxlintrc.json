@@ -1,0 +1,18 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "react", "unicorn", "import"],
+  "categories": {
+    "correctness": "error"
+  },
+  "rules": {
+    "react-hooks/exhaustive-deps": "error",
+    "react-hooks/rules-of-hooks": "error",
+    "no-unused-vars": "error",
+    "react/set-state-in-effect": "warn",
+    "react/purity": "warn",
+    "react/refs": "warn",
+    "react/immutability": "warn",
+    "unicorn/no-new-array": "off"
+  },
+  "ignorePatterns": ["**/dist/**", "**/node_modules/**", ".vercel/**", "**/__snapshots__/**"]
+}

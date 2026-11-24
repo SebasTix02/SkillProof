@@ -1,4 +1,5 @@
 import { computeAssignmentSimilarity, computeEventSimilarity } from './services/similarity.js';
+import compress from '@fastify/compress';
 import cors from '@fastify/cors';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { env } from './env.js';
@@ -23,6 +24,9 @@ export const API_SECURITY_HEADERS: Readonly<Record<string, string>> = {
   'x-frame-options': 'DENY',
   'referrer-policy': 'strict-origin-when-cross-origin',
   'permissions-policy': 'camera=(), geolocation=(), microphone=(self)',
+  // HTTPS only for a year (Cloud Run and Vercel always serve HTTPS; browsers ignore it over plain HTTP).
+  'strict-transport-security': 'max-age=31536000; includeSubDomains',
+  'cross-origin-opener-policy': 'same-origin',
 };
 
 export interface BuildAppOptions {
@@ -34,6 +38,9 @@ export interface BuildAppOptions {
 
 export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyInstance> {
   const app = Fastify({ logger: options.logger ?? true, bodyLimit: 1024 * 1024 });
+
+  // gzip / brotli for JSON, the page and the web app's files (Cloud Run does not compress on its own).
+  await app.register(compress, { global: true, threshold: 1024 });
 
   await app.register(cors, {
     origin: env().WEB_ORIGIN.split(',').map((o) => o.trim()),

@@ -77,7 +77,7 @@ export function Select({ className = '', multiple, ...props }: SelectHTMLAttribu
   const outer = classes.filter((c) => WRAPPER_CLASS.test(c));
   const inner = classes.filter((c) => !WRAPPER_CLASS.test(c));
   // On the dark headers the select is white on white/10: the arrow follows.
-  const onDark = inner.some((c) => /^text-white/.test(c));
+  const onDark = inner.some((c) => c.startsWith('text-white'));
   return (
     <span className={cx('relative block', outer.length ? outer.join(' ') : 'w-full')}>
       <select

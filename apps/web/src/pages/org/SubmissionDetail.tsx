@@ -7,7 +7,6 @@ import { AiActivity, ModelsUsed } from '../../components/AiActivity';
 import { one } from '../../components/Report';
 import {
   Badge,
-  Button,
   CommandConsoleHeader,
   Input,
   LiveDot,
@@ -243,17 +242,23 @@ export function SubmissionDetail() {
   const consoleData = useLoad<QueueResponse>(id && isManager ? `/api/events/${id}/console` : null);
   const assignmentData = useLoad<{ assignments: AssignmentRow[] }>(id && !isManager ? `/api/me/assignments?event_id=${id}` : null);
 
-  const queue: QueueSubmission[] = isManager
-    ? (consoleData.data?.submissions ?? [])
-    : (assignmentData.data?.assignments ?? []).map((a) => ({
-        id: a.submission_id,
-        team_name: a.submissions?.team_name ?? tr('Submission'),
-        submitted_by_name: a.my_review ? (a.my_review.status === 'submitted' ? tr('Review submitted') : tr('Draft saved')) : tr('Not reviewed yet'),
-        status: a.submissions?.status ?? 'submitted',
-        locked_commit_sha: a.submissions?.locked_commit_sha ?? null,
-        total: null,
-        ownership: null,
-      }));
+  const consoleSubs = consoleData.data?.submissions;
+  const myAssignments = assignmentData.data?.assignments;
+  const queue = useMemo<QueueSubmission[]>(
+    () =>
+      isManager
+        ? (consoleSubs ?? [])
+        : (myAssignments ?? []).map((a) => ({
+            id: a.submission_id,
+            team_name: a.submissions?.team_name ?? tr('Submission'),
+            submitted_by_name: a.my_review ? (a.my_review.status === 'submitted' ? tr('Review submitted') : tr('Draft saved')) : tr('Not reviewed yet'),
+            status: a.submissions?.status ?? 'submitted',
+            locked_commit_sha: a.submissions?.locked_commit_sha ?? null,
+            total: null,
+            ownership: null,
+          })),
+    [isManager, consoleSubs, myAssignments],
+  );
   const queueLoading = isManager ? consoleData.loading : assignmentData.loading;
   const currentQueueIndex = useMemo(() => queue.findIndex((q) => q.id === sid), [queue, sid]);
   const prevSub = currentQueueIndex > 0 ? queue[currentQueueIndex - 1] : null;

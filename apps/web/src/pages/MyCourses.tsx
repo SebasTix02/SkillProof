@@ -302,7 +302,7 @@ export function MyAssignmentPage() {
         title={a.title}
         subtitle={
           <>
-            {groupSizeLabel(a)}{' '}{tr('· opens')}{' '}{formatDate(a.opens_at)}{' '}{tr('· due')}{' '}{formatDate(a.due_at)}
+            {tr('{size} · opens {opens} · due {due}', { size: groupSizeLabel(a), opens: formatDate(a.opens_at), due: formatDate(a.due_at) })}
             {isGroup && a.groups_close_at && ` · ${tr('groups close {date}', { date: formatDate(a.groups_close_at) })}`}
           </>
         }
@@ -410,7 +410,7 @@ function SubmitCard({ data: d, groupReady, onSubmitted }: { data: MyAssignmentRe
               <span className="text-muted"> · {formatDate(current.created_at)}</span>
             </p>
             {d.submission.locked_commit_sha && (
-              <p className="font-mono-code mt-1 text-[12px] text-muted">{tr('Frozen at commit')}{' '}{d.submission.locked_commit_sha.slice(0, 7)}{' '}{tr('· being graded')}</p>
+              <p className="font-mono-code mt-1 text-[12px] text-muted">{tr('Frozen at commit {sha} · being graded', { sha: d.submission.locked_commit_sha.slice(0, 7) })}</p>
             )}
             {d.submission.error && <p className="mt-1 text-[12px] text-bad-ink">{d.submission.error}</p>}
           </div>

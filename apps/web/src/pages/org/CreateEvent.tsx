@@ -10,7 +10,6 @@ import {
   Input,
   Notice,
   NumberedSectionCard,
-  ScoreBar,
   Select,
   Textarea,
   ToggleSwitch,

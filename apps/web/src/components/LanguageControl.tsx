@@ -71,6 +71,7 @@ export function LanguageMenu({
       window.removeEventListener('scroll', close, true);
     };
     // Depends on `open` only: the active item gets the focus when the menu opens, not on every language change.
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   const closeAndReturn = () => {

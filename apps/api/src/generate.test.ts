@@ -22,6 +22,7 @@ vi.mock('@google/genai', async (orig) => ({
 vi.mock('./lib/supabase.js', () => {
   const chain: Record<string, unknown> = {};
   for (const m of ['select', 'gt', 'or', 'upsert', 'insert', 'update', 'eq']) chain[m] = () => chain;
+  // oxlint-disable-next-line unicorn/no-thenable -- the mock stands in for a Supabase query, which is awaitable.
   chain.then = (resolve: (v: unknown) => void) => resolve({ data: [], error: null });
   return { db: () => ({ from: () => chain }) };
 });

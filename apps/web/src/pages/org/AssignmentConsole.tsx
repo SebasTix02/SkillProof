@@ -1,4 +1,4 @@
-import { lazy, t, tr, trn } from '../../i18n';
+import { t, tr, trn } from '../../i18n';
 import { ContestLanguageField, StarterRepoField } from '../../components/LanguageControl';
 /**
  * The console of one course assignment (its own screen, not the event console):
