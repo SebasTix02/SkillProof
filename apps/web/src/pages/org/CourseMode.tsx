@@ -1,137 +1,35 @@
-import { tr, trn } from '../../i18n';
-import type { ActivityEntry, CommitProfile, RepoMap, Rubric } from '@skillproof/shared';
+import { tr } from '../../i18n';
+import type { Rubric } from '@skillproof/shared';
 import { useMemo, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { one } from '../../components/Report';
-import {
-  Badge,
-  Button,
-  DossierPageHeader,
-  Input,
-  LedgerAnchorBanner,
-  Notice,
-  PageState,
-  SUBMISSION_STATUS_LABEL,
-  ScoreBar,
-  Select,
-  Tabs,
-  Textarea,
-  TopAccentKpiCard,
-  WaveformVisualizer,
-  formatDate,
-  linkButton,
-  linkButtonSecondary,
-  scoreTone,
-  type SubmissionPipelineStatus,
-  VERDICT_LABEL,
-} from '../../components/shared';
+import { LedgerAnchorBanner, Notice, PageState } from '../../components/shared';
 import { useToast } from '../../components/toast';
 import { api, errorMessage } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
-import { STATUS_LABEL, type EventView, type RepoRef, type ScoreView } from '../../lib/types';
-import type { AssignmentConsoleResponse, AssignmentView } from '../../lib/courses';
-import { useLoad } from '../../lib/useLoad';
+import type { AssignmentConsoleResponse } from '../../lib/courses';
 import { NONE } from '../../lib/empty';
-
-type OrgEvent = EventView & { submission_count: number; participant_count: number };
-
-interface ConsoleSubmission {
-  id: string;
-  team_name: string;
-  submitted_by_name: string;
-  status: SubmissionPipelineStatus;
-  error: string | null;
-  activity: ActivityEntry[];
-  step_count: number;
-  models_used: string[] | null;
-  versions_used: number;
-  locked_commit_sha: string | null;
-  current_version: { repos: RepoRef } | null;
-  scores: ScoreView[];
-  total: number | null;
-  ownership: { score: number; confidence: string } | null;
-}
-
-interface Flag {
-  id: string;
-  submission_a: string;
-  submission_b: string;
-  signal: 'same_repo' | 'same_fork_parent' | 'identical_files' | 'embedding' | 'shared_code';
-  explanation: string;
-}
-
-interface ConsoleResponse {
-  event: EventView;
-  participant_count: number;
-  submissions: ConsoleSubmission[];
-  similarity_flags: Flag[];
-}
-
-interface Analysis {
-  commit_sha: string;
-  model: string | null;
-  map_json: RepoMap;
-  commit_profile_json: CommitProfile | null;
-  file_count: number;
-}
-
-interface DetailResponse {
-  submission: {
-    id: string;
-    team_name: string;
-    repo_analyses: Analysis | Analysis[] | null;
-  };
-  scores: ScoreView[];
-  interview: { id: string; status: string } | null;
-}
-
-type CourseTab = 'roster' | 'plagiarism' | 'grading' | 'rubric';
-
-type RosterFilter = 'all' | 'flagged' | 'incomplete_defense' | 'scored';
-type SortKey = 'risk' | 'lowest_ownership' | 'highest_grade' | 'name';
-
-type Source = 'events' | 'courses';
-type OrgAssignment = AssignmentView & { course_name: string; course_code: string };
-
-/** What the screen needs about the event or assignment under review, whichever it is. */
-interface Target {
-  kind: 'event' | 'assignment';
-  id: string;
-  name: string;
-  tag: string;
-  status: EventView['status'];
-  deadline: string;
-  interviews_enabled: boolean;
-  rubric: Rubric;
-  consoleLink: string;
-  submissionLink: (sid: string) => string;
-  compareLink: ((a: string, b: string, flag: string) => string) | null;
-}
-
-/** An assignment console, shaped like the event console the screen was built for. */
-function fromAssignment(d: AssignmentConsoleResponse): ConsoleResponse {
-  return {
-    event: null as unknown as EventView,
-    participant_count: d.assignment.student_count,
-    similarity_flags: d.similarity_flags,
-    submissions: d.submissions.map((r) => ({
-      id: r.id,
-      team_name: r.label,
-      submitted_by_name: r.members ? r.members.map((m) => m.display_name).join(', ') : r.label,
-      status: r.status,
-      error: r.error,
-      activity: r.activity,
-      step_count: r.activity.length,
-      models_used: r.models_used,
-      versions_used: r.versions_used,
-      locked_commit_sha: r.locked_commit_sha,
-      current_version: r.current_version?.repos ? { repos: r.current_version.repos } : null,
-      scores: r.scores,
-      total: r.total,
-      ownership: r.ownership,
-    })),
-  };
-}
+import { useLoad } from '../../lib/useLoad';
+import { ForensicWorkbench } from './course-mode/ForensicWorkbench';
+import { IntegrityHeader } from './course-mode/IntegrityHeader';
+import { IntegrityRosterTable } from './course-mode/IntegrityRosterTable';
+import { IntegrityTabPanels } from './course-mode/IntegrityTabPanels';
+import {
+  fromAssignment,
+  type CohortMetrics,
+  type ConsoleResponse,
+  type CourseTab,
+  type DetailResponse,
+  type IntegrityDecision,
+  type OrgAssignment,
+  type OrgEvent,
+  type RosterFilter,
+  type SortKey,
+  type Source,
+  type Target,
+  type VerdictChoice,
+} from './course-mode/types';
+import { csvQuote, downloadCsv } from './download';
 
 /**
  * Integrity review: similarity signals, oral defense and verdicts per submission, for one event or one course
@@ -167,12 +65,11 @@ export function IntegrityReview() {
   const [sortBy, setSortBy] = useState<SortKey>('risk');
   const [selectedSubId, setSelectedSubId] = useState<string | null>(null);
   const [docketNote, setDocketNote] = useState('');
-  const [verdictChoice, setVerdictChoice] = useState<'cod' | 'live_defense' | 'clear'>('live_defense');
+  const [verdictChoice, setVerdictChoice] = useState<VerdictChoice>('live_defense');
   const [busyScoreId, setBusyScoreId] = useState<string | null>(null);
   const [savingVerdict, setSavingVerdict] = useState(false);
   const canDecide = !!org?.permissions.includes('integrity.decide');
-  type Decision = { id: string; submission_id?: string | null; assignment_submission_id?: string | null; verdict: string; note: string; created_at: string; profiles?: { display_name: string } | null };
-  const integrity = useLoad<{ decisions: Decision[] }>(
+  const integrity = useLoad<{ decisions: IntegrityDecision[] }>(
     activeEventId && (canDecide || org?.permissions.includes('event.manage'))
       ? `/api/events/${activeEventId}/integrity`
       : activeAssignmentId && (canDecide || org?.permissions.includes('course.manage'))
@@ -187,7 +84,7 @@ export function IntegrityReview() {
     [flags],
   );
 
-  const metrics = useMemo(() => {
+  const metrics = useMemo<CohortMetrics>(() => {
     const scored = submissions.filter((s) => s.total != null);
     const avgScore =
       scored.length > 0 ? scored.reduce((acc, s) => acc + (s.total ?? 0), 0) / scored.length : null;
@@ -309,8 +206,8 @@ export function IntegrityReview() {
       'Status',
     ];
     const rows = submissions.map((s) => [
-      `"${(s.submitted_by_name || s.team_name).replace(/"/g, '""')}"`,
-      `"${s.team_name.replace(/"/g, '""')}"`,
+      csvQuote(s.submitted_by_name || s.team_name),
+      csvQuote(s.team_name),
       s.current_version?.repos ? `${s.current_version.repos.owner}/${s.current_version.repos.name}` : '',
       s.locked_commit_sha ?? '',
       s.total != null ? s.total.toFixed(1) : '',
@@ -319,13 +216,7 @@ export function IntegrityReview() {
       s.status,
     ]);
     const csv = [header.join(','), ...rows.map((r) => r.join(','))].join('\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${event.name.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-integrity.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadCsv(`${event.name.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-integrity.csv`, csv);
     toast.success(tr('Exported as CSV.'));
   }
 
@@ -369,177 +260,37 @@ export function IntegrityReview() {
 
   return (
     <div className="space-y-6">
-      {/* 1. Faculty Portal Department Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-[6px] border border-line bg-surface px-5 py-2.5">
-        <div className="font-mono-code flex flex-wrap items-center gap-2 text-[11px]">
-          <span className="inline-flex items-center gap-1.5 rounded-[3px] bg-accent-soft px-2 py-0.5 font-bold text-accent-ink">
-            <span className="material-symbols-outlined text-[14px]">policy</span>
-            <span>{tr('INTEGRITY')}</span>
-          </span>
-          <span className="text-line">//</span>
-          <span className="font-semibold text-ink">{org?.name?.toUpperCase() ?? tr('DEPARTMENT')}</span>
-          {event && (
-            <>
-              <span className="text-line">•</span>
-              <span className="rounded-[3px] border border-line bg-paper px-2 py-0.5 font-bold text-ink">
-                {event.tag}
-              </span>
-            </>
-          )}
-        </div>
-
-        <div className="flex flex-wrap items-center gap-3">
-          <Tabs
-            variant="segmented"
-            ariaLabel={tr('Review events or courses')}
-            tabs={[
-              { key: 'events', label: tr('Events'), icon: 'emoji_events' },
-              { key: 'courses', label: tr('Courses'), icon: 'school' },
-            ]}
-            active={source}
-            onChange={(k) => {
-              setSource(k);
-              setSelectedSubId(null);
-            }}
-          />
-          {source === 'events' && events.length > 0 && (
-            <Select
-              aria-label={tr('Event')}
-              value={activeEventId ?? ''}
-              onChange={(e) => {
-                setSelectedEventId(e.target.value);
-                setSelectedSubId(null);
-              }}
-              className="font-mono-code h-8 w-56 bg-paper text-[11px]"
-            >
-              {events.map((x) => (
-                <option key={x.id} value={x.id}>
-                  {x.name} ({STATUS_LABEL[x.status]})
-                </option>
-              ))}
-            </Select>
-          )}
-          {source === 'courses' && assignments.length > 0 && (
-            <Select
-              aria-label={tr('Course assignment')}
-              value={activeAssignmentId ?? ''}
-              onChange={(e) => {
-                setSelectedAssignmentId(e.target.value);
-                setSelectedSubId(null);
-              }}
-              className="font-mono-code h-8 w-64 bg-paper text-[11px]"
-            >
-              {assignments.map((x) => (
-                <option key={x.id} value={x.id}>
-                  {x.course_name} · {x.title} ({STATUS_LABEL[x.status]})
-                </option>
-              ))}
-            </Select>
-          )}
-        </div>
-      </div>
-
-      {/* 2. Course Context Header */}
-      <section className="space-y-5 rounded-[6px] border border-line bg-surface p-6">
-        <DossierPageHeader
-          eyebrow={
-            <div className="flex flex-wrap items-center gap-2 text-muted">
-              <Link to="/org/events" className="text-accent hover:underline">
-                {tr('← EVENT CONSOLE')}
-              </Link>
-              <span>/</span>
-              <span>{tr('INTEGRITY REVIEW')}</span>
-            </div>
-          }
-          title={event ? event.name : tr('Integrity review')}
-          subtitle={tr('Similarity between submissions, voice-interview ownership and your verdict on each submission, for one event or course assignment at a time.')}
-          borderBottom={false}
-          rightSlot={
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                onClick={() => void consoleData.reload()}
-                className={linkButtonSecondary}
-              >
-                <span className="material-symbols-outlined text-[16px]">refresh</span>
-                <span>{tr('Refresh')}</span>
-              </button>
-              <button type="button" onClick={exportCanvasCsv} className={linkButtonSecondary}>
-                <span className="material-symbols-outlined text-[16px]">file_download</span>
-                <span>{tr('Export CSV')}</span>
-              </button>
-              {event && (
-                <Link to={event.consoleLink} className={linkButton}>
-                  <span className="material-symbols-outlined text-[16px]">gavel</span>
-                  <span>{event.kind === 'assignment' ? tr('Assignment console') : tr('Event console')}</span>
-                </Link>
-              )}
-            </div>
-          }
-        />
-
-        {/* Metadata Chips Strip */}
-        {event && (
-          <div className="font-mono-code grid grid-cols-2 gap-4 border-t border-line pt-4 text-[12px] md:grid-cols-5">
-            <div>
-              <span className="block text-[10px] text-muted uppercase">{tr('Reviewer')}</span>
-              <span className="font-semibold text-ink">{me?.profile.display_name || tr('Faculty Lead')}</span>
-            </div>
-            <div>
-              <span className="block text-[10px] text-muted uppercase">{tr('Participants')}</span>
-              <span className="font-semibold text-ink">
-                {trn('{count} participant', '{count} participants', consoleData.data?.participant_count ?? 0)}
-              </span>
-            </div>
-            <div>
-              <span className="block text-[10px] text-muted uppercase">{tr('Status')}</span>
-              <span className="font-semibold text-accent uppercase">{STATUS_LABEL[event.status]}</span>
-            </div>
-            <div>
-              <span className="block text-[10px] text-muted uppercase">{tr('Submissions')}</span>
-              <span className="font-semibold text-ink">
-                {submissions.length} / {consoleData.data?.participant_count ?? submissions.length}
-              </span>
-            </div>
-            <div>
-              <span className="block text-[10px] text-muted uppercase">{tr('Deadline')}</span>
-              <span className="font-semibold text-good">{formatDate(event.deadline)}</span>
-            </div>
-          </div>
-        )}
-
-        <Tabs
-          tabs={[
-            {
-              key: 'roster',
-              label: tr('01. Submissions'),
-              count: submissions.length,
-              icon: 'group',
-            },
-            {
-              key: 'plagiarism',
-              label: tr('02. Similarity & Plagiarism Matrix'),
-              count: flags.length,
-              icon: 'schema',
-            },
-            {
-              key: 'grading',
-              label: tr('03. Oral Defense & Review'),
-              count: metrics.withOwnershipCount,
-              icon: 'record_voice_over',
-            },
-            {
-              key: 'rubric',
-              label: tr('04. Rubric'),
-              count: selectedRubric.length,
-              icon: 'fact_check',
-            },
-          ]}
-          active={activeTab}
-          onChange={setActiveTab}
-          ariaLabel={tr('Integrity review sections')}
-        />
-      </section>
+      <IntegrityHeader
+        orgName={org?.name}
+        reviewerName={me?.profile.display_name}
+        source={source}
+        onSourceChange={(k) => {
+          setSource(k);
+          setSelectedSubId(null);
+        }}
+        events={events}
+        assignments={assignments}
+        activeEventId={activeEventId}
+        onSelectEvent={(id) => {
+          setSelectedEventId(id);
+          setSelectedSubId(null);
+        }}
+        activeAssignmentId={activeAssignmentId}
+        onSelectAssignment={(id) => {
+          setSelectedAssignmentId(id);
+          setSelectedSubId(null);
+        }}
+        target={event}
+        participantCount={consoleData.data?.participant_count}
+        submissionCount={submissions.length}
+        flagCount={flags.length}
+        withOwnershipCount={metrics.withOwnershipCount}
+        rubricCount={selectedRubric.length}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        onRefresh={() => void consoleData.reload()}
+        onExportCsv={exportCanvasCsv}
+      />
 
       {empty ? (
         <Notice tone="info">
@@ -563,523 +314,52 @@ export function IntegrityReview() {
         </Notice>
       ) : (
         <>
-          {/* 3. 4-Column Metric Telemetry Cards */}
-          <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <TopAccentKpiCard
-              accent="cobalt"
-              eyebrow={tr('Class Average Score')}
-              icon="analytics"
-              value={metrics.avgScore != null ? metrics.avgScore.toFixed(1) : '—'}
-              unit="/ 100"
-              description={tr('{n} of {total} submissions scored.', { n: metrics.scoredCount, total: submissions.length })}
-            />
-            <TopAccentKpiCard
-              accent="emerald"
-              eyebrow={tr('Authorship Confidence')}
-              icon="fingerprint"
-              value={metrics.avgOwnership != null ? `${metrics.avgOwnership.toFixed(1)}%` : '—'}
-              unit={tr('Mean')}
-              description={tr('{n} students completed 3-min voice defense.', { n: metrics.withOwnershipCount })}
-            />
-            <TopAccentKpiCard
-              accent="amber"
-              eyebrow={tr('Similarity Anomalies')}
-              icon="schema"
-              value={`${metrics.anomalyPct}%`}
-              unit={`(${flags.length} pairs)`}
-              description={tr('Shared repositories, common forks, or structural matches.')}
-            />
-            <TopAccentKpiCard
-              accent="neutral"
-              eyebrow={tr('Oral Defense Status')}
-              icon="mic"
-              value={metrics.withOwnershipCount}
-              unit={tr('Completed')}
-              description={
-                event?.interviews_enabled
-                  ? tr('Gemini Live 3-minute repository cross-exam enabled.')
-                  : tr('Oral defense disabled for this assignment.')
-              }
-            />
-          </section>
+          <IntegrityTabPanels
+            target={event}
+            metrics={metrics}
+            submissions={submissions}
+            flags={flags}
+            activeTab={activeTab}
+            selectedRubric={selectedRubric}
+          />
 
-          {/* Tab 04: Course Rubric View */}
-          {activeTab === 'rubric' && selectedRubric.length > 0 && (
-            <section className="space-y-4 rounded-[6px] border border-line bg-surface p-6">
-              <h2 className="font-serif-heading text-[22px] font-medium text-ink">
-                {tr('Course Rubric & Auto-Grader Criteria')}
-              </h2>
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                {selectedRubric.map((c, idx) => (
-                  <div key={c.key} className="space-y-1.5 rounded-[4px] border border-line bg-paper/60 p-4">
-                    <div className="flex items-center justify-between">
-                      <span className="font-mono-code text-[11px] font-bold text-accent uppercase">
-                        {tr('Criterion')}{' '}{String(idx + 1).padStart(2, '0')}
-                      </span>
-                      <Badge tone="neutral">{tr('WEIGHT:')}{' '}{c.weight}%</Badge>
-                    </div>
-                    <div className="font-serif-heading text-[18px] font-medium text-ink">{c.name}</div>
-                    {c.description && <p className="text-[13px] text-muted">{c.description}</p>}
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
+          <IntegrityRosterTable
+            target={event}
+            submissionsCount={submissions.length}
+            flaggedSet={flaggedSet}
+            metrics={metrics}
+            search={search}
+            onSearchChange={setSearch}
+            filter={filter}
+            onFilterChange={setFilter}
+            sortBy={sortBy}
+            onSortChange={setSortBy}
+            filteredRows={filteredRows}
+            effectiveSelectedId={effectiveSelectedId}
+            onSelectSub={setSelectedSubId}
+          />
 
-          {/* Tab 02: Similarity Flags Quick Matrix */}
-          {activeTab === 'plagiarism' && (
-            <section className="space-y-4 rounded-[6px] border border-line bg-surface p-6">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div>
-                  <h2 className="font-serif-heading text-[22px] font-medium text-ink">
-                    {tr('Plagiarism & Similarity Cluster Matrix')}
-                  </h2>
-                  <p className="text-[13px] text-muted">
-                    {tr('Inspect flagged submission pairs side-by-side in the Forensic Comparison Console.')}
-                  </p>
-                </div>
-                {event?.compareLink && flags[0] && (
-                  <Link to={event.compareLink(flags[0].submission_a, flags[0].submission_b, flags[0].id)} className={linkButton}>
-                    {tr('Open Forensic Comparison →')}
-                  </Link>
-                )}
-              </div>
-
-              {flags.length === 0 ? (
-                <Notice tone="good">{tr('Zero similarity anomalies detected across the current cohort.')}</Notice>
-              ) : (
-                <ul className="space-y-2.5">
-                  {flags.map((f) => {
-                    const nameA = submissions.find((s) => s.id === f.submission_a)?.team_name ?? tr('Team A');
-                    const nameB = submissions.find((s) => s.id === f.submission_b)?.team_name ?? tr('Team B');
-                    return (
-                      <li
-                        key={f.id}
-                        className="flex flex-wrap items-center justify-between gap-3 rounded-[4px] border border-warn/35 bg-warn-soft/35 p-3.5 text-[13px]"
-                      >
-                        <div className="flex flex-wrap items-center gap-2">
-                          <Badge tone="warn">{f.signal.replace('_', ' ')}</Badge>
-                          <strong className="text-ink">{nameA}</strong>
-                          <span className="text-muted">↔</span>
-                          <strong className="text-ink">{nameB}</strong>
-                          {f.explanation && <span className="font-mono-code text-[12px] text-muted">· {f.explanation}</span>}
-                        </div>
-                        {event?.compareLink && (
-                          <Link
-                            to={event.compareLink(f.submission_a, f.submission_b, f.id)}
-                            className="font-mono-code text-[11px] font-semibold text-accent hover:underline"
-                          >
-                            {tr('Compare Side-by-Side →')}
-                          </Link>
-                        )}
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </section>
-          )}
-
-          {/* 4. Filter & Operational Toolbar + High-Density Roster Matrix */}
-          <section className="space-y-3">
-            <div className="flex flex-col justify-between gap-3 rounded-[6px] border border-line bg-surface p-3.5 md:flex-row md:items-center">
-              <div className="flex flex-1 flex-wrap items-center gap-3">
-                <div className="relative max-w-md flex-1">
-                  <span className="material-symbols-outlined pointer-events-none absolute top-2 left-2.5 text-[17px] text-muted">
-                    search
-                  </span>
-                  <Input
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    placeholder={tr('Search student, team, commit SHA, or repo...')}
-                    className="h-9 bg-paper pl-8 text-[12px]"
-                  />
-                </div>
-
-                <Tabs
-                  variant="segmented"
-                  size="sm"
-                  ariaLabel={tr('Filter submissions')}
-                  tabs={[
-                    { key: 'all', label: tr('All ({n})', { n: submissions.length }) },
-                    { key: 'flagged', label: tr('Flagged ({n})', { n: flaggedSet.size }) },
-                    { key: 'incomplete_defense', label: tr('No Defense ({n})', { n: submissions.length - metrics.withOwnershipCount }) },
-                    { key: 'scored', label: tr('Scored ({n})', { n: metrics.scoredCount }) },
-                  ]}
-                  active={filter}
-                  onChange={setFilter}
-                />
-              </div>
-
-              <div className="flex items-center gap-2">
-                <span className="font-mono-code text-[11px] text-muted">{tr('SORT:')}</span>
-                <Select
-                  aria-label={tr('Sort submissions')}
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value as SortKey)}
-                  className="font-mono-code h-9 w-48 bg-paper text-[11px]"
-                >
-                  <option value="risk">{tr('Similarity & Risk (Desc)')}</option>
-                  <option value="lowest_ownership">{tr('Lowest Ownership Score')}</option>
-                  <option value="highest_grade">{tr('Highest Composite Grade')}</option>
-                  <option value="name">{tr('Student Name (A–Z)')}</option>
-                </Select>
-              </div>
-            </div>
-
-            <div className="overflow-x-auto rounded-[6px] border border-line bg-surface">
-              <table className="w-full border-collapse text-left text-[13px]">
-                <thead className="font-mono-code border-b border-line bg-paper text-[11px] tracking-wider text-muted uppercase">
-                  <tr>
-                    <th className="px-4 py-3 font-semibold">{tr('Student / Team')}</th>
-                    <th className="px-3 py-3 font-semibold">{tr('Repository & Commit')}</th>
-                    <th className="px-3 py-3 text-right font-semibold">{tr('Oral Probe')}</th>
-                    <th className="px-3 py-3 font-semibold">{tr('Integrity Signal')}</th>
-                    <th className="px-3 py-3 text-right font-semibold">{tr('Composite')}</th>
-                    <th className="px-3 py-3 font-semibold">{tr('Status')}</th>
-                    <th className="px-4 py-3 text-right font-semibold">{tr('Inspection')}</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-line">
-                  {filteredRows.length === 0 ? (
-                    <tr>
-                      <td colSpan={7} className="px-4 py-8 text-center text-[13px] text-muted">
-                        {tr('No student submissions match the current filter.')}
-                      </td>
-                    </tr>
-                  ) : (
-                    filteredRows.map((s) => {
-                      const repo = s.current_version?.repos;
-                      const isFlagged = flaggedSet.has(s.id);
-                      const isSelected = s.id === effectiveSelectedId;
-                      return (
-                        <tr
-                          key={s.id}
-                          onClick={() => setSelectedSubId(s.id)}
-                          className={`cursor-pointer transition-colors ${
-                            isSelected
-                              ? 'bg-accent-soft/45'
-                              : isFlagged
-                                ? 'bg-bad-soft/25 hover:bg-bad-soft/40'
-                                : 'hover:bg-paper/60'
-                          }`}
-                        >
-                          <td className="px-4 py-3">
-                            <div className="flex items-center gap-2">
-                              <span
-                                className={`h-2 w-2 shrink-0 rounded-full ${
-                                  isFlagged ? 'bg-bad' : s.status === 'scored' ? 'bg-good' : 'bg-muted'
-                                }`}
-                              />
-                              <div>
-                                <div className="font-semibold text-ink">{s.submitted_by_name || s.team_name}</div>
-                                <div className="font-mono-code text-[11px] text-muted">{s.team_name}</div>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="font-mono-code px-3 py-3 text-[12px]">
-                            {repo ? (
-                              <a
-                                href={repo.url}
-                                target="_blank"
-                                rel="noreferrer"
-                                onClick={(e) => e.stopPropagation()}
-                                className="text-accent hover:underline"
-                              >
-                                {repo.owner}/{repo.name}
-                              </a>
-                            ) : (
-                              <span className="text-muted">—</span>
-                            )}
-                            {s.locked_commit_sha && (
-                              <div className="text-[10px] text-muted">{tr('commit @')}{s.locked_commit_sha.slice(0, 7)}</div>
-                            )}
-                          </td>
-                          <td className="font-mono-code px-3 py-3 text-right">
-                            {s.ownership ? (
-                              <span
-                                className={`font-bold ${
-                                  s.ownership.score >= 70 ? 'text-good' : 'text-bad'
-                                }`}
-                              >
-                                {s.ownership.score}/100
-                              </span>
-                            ) : (
-                              <span className="text-muted">—</span>
-                            )}
-                          </td>
-                          <td className="px-3 py-3">
-                            {isFlagged ? (
-                              <Badge tone="bad" dot>
-                                {tr('Similarity Flag')}
-                              </Badge>
-                            ) : (
-                              <Badge tone="good">{tr('Unique Tree')}</Badge>
-                            )}
-                          </td>
-                          <td className="font-mono-code px-3 py-3 text-right text-[14px] font-bold text-ink">
-                            {s.total != null ? `${s.total.toFixed(1)}` : '—'}
-                            <span className="text-[11px] font-normal text-muted"> / 100</span>
-                          </td>
-                          <td className="px-3 py-3">
-                            <Badge tone={s.status === 'scored' ? 'good' : s.status === 'error' ? 'bad' : 'neutral'}>
-                              {SUBMISSION_STATUS_LABEL[s.status]}
-                            </Badge>
-                          </td>
-                          <td className="px-4 py-3 text-right">
-                            {event && (
-                              <Link
-                                to={event.submissionLink(s.id)}
-                                onClick={(e) => e.stopPropagation()}
-                                className="btn-tactile font-mono-code inline-flex items-center gap-1 rounded-[3px] border border-line bg-surface px-2.5 py-1 text-[11px] font-semibold text-accent hover:border-accent"
-                              >
-                                <span>{tr('Inspect')}</span>
-                                <span>→</span>
-                              </Link>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </section>
-
-          {/* 5. TA & Professor Forensic Review Workbench (Split Forensic Drawer) */}
           {selectedSummary && (
-            <section className="overflow-hidden rounded-[6px] border border-line bg-surface">
-              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line bg-paper px-5 py-3.5">
-                <div className="flex items-center gap-2.5">
-                  <span
-                    className={`h-2.5 w-2.5 rounded-full ${
-                      flaggedSet.has(selectedSummary.id) ? 'bg-bad' : 'bg-good'
-                    }`}
-                  />
-                  <h2 className="font-serif-heading text-[20px] font-medium text-ink">
-                    {tr('Forensic Cross-Examination:')}{' '}{selectedSummary.submitted_by_name || selectedSummary.team_name}
-                  </h2>
-                  {flaggedSet.has(selectedSummary.id) && <Badge tone="bad">{tr('FLAGGED FOR REVIEW')}</Badge>}
-                </div>
-                <div className="font-mono-code flex items-center gap-2 text-[11px] text-muted">
-                  <span>{tr('TEAM:')}{' '}{selectedSummary.team_name}</span>
-                  {selectedSummary.locked_commit_sha && (
-                    <>
-                      <span>•</span>
-                      <span>{tr('COMMIT: @')}{selectedSummary.locked_commit_sha.slice(0, 7)}</span>
-                    </>
-                  )}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 divide-y divide-line lg:grid-cols-12 lg:divide-x lg:divide-y-0">
-                {/* Left 7 Cols: Audio Defense Telemetry & Repo Map Summary */}
-                <div className="space-y-5 p-6 lg:col-span-7">
-                  <div className="space-y-2">
-                    <div className="font-mono-code flex items-center justify-between text-[11px] text-muted uppercase">
-                      <span>{tr('AI Oral Defense Telemetry')}</span>
-                      <span className="font-semibold text-ink">
-                        {selectedSummary.ownership
-                          ? tr('OWNERSHIP: {score}/100 ({level})', { score: selectedSummary.ownership.score, level: selectedSummary.ownership.confidence })
-                          : tr('NO ORAL DEFENSE RECORDED')}
-                      </span>
-                    </div>
-                    <div className="rounded-[4px] border border-line bg-paper p-3.5">
-                      <WaveformVisualizer active={Boolean(selectedSummary.ownership)} />
-                      {selectedDetail.data?.interview && (
-                        <div className="mt-2.5 flex items-center justify-between border-t border-line pt-2 text-[12px]">
-                          <span className="font-mono-code text-muted">
-                            {tr('Session Status:')}{' '}{selectedDetail.data.interview.status.toUpperCase()}
-                          </span>
-                          <Link
-                            to={`/interview/${selectedDetail.data.interview.id}`}
-                            className="font-mono-code font-semibold text-accent hover:underline"
-                          >
-                            {tr('Open Full Voice Transcript →')}
-                          </Link>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {selectedAnalysis && (
-                    <div className="space-y-2 rounded-[4px] border border-line bg-paper/50 p-4">
-                      <div className="font-mono-code flex items-center justify-between text-[11px] text-muted uppercase">
-                        <span>{tr('Repository Analysis Summary')}</span>
-                        <span>{selectedAnalysis.file_count}{' '}{tr('files inspected')}</span>
-                      </div>
-                      <p className="text-[13px] leading-relaxed text-ink">{selectedAnalysis.map_json.summary}</p>
-                    </div>
-                  )}
-
-                  {selectedScores.length > 0 && (
-                    <div className="space-y-2">
-                      <span className="font-mono-code block text-[11px] font-bold text-muted uppercase">
-                        {tr('Criterion Breakdown')}
-                      </span>
-                      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                        {selectedScores.map((sc) => {
-                          const crit = selectedRubric.find((c) => c.key === sc.criterion_key);
-                          const val = sc.override_score ?? sc.ai_score ?? null;
-                          return (
-                            <div key={sc.id} className="rounded-[4px] border border-line bg-paper/45 p-3 text-[12px]">
-                              <div className="flex items-center justify-between gap-2">
-                                <span className="font-semibold text-ink">{crit?.name ?? sc.criterion_key}</span>
-                                <Badge tone={scoreTone(val)}>{val ?? '–'}/10</Badge>
-                              </div>
-                              <ScoreBar value={(val ?? 0) * 10} max={100} tone={scoreTone(val) === 'bad' ? 'bad' : 'accent'} heightClass="h-1" />
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Right 5 Cols: Faculty Grading & Determination */}
-                <div className="flex flex-col justify-between space-y-5 bg-surface p-6 lg:col-span-5">
-                  <div className="space-y-4">
-                    <div className="font-mono-code flex items-center justify-between border-b border-line pb-2 text-[11px] text-muted uppercase">
-                      <span>{tr('Score override & verdict')}</span>
-                      <span>{canOverride ? tr('OVERRIDE ACTIVE') : STATUS_LABEL[event?.status ?? 'open']}</span>
-                    </div>
-
-                    <div className="flex items-baseline justify-between">
-                      <span className="text-[13px] font-semibold text-ink">{tr('Composite Assignment Grade')}</span>
-                      <div className="font-mono-code">
-                        <span className="text-[24px] font-bold text-ink">
-                          {selectedSummary.total != null ? selectedSummary.total.toFixed(1) : '—'}
-                        </span>
-                        <span className="text-[12px] text-muted"> / 100</span>
-                      </div>
-                    </div>
-
-                    {canOverride && selectedScores[0] && (
-                      <div className="space-y-1.5 rounded-[4px] border border-line bg-paper p-3">
-                        <label className="font-mono-code block text-[11px] font-semibold text-ink">
-                          {tr('Quick Adjust First Criterion (')}{selectedRubric[0]?.name ?? selectedScores[0].criterion_key})
-                        </label>
-                        <div className="flex items-center gap-2">
-                          <Select
-                            disabled={busyScoreId === selectedScores[0].id}
-                            value={selectedScores[0].override_score ?? ''}
-                            onChange={(e) => {
-                              if (e.target.value) void overrideScore(selectedScores[0]!.id, Number(e.target.value));
-                            }}
-                            className="font-mono-code h-8 bg-surface text-[12px]"
-                          >
-                            <option value="">{tr('Keep AI (')}{selectedScores[0].ai_score ?? '–'})</option>
-                            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
-                              <option key={n} value={n}>
-                                {n} / 10
-                              </option>
-                            ))}
-                          </Select>
-                          {event && (
-                            <Link
-                              to={event.submissionLink(selectedSummary.id)}
-                              className="font-mono-code shrink-0 text-[11px] font-semibold text-accent hover:underline"
-                            >
-                              {tr('All Criteria →')}
-                            </Link>
-                          )}
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="space-y-2">
-                      <span className="font-mono-code block text-[11px] font-bold text-ink uppercase">
-                        {tr('Integrity Verdict')}
-                      </span>
-                      {(
-                        [
-                          {
-                            key: 'cod',
-                            title: tr('Refer to Committee on Discipline'),
-                            desc: tr('Unexplained similarity + failed oral defense.'),
-                          },
-                          {
-                            key: 'live_defense',
-                            title: tr('Mandate Live In-Person Defense'),
-                            desc: tr('Schedule 15-minute whiteboard walk with TA/instructor.'),
-                          },
-                          {
-                            key: 'clear',
-                            title: tr('Clear Flag (Verified Authorship)'),
-                            desc: tr('Approve grade for final roster publication.'),
-                          },
-                        ] as const
-                      ).map((v) => (
-                        <label
-                          key={v.key}
-                          className={`flex cursor-pointer items-start gap-2.5 rounded-[4px] border p-2.5 text-[12px] ${
-                            verdictChoice === v.key ? 'border-accent bg-accent-soft/40' : 'border-line bg-paper/40'
-                          }`}
-                        >
-                          <input
-                            type="radio"
-                            name="faculty_verdict"
-                            checked={verdictChoice === v.key}
-                            onChange={() => setVerdictChoice(v.key)}
-                            className="mt-0.5 accent-accent"
-                          />
-                          <div>
-                            <div className="font-semibold text-ink">{v.title}</div>
-                            <div className="text-[11px] text-muted">{v.desc}</div>
-                          </div>
-                        </label>
-                      ))}
-                    </div>
-
-                    <div className="space-y-1">
-                      <label className="font-mono-code block text-[11px] font-semibold text-ink uppercase">
-                        {tr('Official Docket Notes')}
-                      </label>
-                      <Textarea
-                        rows={3}
-                        value={docketNote}
-                        onChange={(e) => setDocketNote(e.target.value)}
-                        placeholder={tr('Notes for this verdict (kept in the history)…')}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex flex-wrap items-center gap-2.5 border-t border-line pt-4">
-                    <Button
-                      type="button"
-                      variant={verdictChoice === 'cod' ? 'danger' : 'primary'}
-                      className="flex-1"
-                      disabled={!canDecide || savingVerdict}
-                      onClick={() => void saveVerdict(selectedSummary.id, selectedSummary.submitted_by_name || selectedSummary.team_name)}
-                    >
-                      {savingVerdict ? tr('Saving…') : tr('Save Determination')}
-                    </Button>
-                    {event && (
-                      <Link to={event.submissionLink(selectedSummary.id)} className={linkButtonSecondary}>
-                        {tr('Full Judge View')}
-                      </Link>
-                    )}
-                  </div>
-                  {!canDecide && <p className="text-[11px] text-muted">{tr('Your role cannot record integrity determinations.')}</p>}
-                  {(() => {
-                    const history = (integrity.data?.decisions ?? []).filter((d) => (d.submission_id ?? d.assignment_submission_id) === selectedSummary.id);
-                    if (history.length === 0) return <p className="text-[11px] text-muted">{tr('No determination recorded for this student yet.')}</p>;
-                    return (
-                      <ul className="space-y-1 border-t border-line pt-3 text-[11px]">
-                        {history.map((d) => (
-                          <li key={d.id}>
-                            <span className="font-mono-code font-semibold text-ink">{VERDICT_LABEL[d.verdict] ?? d.verdict}</span>
-                            <span className="text-muted"> · {d.profiles?.display_name || tr('reviewer')} · {formatDate(d.created_at)}</span>
-                            {d.note && <span className="block text-muted">{d.note}</span>}
-                          </li>
-                        ))}
-                      </ul>
-                    );
-                  })()}
-                </div>
-              </div>
-            </section>
+            <ForensicWorkbench
+              target={event}
+              selectedSummary={selectedSummary}
+              isFlagged={flaggedSet.has(selectedSummary.id)}
+              interview={selectedDetail.data?.interview}
+              selectedAnalysis={selectedAnalysis}
+              selectedScores={selectedScores}
+              selectedRubric={selectedRubric}
+              canOverride={canOverride}
+              canDecide={canDecide}
+              busyScoreId={busyScoreId}
+              onOverrideScore={(scoreId, value) => void overrideScore(scoreId, value)}
+              verdictChoice={verdictChoice}
+              onVerdictChoiceChange={setVerdictChoice}
+              docketNote={docketNote}
+              onDocketNoteChange={setDocketNote}
+              savingVerdict={savingVerdict}
+              onSaveVerdict={(submissionId, who) => void saveVerdict(submissionId, who)}
+              decisions={integrity.data?.decisions ?? []}
+            />
           )}
         </>
       )}

@@ -6,7 +6,7 @@ import { audit } from '../lib/audit.js';
 import { requirePermission, requireUser } from '../lib/auth.js';
 import { badRequest, conflict, forbidden, notFound } from '../lib/errors.js';
 import { IdParams, parse } from '../lib/http.js';
-import { db, must } from '../lib/supabase.js';
+import { db, must, mustRows } from '../lib/supabase.js';
 
 const hashToken = (token: string) => createHash('sha256').update(token).digest('hex');
 const MemberParams = z.object({ id: z.uuid(), userId: z.uuid() });
@@ -25,12 +25,12 @@ async function roleId(key: OrgRole): Promise<string> {
 
 /** Members of an organization: one row per person, with all of their roles in it. */
 async function listMembers(orgId: string) {
-  const rows = must(
+  const rows = mustRows<MemberRow>(
     await db()
       .from('user_roles')
       .select('user_id, granted_at, roles(key), profiles!user_roles_user_id_fkey(display_name, avatar_url, github_login)')
       .eq('organization_id', orgId),
-  ) as unknown as MemberRow[];
+  );
   const byUser = new Map<string, { user_id: string; display_name: string; avatar_url: string | null; github_login: string | null; roles: string[]; joined_at: string; email: string | null }>();
   for (const r of rows) {
     const m = byUser.get(r.user_id) ?? {

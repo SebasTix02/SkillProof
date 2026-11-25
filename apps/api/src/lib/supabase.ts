@@ -18,3 +18,21 @@ export function must<T>(res: { data: T; error: { message: string } | null }): T 
   if (res.error) throw new Error(`Database error: ${res.error.message}`);
   return res.data;
 }
+
+/** Typed helper for PostgREST list queries with embedded relations, avoiding `as unknown as` casts in callers. */
+export function mustRows<T>(res: { data: unknown; error: { message: string } | null }): T[] {
+  if (res.error) throw new Error(`Database error: ${res.error.message}`);
+  return (res.data ?? []) as T[];
+}
+
+/** Typed helper for PostgREST `.single()` queries with embedded relations. */
+export function mustOne<T>(res: { data: unknown; error: { message: string } | null }): T {
+  if (res.error || res.data == null) throw new Error(`Database error: ${res.error?.message ?? 'Row not found'}`);
+  return res.data as T;
+}
+
+/** Typed helper for PostgREST `.maybeSingle()` queries with embedded relations. */
+export function maybeOne<T>(res: { data: unknown; error: { message: string } | null }): T | null {
+  if (res.error) throw new Error(`Database error: ${res.error.message}`);
+  return (res.data ?? null) as T | null;
+}

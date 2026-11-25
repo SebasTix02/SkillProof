@@ -1,4 +1,4 @@
-import { db, must } from '../lib/supabase.js';
+import { db, must, mustRows } from '../lib/supabase.js';
 import { STORES } from './contest.js';
 import { closeDueContests, failOrRetryIn, settleContest } from './judge.js';
 import { ACTIVE_WINDOW_MIN, dispatchJudging } from './judgeQueue.js';
@@ -14,13 +14,13 @@ async function recoverStuckJobs(): Promise<{ requeued: number; timedOut: number 
   // Started judging long ago and never finished (the function was stopped). It counts as a busy attempt,
   // so it goes back to the queue for an automatic retry, or stops after the last one.
   for (const store of STORES) {
-    const stuck = must(
+    const stuck = mustRows<{ id: string; judge_attempts: number; event_id?: string; assignment_id?: string }>(
       await db()
         .from(store.submissions)
         .select(`id, ${store.contestFk}, judge_attempts`)
         .eq('status', 'analyzing')
         .lt('updated_at', minutesAgo(ACTIVE_WINDOW_MIN)),
-    ) as unknown as { id: string; judge_attempts: number; event_id?: string; assignment_id?: string }[];
+    );
     for (const s of stuck) await failOrRetryIn(store, s.id, s.judge_attempts + 1, new Error('DEADLINE_EXCEEDED: judging took too long and was stopped'));
     timedOut += stuck.length;
     for (const contestId of new Set(stuck.map((s) => (store.kind === 'event' ? s.event_id : s.assignment_id)!))) await settleContest(store, contestId);

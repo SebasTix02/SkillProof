@@ -5,6 +5,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 import { useDelayed } from '../lib/loading';
 import { AppShell, Logo, TopProgress } from './AppShell';
+import { OfflineBanner } from './OfflineBanner';
 import { PageSkeleton, type PageSkeletonKind } from './shared/Skeleton';
 import { TONE_CLASS } from './shared/tokens';
 
@@ -190,6 +191,7 @@ export function Layout({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen bg-paper text-ink">
       <TopProgress />
+      <OfflineBanner />
       <a
         href="#main"
         className="sr-only z-[60] rounded-[4px] bg-accent px-3 py-2 text-[13px] font-medium text-on-accent focus:not-sr-only focus:fixed focus:top-2 focus:left-2"

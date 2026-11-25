@@ -252,19 +252,49 @@ export function selectFiles(entries: { path: string; bytes: Uint8Array }[], skip
  * The entries of a GitHub zipball that are worth reading. Skipped files are counted but never decompressed.
  * GitHub wraps everything in one top-level folder, which is stripped.
  */
-export function zipEntries(zip: Uint8Array): { entries: { path: string; bytes: Uint8Array }[]; skipped: SkippedCounts } {
+/** Maximum cumulative uncompressed source bytes extracted from a zipball (zip-bomb defense). */
+export const MAX_UNZIPPED_BYTES = 50 * 1024 * 1024;
+/** Maximum uncompressed bytes for a single extracted source file. */
+export const MAX_ENTRY_BYTES = 512 * 1024;
+
+function isSafeRelativePath(path: string): boolean {
+  return Boolean(path) && !path.startsWith('/') && !path.includes('\0') && !path.split('/').some((seg) => !seg || seg === '.' || seg === '..');
+}
+
+export function zipEntries(zip: Uint8Array, maxTotalBytes = MAX_UNZIPPED_BYTES): { entries: { path: string; bytes: Uint8Array }[]; skipped: SkippedCounts } {
   const skipped: SkippedCounts = {};
+  let declaredBytes = 0;
   const raw = unzipSync(zip, {
     filter: (f) => {
       if (f.name.endsWith('/')) return false;
-      const path = f.name.slice(f.name.indexOf('/') + 1);
-      if (!path) return false;
+      const slash = f.name.indexOf('/');
+      const path = slash >= 0 ? f.name.slice(slash + 1) : '';
+      if (!isSafeRelativePath(path)) return false;
       const reason = skipReason(path, f.originalSize);
-      if (reason) count(skipped, reason);
-      return !reason;
+      if (reason) {
+        count(skipped, reason);
+        return false;
+      }
+      if (f.originalSize > MAX_ENTRY_BYTES || declaredBytes + f.originalSize > maxTotalBytes) {
+        count(skipped, 'data');
+        return false;
+      }
+      declaredBytes += f.originalSize;
+      return true;
     },
   });
-  return { entries: Object.entries(raw).map(([name, bytes]) => ({ path: name.slice(name.indexOf('/') + 1), bytes })), skipped };
+  const entries: { path: string; bytes: Uint8Array }[] = [];
+  let actualBytes = 0;
+  for (const [name, bytes] of Object.entries(raw)) {
+    const path = name.slice(name.indexOf('/') + 1);
+    if (bytes.byteLength > MAX_ENTRY_BYTES || actualBytes + bytes.byteLength > maxTotalBytes) {
+      count(skipped, 'data');
+      continue;
+    }
+    actualBytes += bytes.byteLength;
+    entries.push({ path, bytes });
+  }
+  return { entries, skipped };
 }
 
 /** Unpacks a GitHub zipball and keeps only source text worth reading. */

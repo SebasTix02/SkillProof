@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { requireUser } from '../lib/auth.js';
 import { notFound } from '../lib/errors.js';
 import { parse } from '../lib/http.js';
-import { db, must } from '../lib/supabase.js';
+import { db, maybeOne, must } from '../lib/supabase.js';
 
 const UpdateProfileSchema = z.object({
   display_name: z.string().min(1).max(80).optional(),
@@ -79,9 +79,9 @@ export async function profileRoutes(app: FastifyInstance): Promise<void> {
   // Public: no sign-in needed. Only profiles their owner chose to publish.
   app.get('/api/profiles/:slug', async (req) => {
     const { slug } = parse(z.object({ slug: z.string().max(80) }), req.params);
-    const pub = must(
+    const pub = maybeOne<{ user_id: string; slug: string; headline: string; is_public: boolean; show_quotes: boolean; profiles: Record<string, unknown> }>(
       await db().from('public_profiles').select('user_id, slug, headline, is_public, show_quotes, profiles(display_name, github_login, avatar_url)').eq('slug', slug).maybeSingle(),
-    ) as unknown as { user_id: string; slug: string; headline: string; is_public: boolean; show_quotes: boolean; profiles: Record<string, unknown> } | null;
+    );
     if (!pub || !pub.is_public) throw notFound('Profile not found');
     const interviews = must(
       await db()
