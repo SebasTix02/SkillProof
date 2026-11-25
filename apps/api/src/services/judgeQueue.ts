@@ -1,5 +1,5 @@
 import { env } from '../env.js';
-import { db, must } from '../lib/supabase.js';
+import { db, must, mustRows } from '../lib/supabase.js';
 import { STORES } from './contest.js';
 import { enqueue } from './queue.js';
 
@@ -69,7 +69,7 @@ export async function dispatchJudging(): Promise<number> {
   // Events first, then course assignments, with the slots that are left.
   for (const store of STORES) {
     if (free <= 0) break;
-    const ready = must(
+    const ready = mustRows<{ id: string }>(
       await db()
         .from(store.submissions)
         .select(`id, ${store.contests}!inner(judging_paused_at)`)
@@ -80,7 +80,7 @@ export async function dispatchJudging(): Promise<number> {
         .order('next_attempt_at', { ascending: true, nullsFirst: true })
         .order('locked_at', { ascending: true })
         .limit(free),
-    ) as unknown as { id: string }[];
+    );
     for (const s of ready) await enqueue(store.job, s.id);
     free -= ready.length;
     started += ready.length;

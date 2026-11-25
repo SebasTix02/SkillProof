@@ -1,5 +1,6 @@
 import { tr } from '../i18n';
 import { NotificationBell } from './NotificationBell';
+import { OfflineBanner } from './OfflineBanner';
 import { PreferenceControls } from './ThemeControl';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
@@ -603,6 +604,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       </aside>
 
       <main id="main" tabIndex={-1} className="min-w-0 flex-1 focus:outline-none">
+        <OfflineBanner />
         <div className="mx-auto w-full max-w-[1760px] px-4 py-6 sm:px-6 md:px-8 lg:px-10 lg:py-8 2xl:px-12">{children}</div>
       </main>
     </div>

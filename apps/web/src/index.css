@@ -133,6 +133,7 @@
 }
 
 :root {
+  color-scheme: light;
   --canvas: #f7f7f5;
   --surface: #ffffff;
   --ink: #14161a;
@@ -563,5 +564,27 @@ a:hover .arrow-nudge {
     width: 100%;
     animation: none !important;
     opacity: 0.6;
+  }
+}
+
+/* Windows High Contrast / OS Forced Colors support for diverse visual needs. */
+@media (forced-colors: active) {
+  button,
+  input,
+  select,
+  textarea,
+  [role='tab'],
+  [role='switch'],
+  [role='progressbar'] {
+    forced-color-adjust: auto;
+    border: 1px solid ButtonText;
+  }
+  a:focus-visible,
+  button:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    outline: 2px solid Highlight !important;
+    outline-offset: 2px;
   }
 }

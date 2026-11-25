@@ -1,10 +1,11 @@
 import { zipSync, strToU8 } from 'fflate';
 import { describe, expect, it } from 'vitest';
 import { API_SECURITY_HEADERS } from './app.js';
-import { batchByTokens, extractFiles, isIgnoredPath, priority, renderFile, sliceLines, splitByBudget } from './engine/files.js';
+import { batchByTokens, extractFiles, isIgnoredPath, priority, renderFile, sliceLines, splitByBudget, zipEntries } from './engine/files.js';
 import { AttemptLimiter, hashAccessCode, verifyAccessCode } from './lib/accessCode.js';
 import { parseApiKeyList } from './env.js';
 import { AiUnavailableError, aiErrorStatus, isTransientAiError, modelLabel } from './lib/gemini.js';
+import { assertSafeRepoRef } from './lib/github.js';
 import { friendlyJobError } from './lib/jobErrors.js';
 import { can, isOrgMember, type RoleGrant } from './lib/permissions.js';
 import { slugify } from './lib/slug.js';
@@ -161,11 +162,30 @@ describe('Gemini errors', () => {
   });
 });
 
-describe('HTTP security headers', () => {
+describe('HTTP security headers & archive safety', () => {
   it('defines defensive headers without breaking microphone access for live interviews', () => {
     expect(API_SECURITY_HEADERS['x-content-type-options']).toBe('nosniff');
     expect(API_SECURITY_HEADERS['x-frame-options']).toBe('DENY');
     expect(API_SECURITY_HEADERS['referrer-policy']).toBe('strict-origin-when-cross-origin');
     expect(API_SECURITY_HEADERS['permissions-policy']).toContain('microphone=(self)');
+    expect(API_SECURITY_HEADERS['cross-origin-resource-policy']).toBe('same-origin');
+  });
+
+  it('rejects Zip-Slip traversal paths and enforces cumulative uncompressed byte limits', () => {
+    const zip = zipSync({
+      'repo-abc/src/ok.ts': strToU8('export const ok = true;\n'),
+      'repo-abc/../../etc/passwd': strToU8('root:x:0:0'),
+      'repo-abc/src/huge.ts': strToU8('x'.repeat(2_000)),
+    });
+    const out = zipEntries(zip, 500);
+    expect(out.entries.map((e) => e.path)).toEqual(['src/ok.ts']);
+  });
+
+  it('validates GitHub owner, repo, commit SHA and relative file paths against injection/traversal', () => {
+    expect(() => assertSafeRepoRef('SebasTix02', 'SkillProof', 'a'.repeat(40), 'apps/api/src/app.ts')).not.toThrow();
+    expect(() => assertSafeRepoRef('..', 'SkillProof')).toThrow();
+    expect(() => assertSafeRepoRef('SebasTix02', 'SkillProof', 'not-a-sha')).toThrow();
+    expect(() => assertSafeRepoRef('SebasTix02', 'SkillProof', 'a'.repeat(40), '../secret.env')).toThrow();
+    expect(() => assertSafeRepoRef('SebasTix02', 'SkillProof', 'a'.repeat(40), '/etc/passwd')).toThrow();
   });
 });

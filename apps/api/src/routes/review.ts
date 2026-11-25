@@ -9,7 +9,7 @@ import { requirePermission, requireUser, type AuthUser } from '../lib/auth.js';
 import { can as canDo } from '../lib/permissions.js';
 import { badRequest, forbidden, notFound } from '../lib/errors.js';
 import { IdParams, parse } from '../lib/http.js';
-import { db, must } from '../lib/supabase.js';
+import { db, must, mustOne, mustRows } from '../lib/supabase.js';
 
 interface SubmissionRef {
   id: string;
@@ -56,12 +56,12 @@ export async function reviewRoutes(app: FastifyInstance): Promise<void> {
     const { id } = parse(IdParams, req.params);
     const orgId = await eventOrg(id);
     requirePermission(user, 'event.manage', orgId);
-    const rows = must(
+    const rows = mustRows<{ user_id: string; roles: { key: string; role_permissions: { permissions: { key: string } | null }[] } | null; profiles: { display_name: string } | null }>(
       await db()
         .from('user_roles')
         .select('user_id, roles(key, role_permissions(permissions(key))), profiles!user_roles_user_id_fkey(display_name)')
         .eq('organization_id', orgId),
-    ) as unknown as { user_id: string; roles: { key: string; role_permissions: { permissions: { key: string } | null }[] } | null; profiles: { display_name: string } | null }[];
+    );
     const judges = new Map<string, { user_id: string; display_name: string; roles: string[] }>();
     for (const r of rows) {
       if (!r.roles?.role_permissions.some((rp) => rp.permissions?.key === 'submission.review')) continue;
@@ -79,9 +79,9 @@ export async function reviewRoutes(app: FastifyInstance): Promise<void> {
     requirePermission(user, 'event.manage', orgId);
     const input = parse(AssignJudgeSchema, req.body);
     // The judge must hold submission.review in this organization.
-    const grants = must(
+    const grants = mustRows<{ roles: { role_permissions: { permissions: { key: string } | null }[] } | null }>(
       await db().from('user_roles').select('roles(role_permissions(permissions(key)))').eq('user_id', input.judge_id).eq('organization_id', orgId),
-    ) as unknown as { roles: { role_permissions: { permissions: { key: string } | null }[] } | null }[];
+    );
     const canReview = grants.some((g) => g.roles?.role_permissions.some((rp) => rp.permissions?.key === 'submission.review'));
     if (!canReview) throw badRequest('not_a_judge', 'That person cannot review submissions in this organization.');
     const subs = must(await db().from('submissions').select('id').eq('event_id', id).in('id', input.submission_ids)) as { id: string }[];
@@ -238,10 +238,10 @@ export async function reviewRoutes(app: FastifyInstance): Promise<void> {
       throw forbidden();
     const flag = must(await db().from(flagsTable).select('submission_a, submission_b').eq('id', m.flag_id).single()) as { submission_a: string; submission_b: string };
     const side = async (submissionId: string, path: string, start: number, end: number) => {
-      const sub = must(await db().from(store.submissions).select(`locked_commit_sha, ${store.currentVersion}`).eq('id', submissionId).single()) as unknown as {
+      const sub = mustOne<{
         locked_commit_sha: string | null;
         current_version: { repos: { owner: string; name: string; url: string } | null } | null;
-      };
+      }>(await db().from(store.submissions).select(`locked_commit_sha, ${store.currentVersion}`).eq('id', submissionId).single());
       const repo = sub.current_version?.repos;
       if (!repo || !sub.locked_commit_sha) return { path, start, end, lines: [] as { number: number; text: string }[], repo: null, sha: null };
       const text = await getFileText(repo.owner, repo.name, sub.locked_commit_sha, path).catch(() => '');

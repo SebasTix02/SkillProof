@@ -10,7 +10,7 @@ import { memberOf, requirePermission, requireUser, type AuthUser } from '../lib/
 import { badRequest, conflict, forbidden, notFound, tooMany } from '../lib/errors.js';
 import { IdParams, parse } from '../lib/http.js';
 import { uniqueSlug } from '../lib/slug.js';
-import { db, must } from '../lib/supabase.js';
+import { db, must, mustRows } from '../lib/supabase.js';
 import { closeEvent } from '../services/judge.js';
 import { primaryModels } from '../lib/models.js';
 import { audit } from '../lib/audit.js';
@@ -74,7 +74,12 @@ interface ScoreRow {
 /** Submissions of an event with their scores and totals, best first. */
 export async function leaderboard(event: EventRow) {
   const rubric = RubricSchema.parse(event.rubric_json) as Rubric;
-  const subs = must(
+  const subs = mustRows<{
+    id: string; team_name: string; submitted_by: string; status: string; error: string | null; versions_used: number;
+    locked_commit_sha: string | null; locked_at: string | null;
+    activity_json: ActivityEntry[]; models_used: string[]; judge_attempts: number; next_attempt_at: string | null;
+    current_version: { description: string; video_url: string | null; slides_url: string | null; repos: Record<string, unknown> } | null;
+  }>(
     await db()
       .from('submissions')
       .select(
@@ -82,18 +87,13 @@ export async function leaderboard(event: EventRow) {
           'current_version:submission_versions!submissions_current_version_fk(description, video_url, slides_url, repos(owner, name, url, is_fork, fork_parent))',
       )
       .eq('event_id', event.id),
-  ) as unknown as {
-    id: string; team_name: string; submitted_by: string; status: string; error: string | null; versions_used: number;
-    locked_commit_sha: string | null; locked_at: string | null;
-    activity_json: ActivityEntry[]; models_used: string[]; judge_attempts: number; next_attempt_at: string | null;
-    current_version: { description: string; video_url: string | null; slides_url: string | null; repos: Record<string, unknown> } | null;
-  }[];
+  );
   const ids = subs.map((s) => s.id);
   const scores = ids.length ? (must(await db().from('scores').select('*').in('submission_id', ids)) as ScoreRow[]) : [];
   const interviews = ids.length
-    ? (must(
+    ? mustRows<{ submission_id: string; status: string; interview_reports: { ownership_score: number; confidence: string } | { ownership_score: number; confidence: string }[] | null }>(
         await db().from('interviews').select('submission_id, status, interview_reports(ownership_score, confidence)').in('submission_id', ids),
-      ) as unknown as { submission_id: string; status: string; interview_reports: { ownership_score: number; confidence: string } | { ownership_score: number; confidence: string }[] | null }[])
+      )
     : [];
   const rows = subs.map((s) => {
     const mine = scores.filter((x) => x.submission_id === s.id);
@@ -149,16 +149,18 @@ export async function eventRoutes(app: FastifyInstance): Promise<void> {
     const user = await requireUser(req);
     const { id: orgId } = parse(IdParams, req.params);
     if (!memberOf(user, orgId)) throw forbidden();
-    const rows = must(
+    const rows = mustRows<
+      EventRow & {
+        submissions: { count: number }[];
+        event_participants: { count: number }[];
+      }
+    >(
       await db()
         .from('events')
         .select('*, organizations(name, slug), submissions(count), event_participants(count)')
         .eq('organization_id', orgId)
         .order('created_at', { ascending: false }),
-    ) as unknown as (EventRow & {
-      submissions: { count: number }[];
-      event_participants: { count: number }[];
-    })[];
+    );
     return {
       events: rows.map(({ submissions, event_participants, ...e }) => ({
         ...publicEvent(e),
@@ -324,9 +326,9 @@ export async function eventRoutes(app: FastifyInstance): Promise<void> {
 
   app.get('/api/me/events', async (req) => {
     const user = await requireUser(req);
-    const rows = must(
+    const rows = mustRows<{ events: EventRow }>(
       await db().from('event_participants').select('joined_at, events(*, organizations(name, slug))').eq('user_id', user.id).order('joined_at', { ascending: false }),
-    ) as unknown as { events: EventRow }[];
+    );
     return { events: rows.map((r) => publicEvent(r.events)) };
   });
 

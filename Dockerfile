@@ -29,4 +29,6 @@ COPY --from=build --chown=node:node /app /app
 USER node
 # Cloud Run sets PORT (8080 by default); the server listens on 0.0.0.0.
 EXPOSE 8080
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD ["node", "-e", "fetch('http://127.0.0.1:' + (process.env.PORT || 8080) + '/healthz').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
 CMD ["node", "apps/api/dist/server.js"]

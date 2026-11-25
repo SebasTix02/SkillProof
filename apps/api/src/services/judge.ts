@@ -6,7 +6,7 @@ import { AiUnavailableError, clockUtc, isTransientAiError } from '../lib/gemini.
 import { getHeadSha, getRepoMeta } from '../lib/github.js';
 import { JobStopped, submissionCheckpoint } from '../lib/control.js';
 import { friendlyJobError, technicalDetail } from '../lib/jobErrors.js';
-import { db, must } from '../lib/supabase.js';
+import { db, maybeOne, must, mustRows } from '../lib/supabase.js';
 import { ASSIGNMENT_STORE, EVENT_STORE, scoringSpecFor, type ContestStore } from './contest.js';
 import { MAX_AUTO_ATTEMPTS, dispatchJudging, freeSlots, nextAttemptAt, overLimit } from './judgeQueue.js';
 import { scoreSubmission } from './scoring.js';
@@ -111,9 +111,9 @@ export async function settleContest(store: ContestStore, contestId: string): Pro
   if (error) throw new Error(`Database error: ${error.message}`);
   // Paused submissions keep it in judging; canceled ones do not.
   if ((count ?? 0) === 0) {
-    const moved = must(
+    const moved = mustRows<{ id: string }>(
       await db().from(store.contests).update({ status: 'review', judging_paused_at: null }).eq('id', contestId).eq('status', 'judging').select('id'),
-    ) as unknown[];
+    );
     // Every submission is judged: compare their code (in the background; it only reads fingerprints).
     if (moved.length) await enqueue(store.kind === 'event' ? 'similarity-event' : 'similarity-assignment', contestId).catch((err) => console.warn('Similarity job not queued:', err));
   }
@@ -135,9 +135,9 @@ export async function closeContest(store: ContestStore, contestId: string): Prom
   const contest = flipped[0];
   if (!contest) return { closed: false, queued: 0 };
 
-  const subs = must(
+  const subs = mustRows<SubmissionRow>(
     await db().from(store.submissions).select(submissionSelect(store)).eq(store.contestFk, contestId).not('current_version_id', 'is', null),
-  ) as unknown as SubmissionRow[];
+  );
 
   // Freeze first, for everyone, before any slow work starts.
   const locked: SubmissionRow[] = [];
@@ -176,13 +176,13 @@ async function courseSubject(sub: SubmissionRow): Promise<{ label: string; spec:
   const course: CourseContext = { title: a.title, instructions: a.instructions, learningGoals: a.learning_goals };
   if (sub.group_id) {
     const group = must(await db().from('assignment_groups').select('name').eq('id', sub.group_id).single()) as { name: string };
-    const members = must(
+    const members = mustRows<{ profiles: { display_name: string; github_login: string | null } | null }>(
       await db()
         .from('assignment_group_members')
         .select('profiles!assignment_group_members_user_id_fkey(display_name, github_login)')
         .eq('group_id', sub.group_id)
         .eq('status', 'accepted'),
-    ) as unknown as { profiles: { display_name: string; github_login: string | null } | null }[];
+    );
     course.members = members.map((m) => ({ name: m.profiles?.display_name ?? 'Student', login: m.profiles?.github_login ?? null, commits: null }));
     return { label: group.name, spec: scoringSpecFor('assignment', a.mode) as 'course_group', course, rubricJson: a.rubric_json, start: a.opens_at, language: a.language };
   }
@@ -192,7 +192,7 @@ async function courseSubject(sub: SubmissionRow): Promise<{ label: string; spec:
 
 /** Analyses the frozen commit of one submission and scores it. Runs as a background job. */
 export async function judgeContestSubmission(store: ContestStore, submissionId: string): Promise<void> {
-  const sub = must(await db().from(store.submissions).select(submissionSelect(store)).eq('id', submissionId).maybeSingle()) as unknown as SubmissionRow | null;
+  const sub = maybeOne<SubmissionRow>(await db().from(store.submissions).select(submissionSelect(store)).eq('id', submissionId).maybeSingle());
   if (!sub || sub.status === 'scored') return;
   const version = sub.current_version;
   if (!version || !sub.locked_commit_sha) return;

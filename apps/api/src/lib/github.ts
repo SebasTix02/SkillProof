@@ -5,6 +5,23 @@ import { badRequest } from './errors.js';
 
 const API = 'https://api.github.com';
 const MAX_ZIP_BYTES = 60 * 1024 * 1024;
+const MAX_RAW_FILE_BYTES = 1024 * 1024;
+const SAFE_IDENT = /^[A-Za-z0-9_.-]{1,100}$/;
+const SAFE_SHA = /^[0-9a-f]{40}$/i;
+
+export function assertSafeRepoRef(owner: string, name: string, sha?: string, path?: string): void {
+  if (!SAFE_IDENT.test(owner) || owner === '.' || owner === '..' || !SAFE_IDENT.test(name) || name === '.' || name === '..') {
+    throw badRequest('invalid_repo', 'Invalid GitHub owner or repository name.');
+  }
+  if (sha !== undefined && !SAFE_SHA.test(sha)) {
+    throw badRequest('invalid_commit', 'Invalid Git commit SHA.');
+  }
+  if (path !== undefined) {
+    if (!path || path.startsWith('/') || path.includes('\0') || path.split('/').some((seg) => !seg || seg === '.' || seg === '..')) {
+      throw badRequest('invalid_path', 'Invalid repository file path.');
+    }
+  }
+}
 
 function headers(accept = 'application/vnd.github+json'): Record<string, string> {
   const h: Record<string, string> = {
@@ -39,6 +56,7 @@ export interface RepoMeta {
 const enc = encodeURIComponent;
 
 export async function getRepoMeta(owner: string, name: string): Promise<RepoMeta> {
+  assertSafeRepoRef(owner, name);
   const res = await gh(`/repos/${enc(owner)}/${enc(name)}`);
   const j = (await res.json()) as {
     name: string;
@@ -64,6 +82,7 @@ export async function getRepoMeta(owner: string, name: string): Promise<RepoMeta
 
 /** The commit a branch points at right now. This is what gets frozen when an event closes. */
 export async function getHeadSha(owner: string, name: string, branch: string): Promise<string> {
+  assertSafeRepoRef(owner, name);
   const res = await gh(`/repos/${enc(owner)}/${enc(name)}/commits/${enc(branch)}`, 'application/vnd.github.sha');
   const sha = (await res.text()).trim();
   if (!/^[0-9a-f]{40}$/.test(sha)) throw new Error('GitHub returned an unexpected commit id');
@@ -72,18 +91,25 @@ export async function getHeadSha(owner: string, name: string, branch: string): P
 
 /** Downloads the tree of one exact commit as a zip. */
 export async function downloadZip(owner: string, name: string, sha: string): Promise<Uint8Array> {
+  assertSafeRepoRef(owner, name, sha);
   const res = await fetch(`${API}/repos/${enc(owner)}/${enc(name)}/zipball/${sha}`, {
     headers: headers(),
     redirect: 'follow',
     signal: AbortSignal.timeout(120_000),
   });
   if (!res.ok || !res.body) throw new Error(`Could not download the repository (${res.status})`);
+  const reader = res.body.getReader();
   const chunks: Uint8Array[] = [];
   let size = 0;
-  for await (const chunk of res.body as unknown as AsyncIterable<Uint8Array>) {
-    size += chunk.byteLength;
-    if (size > MAX_ZIP_BYTES) throw badRequest('repo_too_large', 'The repository is larger than 60 MB compressed.');
-    chunks.push(chunk);
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    size += value.byteLength;
+    if (size > MAX_ZIP_BYTES) {
+      await reader.cancel();
+      throw badRequest('repo_too_large', 'The repository is larger than 60 MB compressed.');
+    }
+    chunks.push(value);
   }
   const out = new Uint8Array(size);
   let offset = 0;
@@ -101,6 +127,7 @@ interface CommitItem {
 
 /** Shape of the last 100 commits up to `sha`. Commit dates are set by the author, so this is a signal, not proof. */
 export async function getCommitProfile(owner: string, name: string, sha: string, eventStart?: string | null): Promise<CommitProfile> {
+  assertSafeRepoRef(owner, name, sha);
   const res = await gh(`/repos/${enc(owner)}/${enc(name)}/commits?sha=${sha}&per_page=100`);
   const items = (await res.json()) as CommitItem[];
   const dates = items.map((c) => c.commit.author?.date).filter((d): d is string => !!d).sort();
@@ -121,6 +148,7 @@ export async function getCommitProfile(owner: string, name: string, sha: string,
 
 /** Who committed to one file (GitHub logins, else names), most recent commits first. For group interviews. */
 export async function getFileAuthors(owner: string, name: string, sha: string, path: string): Promise<string[]> {
+  assertSafeRepoRef(owner, name, sha, path);
   const res = await gh(`/repos/${enc(owner)}/${enc(name)}/commits?sha=${sha}&path=${encodeURIComponent(path)}&per_page=30`);
   const items = (await res.json()) as CommitItem[];
   return [...new Set(items.map((c) => (c.author?.login ?? c.commit.author?.name ?? '').toLowerCase()).filter(Boolean))];
@@ -144,10 +172,30 @@ export async function getFileText(owner: string, name: string, sha: string, path
 }
 
 async function rawFile(owner: string, name: string, sha: string, path: string): Promise<Uint8Array> {
+  assertSafeRepoRef(owner, name, sha, path);
   const url = `https://raw.githubusercontent.com/${enc(owner)}/${enc(name)}/${sha}/${path.split('/').map(enc).join('/')}`;
   const res = await fetch(url, { headers: { 'User-Agent': 'skillproof' }, signal: AbortSignal.timeout(30_000) });
-  if (!res.ok) throw new Error(`GitHub answered ${res.status} for ${path}`);
-  return new Uint8Array(await res.arrayBuffer());
+  if (!res.ok || !res.body) throw new Error(`GitHub answered ${res.status} for ${path}`);
+  const reader = res.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    size += value.byteLength;
+    if (size > MAX_RAW_FILE_BYTES) {
+      await reader.cancel();
+      throw badRequest('file_too_large', `Repository file ${path} exceeds the 1 MB source limit.`);
+    }
+    chunks.push(value);
+  }
+  const out = new Uint8Array(size);
+  let offset = 0;
+  for (const c of chunks) {
+    out.set(c, offset);
+    offset += c.byteLength;
+  }
+  return out;
 }
 
 /**
@@ -156,6 +204,7 @@ async function rawFile(owner: string, name: string, sha: string, path: string): 
  * zipball when the tree is too large to list or holds too many files.
  */
 export async function downloadRepoFiles(owner: string, name: string, sha: string): Promise<RepoEntries> {
+  assertSafeRepoRef(owner, name, sha);
   try {
     const res = await gh(`/repos/${enc(owner)}/${enc(name)}/git/trees/${sha}?recursive=1`);
     const tree = (await res.json()) as { truncated: boolean; tree: { path: string; type: string; size?: number }[] };

@@ -7,7 +7,7 @@ import { memberOf, requirePermission, requireUser } from '../lib/auth.js';
 import { badRequest, conflict, forbidden, notFound, tooMany } from '../lib/errors.js';
 import { IdParams, parse } from '../lib/http.js';
 import { getHeadSha } from '../lib/github.js';
-import { db, must } from '../lib/supabase.js';
+import { db, maybeOne, must } from '../lib/supabase.js';
 import { INTERVIEW_SPECS, type InterviewSpecKey } from '../services/interviewSpecs.js';
 import {
   answerKey, createLiveToken, interviewSpecFor, oneInterviewPerCommit, publicQuestions, type ExistingInterview, type InterviewRow,
@@ -86,16 +86,16 @@ export async function interviewRoutes(app: FastifyInstance): Promise<void> {
     let locale: 'en' | 'es' = 'en';
 
     if (input.submission_id) {
-      const sub = must(
+      const sub = maybeOne<{
+        id: string; submitted_by: string; organization_id: string; locked_commit_sha: string | null;
+        events: { interviews_enabled: boolean; status: string; language: 'en' | 'es' }; current_version: { repo_id: string } | null;
+      }>(
         await db()
           .from('submissions')
           .select('id, submitted_by, organization_id, locked_commit_sha, events(interviews_enabled, status, language), current_version:submission_versions!submissions_current_version_fk(repo_id)')
           .eq('id', input.submission_id)
           .maybeSingle(),
-      ) as unknown as {
-        id: string; submitted_by: string; organization_id: string; locked_commit_sha: string | null;
-        events: { interviews_enabled: boolean; status: string; language: 'en' | 'es' }; current_version: { repo_id: string } | null;
-      } | null;
+      );
       if (!sub || sub.submitted_by !== user.id) throw notFound('Submission not found');
       if (!sub.events.interviews_enabled) throw forbidden('Interviews are not enabled for this event.');
       if (!sub.locked_commit_sha || !sub.current_version || !['review', 'published'].includes(sub.events.status))
@@ -113,7 +113,10 @@ export async function interviewRoutes(app: FastifyInstance): Promise<void> {
       locale = interviewLocale('event', input.locale, sub.events.language) ?? languageFixed();
     } else if (input.assignment_submission_id) {
       // A course assignment: the student, or each member of the group, takes their own interview.
-      const sub = must(
+      const sub = maybeOne<{
+        id: string; student_id: string | null; group_id: string | null; organization_id: string; locked_commit_sha: string | null;
+        course_assignments: { interviews_enabled: boolean; status: string; language: 'en' | 'es' }; current_version: { repo_id: string } | null;
+      }>(
         await db()
           .from('assignment_submissions')
           .select(
@@ -122,10 +125,7 @@ export async function interviewRoutes(app: FastifyInstance): Promise<void> {
           )
           .eq('id', input.assignment_submission_id)
           .maybeSingle(),
-      ) as unknown as {
-        id: string; student_id: string | null; group_id: string | null; organization_id: string; locked_commit_sha: string | null;
-        course_assignments: { interviews_enabled: boolean; status: string; language: 'en' | 'es' }; current_version: { repo_id: string } | null;
-      } | null;
+      );
       if (!sub) throw notFound('Submission not found');
       const mine = sub.student_id
         ? sub.student_id === user.id

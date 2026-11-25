@@ -27,6 +27,7 @@ export const API_SECURITY_HEADERS: Readonly<Record<string, string>> = {
   // HTTPS only for a year (Cloud Run and Vercel always serve HTTPS; browsers ignore it over plain HTTP).
   'strict-transport-security': 'max-age=31536000; includeSubDomains',
   'cross-origin-opener-policy': 'same-origin',
+  'cross-origin-resource-policy': 'same-origin',
 };
 
 export interface BuildAppOptions {

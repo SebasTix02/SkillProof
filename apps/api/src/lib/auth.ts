@@ -1,7 +1,7 @@
 import type { FastifyRequest } from 'fastify';
 import { forbidden, unauthorized } from './errors.js';
 import { can, isOrgMember, type RoleGrant } from './permissions.js';
-import { db, must } from './supabase.js';
+import { db, mustRows } from './supabase.js';
 
 export interface AuthUser {
   id: string;
@@ -20,12 +20,12 @@ interface RoleRow {
 }
 
 export async function loadGrants(userId: string): Promise<RoleGrant[]> {
-  const rows = must(
+  const rows = mustRows<RoleRow>(
     await db()
       .from('user_roles')
       .select('organization_id, roles(key, scope, role_permissions(permissions(key)))')
       .eq('user_id', userId),
-  ) as unknown as RoleRow[];
+  );
   return rows
     .filter((r) => r.roles)
     .map((r) => ({

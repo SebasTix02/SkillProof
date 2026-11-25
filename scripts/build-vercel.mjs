@@ -74,6 +74,7 @@ writeFileSync(
             'Permissions-Policy': 'camera=(), geolocation=(), microphone=(self)',
             'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
             'Cross-Origin-Opener-Policy': 'same-origin',
+            'Cross-Origin-Resource-Policy': 'same-origin',
             'Content-Security-Policy': [
               "default-src 'self'",
               `script-src 'self' ${scriptHashes.join(' ')}`.trim(),

@@ -9,7 +9,7 @@ import { parseGithubUrl } from '@skillproof/shared';
 import { blobSha, fileKind, selectFiles, type RepoFile } from '../engine/files.js';
 import { compareSubmissions, fingerprintFile, longestFragment, shouldFlag, type FileFingerprints, type SubmissionPrints } from '../engine/fingerprint.js';
 import { downloadRepoFiles, getHeadSha, getRepoMeta } from '../lib/github.js';
-import { db, must } from '../lib/supabase.js';
+import { db, must, mustRows } from '../lib/supabase.js';
 import { ASSIGNMENT_STORE, EVENT_STORE, type ContestStore } from './contest.js';
 
 /** Files larger than this are not fingerprinted (generated or vendored code). */
@@ -107,13 +107,13 @@ export async function computeSimilarity(store: ContestStore, contestId: string):
     | { id: string; organization_id: string; starter_repo_url: string | null }
     | null;
   if (!contest) return { compared: 0, flagged: 0 };
-  const subs = must(
+  const subs = mustRows<SubRow>(
     await db()
       .from(store.submissions)
       .select(`id, analysis_id, locked_commit_sha, ${store.currentVersion}`)
       .eq(store.contestFk, contestId)
       .not('analysis_id', 'is', null),
-  ) as unknown as SubRow[];
+  );
   if (subs.length < 2) return { compared: subs.length, flagged: 0 };
 
   const prints: SubmissionPrints[] = [];
