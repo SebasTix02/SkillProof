@@ -119,6 +119,31 @@ describe('up to 4 concise questions', async () => {
     );
     expect(sanitized.text).not.toContain('current_node_id');
     expect(sanitized.text).not.toContain('Analyze Output');
+
+    // Inline <actions><call:.../></actions> emitted by Gemini Live inside outputTranscription:
+    const inlineShow = sanitizeInterviewerTurn(
+      'De acuerdo, avancemos a la siguiente cuestión. <actions>\n<call:show_questionquestion_id="q3"/> </actions> ¿Cómo adaptarías el cálculo para permitir interés compuesto con reinversión periódica?',
+    );
+    expect(inlineShow.questionId).toBe('q3');
+    expect(inlineShow.endInterview).toBe(false);
+    expect(inlineShow.text).toBe(
+      'De acuerdo, avancemos a la siguiente cuestión. ¿Cómo adaptarías el cálculo para permitir interés compuesto con reinversión periódica?',
+    );
+    expect(inlineShow.text).not.toContain('<actions>');
+    expect(inlineShow.text).not.toContain('show_question');
+
+    // Partial mid-stream <actions> tag stays hidden until </actions> arrives:
+    const partialStream = sanitizeInterviewerTurn('Está bien, miremos el último punto. <actions>\n<call:show_questionquestion_id="q4"');
+    expect(partialStream.text).toBe('Está bien, miremos el último punto.');
+    expect(partialStream.cut).toBe(false);
+
+    // Inline <call:end_interview/> triggers interview termination cleanly without leaking tags:
+    const inlineEnd = sanitizeInterviewerTurn(
+      'Perfecto. Muchas gracias por tu tiempo; el reporte estará listo muy pronto. <actions>\n<call:end_interview/> </actions>',
+    );
+    expect(inlineEnd.endInterview).toBe(true);
+    expect(inlineEnd.text).toBe('Perfecto. Muchas gracias por tu tiempo; el reporte estará listo muy pronto.');
+    expect(inlineEnd.text).not.toContain('<call:');
   });
 
   it('tells the interviewer how long each question gets and how to close when time is up', () => {
