@@ -36,10 +36,13 @@ export function useInterviewSession({
   const [skipLocked, setSkipLocked] = useState(false);
 
   const transcript = useRef<TranscriptEntry[]>([]);
-  const questionId = useRef<string | null>(null);
+  const questionId = useRef<string | null>(questions[0]?.id ?? null);
   const sessionRef = useRef<Session | null>(null);
   const speakerRef = useRef<Speaker | null>(null);
   const turnCutRef = useRef(false);
+  const turnEndedRef = useRef(false);
+  // Raw streaming buffer for the current interviewer turn so split `<actions><call:.../></actions>` chunks reassemble cleanly.
+  const rawTurnRef = useRef('');
   // Ending without cutting anyone off: see lib/wrapUp.ts.
   const wrap = useRef(new WrapUp());
   const [wrapping, setWrapping] = useState<'time' | 'end' | null>(null);
@@ -70,29 +73,73 @@ export function useInterviewSession({
   }, []);
   useEffect(() => teardown, [teardown]);
 
-  const say = useCallback((role: TranscriptEntry['role'], text: string) => {
-    if (!text) return;
-    if (role === 'candidate') turnCutRef.current = false;
-    if (role === 'interviewer' && turnCutRef.current) return;
-    const list = transcript.current;
-    const last = list[list.length - 1];
-    if (last && last.role === role) {
-      const needsSpace = /[.!?]$/.test(last.text) && /^[^\s]/.test(text);
-      last.text += (needsSpace ? ' ' : '') + text;
-    } else {
-      list.push({ role, text, at_ms: clockNow() - startedAt.current, question_id: questionId.current });
-    }
-    const entry = list[list.length - 1];
-    if (entry && role === 'interviewer') {
-      const cleaned = sanitizeInterviewerTurn(entry.text);
-      entry.text = cleaned.text;
-      if (cleaned.cut) {
-        turnCutRef.current = true;
-        speakerRef.current?.flush();
+  const applyQuestionById = useCallback(
+    (id: string) => {
+      const found = questions.find((q) => q.id === id) ?? null;
+      if (!found) return null;
+      questionId.current = found.id;
+      setQuestion(found);
+      return found;
+    },
+    [questions],
+  );
+
+  const say = useCallback(
+    (role: TranscriptEntry['role'], text: string) => {
+      if (!text) return;
+      if (role === 'candidate') {
+        turnCutRef.current = false;
+        turnEndedRef.current = false;
+        rawTurnRef.current = '';
       }
-    }
-    setMessages([...list]);
-  }, []);
+      if (role === 'interviewer' && turnCutRef.current) return;
+      const list = transcript.current;
+      const last = list[list.length - 1];
+
+      if (role === 'interviewer') {
+        // Start a fresh bubble when a new model turn begins after an already-completed question turn.
+        const startFreshBubble = turnEndedRef.current && rawTurnRef.current.includes('?');
+        turnEndedRef.current = false;
+        if (startFreshBubble) rawTurnRef.current = '';
+
+        const needsSpace = /[.!?]$/.test(rawTurnRef.current) && /^[^\s]/.test(text);
+        rawTurnRef.current += (needsSpace ? ' ' : '') + text;
+        const cleaned = sanitizeInterviewerTurn(rawTurnRef.current);
+
+        if (cleaned.questionId) {
+          applyQuestionById(cleaned.questionId);
+        }
+        if (cleaned.endInterview) {
+          micClosed.current = true;
+          wrap.current.endRequestedByModel(clockNow());
+          setWrapping((w) => w ?? 'end');
+        }
+        if (cleaned.cut) {
+          turnCutRef.current = true;
+          speakerRef.current?.flush();
+        }
+        if (!cleaned.text) return;
+
+        if (last && last.role === 'interviewer' && !startFreshBubble) {
+          last.text = cleaned.text;
+          if (cleaned.questionId) last.question_id = questionId.current;
+        } else {
+          list.push({ role: 'interviewer', text: cleaned.text, at_ms: clockNow() - startedAt.current, question_id: questionId.current });
+        }
+        setMessages([...list]);
+        return;
+      }
+
+      if (last && last.role === role) {
+        const needsSpace = /[.!?]$/.test(last.text) && /^[^\s]/.test(text);
+        last.text += (needsSpace ? ' ' : '') + text;
+      } else {
+        list.push({ role, text, at_ms: clockNow() - startedAt.current, question_id: questionId.current });
+      }
+      setMessages([...list]);
+    },
+    [applyQuestionById],
+  );
 
   const finish = useCallback(async () => {
     if (finished.current) return;
@@ -119,12 +166,16 @@ export function useInterviewSession({
     }
   }, [interview.id, onChanged, teardown, endAway, endPause, focusEvents]);
 
-  /** "Next question": tells the interviewer to move on, and marks the skip in the transcript for the evaluation. */
+  /** "Next question": advances deterministically on the client, tells the interviewer to move on, or ends on the last question. */
   const nextQuestion = useCallback(() => {
     if (skipLocked) return;
     const current = questionId.current ?? questions[0]?.id ?? null;
-    const idx = questions.findIndex((q) => q.id === current);
+    const idx = Math.max(0, questions.findIndex((q) => q.id === current));
     const isLast = idx >= questions.length - 1;
+    speakerRef.current?.flush();
+    wrap.current.modelTurnEnded();
+    turnCutRef.current = false;
+    rawTurnRef.current = '';
     transcript.current.push({
       role: 'system',
       text: `The candidate asked to move on from question ${current ?? 'unknown'}.`,
@@ -133,20 +184,29 @@ export function useInterviewSession({
     });
     setMessages([...transcript.current]);
     if (isLast) {
+      micClosed.current = true;
       wrap.current.endNow(clockNow());
       setWrapping((w) => w ?? 'end');
+      void finish();
       return;
     }
+    const nextQ = questions[idx + 1] ?? null;
+    if (nextQ) {
+      questionId.current = nextQ.id;
+      setQuestion(nextQ);
+    }
     setSkipLocked(true);
-    setTimeout(() => setSkipLocked(false), 5000);
+    setTimeout(() => setSkipLocked(false), 1200);
     try {
       sessionRef.current?.sendRealtimeInput({
-        text: 'The candidate asked to move on. Briefly acknowledge and call show_question with the next question, then ask it.',
+        text: nextQ
+          ? `The candidate asked to move on. Briefly acknowledge and ask question ${nextQ.id} now.`
+          : 'The candidate asked to move on and there are no more questions. Thank them in one sentence and call end_interview.',
       });
     } catch {
       // socket is closing
     }
-  }, [questions, skipLocked]);
+  }, [finish, questions, skipLocked]);
 
   const pause = useCallback(() => {
     if (!beginPause(wrap.current.wrappingUp)) return;
@@ -191,6 +251,7 @@ export function useInterviewSession({
     requestInitialFullscreen();
     setPhase('connecting');
     turnCutRef.current = false;
+    rawTurnRef.current = '';
     let stream: MediaStream | null = null;
     let session: Session | null = null;
     let stopMic: (() => void) | null = null;
@@ -217,6 +278,8 @@ export function useInterviewSession({
       const content = msg.serverContent;
       if (content?.interrupted) {
         turnCutRef.current = false;
+        rawTurnRef.current = '';
+        wrap.current.modelTurnEnded();
         speaker.flush();
       }
       for (const part of content?.modelTurn?.parts ?? []) {
@@ -228,10 +291,12 @@ export function useInterviewSession({
       }
       if (content?.turnComplete || content?.generationComplete) {
         turnCutRef.current = false;
+        turnEndedRef.current = true;
         wrap.current.modelTurnEnded();
       }
       if (content?.inputTranscription?.text) {
         turnCutRef.current = false;
+        rawTurnRef.current = '';
         wrap.current.candidateSpoke(clockNow());
         say('candidate', content.inputTranscription.text);
       }
@@ -244,11 +309,7 @@ export function useInterviewSession({
         if (call.name === 'show_question') {
           turnCutRef.current = false;
           const id = String((call.args as { question_id?: unknown } | undefined)?.question_id ?? '');
-          const found = questions.find((q) => q.id === id) ?? null;
-          if (found) {
-            questionId.current = found.id;
-            setQuestion(found);
-          }
+          applyQuestionById(id);
         }
         if (call.name === 'end_interview') ended = true;
       }
@@ -317,6 +378,9 @@ export function useInterviewSession({
         const action = wrap.current.step(now, speaker.pending());
         if (action.sendNotice) {
           micClosed.current = true;
+          turnCutRef.current = false;
+          turnEndedRef.current = true;
+          rawTurnRef.current = '';
           try {
             open.sendRealtimeInput({
               text: 'Time is up. Thank the candidate in one or two sentences and call end_interview.',
@@ -344,11 +408,11 @@ export function useInterviewSession({
       setPhase('idle');
     }
   }, [
+    applyQuestionById,
     finish,
     interview.id,
     pausedRef,
     pausedSoFar,
-    questions,
     requestInitialFullscreen,
     resume,
     say,

@@ -34,8 +34,43 @@ export const QuestionPlanDraftSchema = z.object({
 const LEAKED_REASONING_RE =
   /(?:\s*-\s*`?(?:current_node_id|next_node_id)`?|\s*\b\d+\.\s*\*\*(?:Analyze|Formulate|Evaluate|Determine|Reasoning|Thought|Output|Response|Step)\b|\s*\*\*(?:Analyze Output|Formulate Response|Internal Reasoning|Thought Process)\b|\n\s*(?:[-*]|\d+\.)\s+)/i;
 
+export interface SanitizedInterviewerTurn {
+  text: string;
+  cut: boolean;
+  /** Extracted when Gemini Live emits `<call:show_question ...>` inline as text instead of a `toolCall` frame. */
+  questionId: string | null;
+  /** True when Gemini Live emits `<call:end_interview/>` inline as text instead of a `toolCall` frame. */
+  endInterview: boolean;
+}
+
+/** Parses inline tool-call XML/tags that Gemini Live native-audio models sometimes emit inside `outputTranscription`. */
+export function extractInlineLiveActions(raw: string): { questionId: string | null; endInterview: boolean } {
+  let questionId: string | null = null;
+  const showRe = /<call:show_question[^>]*?question_id\s*[:=]\s*["']?([a-z0-9_-]+)["']?[^>]*>|\bshow_question\s*\(\s*(?:question_id\s*=\s*)?["']([a-z0-9_-]+)["']\s*\)/gi;
+  for (const m of raw.matchAll(showRe)) {
+    const id = m[1] ?? m[2];
+    if (id) questionId = id;
+  }
+  const endInterview = /<call:end_interview\b[^>]*>|\bend_interview\s*\(\s*\)/i.test(raw);
+  return { questionId, endInterview };
+}
+
+function stripInlineActionTags(raw: string): string {
+  return (
+    raw
+      // Complete <actions>...</actions>, <tool_call>...</tool_call>, <function_call>...</function_call> blocks
+      .replace(/<(?:actions|tool_call|function_calls?)\b[^>]*>[\s\S]*?<\/(?:actions|tool_call|function_calls?)>/gi, ' ')
+      // Standalone <call:.../> or stray opening/closing action tags
+      .replace(/<(?:\/?actions\b[^>]*|call:[^>]*|\/?tool_call\b[^>]*|\/?function_calls?\b[^>]*)>/gi, ' ')
+      // Unclosed <actions>... block still streaming before </actions> arrives
+      .replace(/<(?:actions|tool_call|function_calls?)\b[\s\S]*$/i, '')
+      // Partial trailing XML tag at the end of a streaming chunk (e.g. "<ac" or "<call:show_")
+      .replace(/<\/?[a-z_:][^>]*$/i, '')
+  );
+}
+
 function normalizeSpokenSpacing(text: string): string {
-  return text
+  return stripInlineActionTags(text)
     .replace(/([.!?])([A-ZÁÉÍÓÚÑ¿])/g, '$1 $2')
     .replace(/`+/g, '')
     .replace(/\*\*+/g, '')
@@ -73,13 +108,15 @@ export function clampQuestionText(raw: string, maxChars = MAX_QUESTION_CHARS): s
 
 /**
  * Sanitizes a streaming live interviewer turn:
+ * - Extracts and strips inline `<actions><call:.../></actions>` tags so tool calls never leak into chat bubbles
  * - Strips leaked chain-of-thought / dialog-node / markdown artifacts (`current_node_id`, `**Analyze Output:**`, etc.)
- * - Stops the turn immediately after the first question mark `?` so the interviewer never asks multiple questions or rambles after a question
+ * - Stops the turn immediately after the first closing question mark `?` so the interviewer never asks multiple questions
  * - Enforces a hard `maxChars` ceiling
  */
-export function sanitizeInterviewerTurn(raw: string, maxChars = MAX_INTERVIEWER_TURN_CHARS): { text: string; cut: boolean } {
+export function sanitizeInterviewerTurn(raw: string, maxChars = MAX_INTERVIEWER_TURN_CHARS): SanitizedInterviewerTurn {
+  const actions = extractInlineLiveActions(raw);
   let cut = false;
-  let working = raw;
+  let working = stripInlineActionTags(raw);
 
   const leakMatch = LEAKED_REASONING_RE.exec(working);
   if (leakMatch) {
@@ -108,7 +145,7 @@ export function sanitizeInterviewerTurn(raw: string, maxChars = MAX_INTERVIEWER_
     working = `${trimmed}?`;
   }
 
-  return { text: working.trimStart(), cut };
+  return { text: working.trim(), cut, questionId: actions.questionId, endInterview: actions.endInterview };
 }
 
 /** Group assignments: one short interview per member, about the code they wrote, with at most 2 questions. */
